@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "CareWise",
+    "slug": "carewise",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "carewise",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carewise.app"
+    },
+    "android": {
+      "package": "com.carewise.app"
+    },
+    "extra": {
+      "apiBaseUrl": "https://carewise-api.onrender.com"
+    },
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}
