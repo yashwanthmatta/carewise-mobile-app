@@ -7,6 +7,7 @@ This must be reviewed before Apple App Store or Google Play submission.
 - Account email
 - Health information entered by the user
 - Uploaded report text/files
+- Saved lab trend values and notes
 - Medication and allergy information
 - Consent history
 - Subscription/payment status
@@ -21,6 +22,7 @@ This must be reviewed before Apple App Store or Google Play submission.
 - Doctor disclaimer
 - Data export request
 - Data deletion request
+- Lab trend save/load controls
 - Notification opt-in and opt-out
 
 ## Store Forms

@@ -50,6 +50,32 @@ export type ReportAnalysisOut = {
   recommendations: Record<string, unknown>;
 };
 
+export type LabTrendInput = {
+  patient_id: string;
+  report_id?: string | null;
+  test_name: string;
+  value: string;
+  unit?: string;
+  observed_on?: string;
+  flag?: string;
+  notes?: string;
+  source?: string;
+};
+
+export type LabTrendOut = {
+  id: string;
+  patient_id: string;
+  report_id?: string | null;
+  test_name: string;
+  value: string;
+  unit: string;
+  observed_on: string;
+  flag: string;
+  notes: string;
+  source: string;
+  created_at: string;
+};
+
 export class CareWiseApiClient {
   constructor(
     private readonly baseUrl: string,
@@ -130,10 +156,20 @@ export class CareWiseApiClient {
   }
 
   analyzeReport(reportId: string) {
-    return this.request<ReportAnalysisOut>("/reports/analyze", {
+    return this.request<ReportAnalysisOut>(`/reports/${reportId}/analyze`, {
       method: "POST",
-      body: JSON.stringify({ report_id: reportId }),
     });
+  }
+
+  saveLabTrend(input: LabTrendInput) {
+    return this.request<LabTrendOut>("/lab-trends", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  listLabTrends(patientId: string) {
+    return this.request<LabTrendOut[]>(`/lab-trends?patient_id=${encodeURIComponent(patientId)}`);
   }
 
   getRecommendations(patientId: string, contextText: string, dietStyle: string, goals: string[]) {

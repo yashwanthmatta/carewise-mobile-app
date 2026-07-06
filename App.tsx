@@ -12,15 +12,16 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as DocumentPicker from "expo-document-picker";
-import { CareWiseApiClient, type ReportAnalysisOut, type SessionOut } from "./src/apiClient";
+import { CareWiseApiClient, type LabTrendOut, type ReportAnalysisOut, type SessionOut } from "./src/apiClient";
 
 const API_BASE_URL = "https://carewise-api.onrender.com";
 
-type Screen = "dashboard" | "reports" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
+type Screen = "dashboard" | "reports" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
 
 const screens: { key: Screen; label: string }[] = [
   { key: "dashboard", label: "Home" },
   { key: "reports", label: "Reports" },
+  { key: "labs", label: "Labs" },
   { key: "recommendations", label: "Care" },
   { key: "doctors", label: "Doctors" },
   { key: "insurance", label: "Insurance" },
@@ -40,6 +41,12 @@ export default function App() {
   const [reportText, setReportText] = useState("");
   const [reportName, setReportName] = useState("mobile-report.txt");
   const [analysis, setAnalysis] = useState<ReportAnalysisOut | null>(null);
+  const [labTrends, setLabTrends] = useState<LabTrendOut[]>([]);
+  const [labTestName, setLabTestName] = useState("LDL cholesterol");
+  const [labValue, setLabValue] = useState("");
+  const [labUnit, setLabUnit] = useState("mg/dL");
+  const [labFlag, setLabFlag] = useState("not_sure");
+  const [labNotes, setLabNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
   const api = useMemo(() => new CareWiseApiClient(API_BASE_URL, token), [token]);
@@ -129,6 +136,52 @@ export default function App() {
     });
   }
 
+  function saveLabTrend() {
+    run("Saving lab value", async () => {
+      if (!labValue.trim()) {
+        setStatus("Enter a lab value before saving.");
+        return;
+      }
+      const activePatientId = patientId || (await api.saveProfile({
+        name: "Mobile Patient",
+        conditions: "General wellness planning",
+        location_region: "US",
+        insurance_status: "unknown"
+      })).patient_id;
+      setPatientId(activePatientId);
+      const trend = await api.saveLabTrend({
+        patient_id: activePatientId,
+        report_id: analysis?.report_id ?? null,
+        test_name: labTestName,
+        value: labValue.trim(),
+        unit: labUnit.trim(),
+        observed_on: new Date().toISOString().slice(0, 10),
+        flag: labFlag,
+        notes: labNotes.trim() || "Saved from CareWise mobile. Verify against the original report.",
+        source: "mobile"
+      });
+      setLabTrends((items) => [trend, ...items.filter((item) => item.id !== trend.id)].slice(0, 50));
+      setLabValue("");
+      setLabNotes("");
+      setStatus(`${trend.test_name} saved to cloud lab trends. Review with a licensed clinician.`);
+    });
+  }
+
+  function loadLabTrends() {
+    run("Loading cloud lab trends", async () => {
+      const activePatientId = patientId || (await api.saveProfile({
+        name: "Mobile Patient",
+        conditions: "General wellness planning",
+        location_region: "US",
+        insurance_status: "unknown"
+      })).patient_id;
+      setPatientId(activePatientId);
+      const trends = await api.listLabTrends(activePatientId);
+      setLabTrends(trends);
+      setStatus(`Loaded ${trends.length} cloud lab value${trends.length === 1 ? "" : "s"}.`);
+    });
+  }
+
   async function pickReportFile() {
     const result = await DocumentPicker.getDocumentAsync({ type: ["text/plain", "application/pdf", "image/*"] });
     if (result.canceled || !result.assets?.[0]) return;
@@ -198,6 +251,39 @@ export default function App() {
           </View>
         ) : null}
 
+        {screen === "labs" ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Lab Trends</Text>
+            <Text style={styles.bodyText}>Save key values for visit preparation. CareWise does not diagnose; a licensed clinician should interpret your original report and reference range.</Text>
+            <TextInput style={styles.input} value={labTestName} onChangeText={setLabTestName} placeholder="Test name, example LDL cholesterol" />
+            <TextInput style={styles.input} value={labValue} onChangeText={setLabValue} placeholder="Value, example 142" keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={labUnit} onChangeText={setLabUnit} placeholder="Unit, example mg/dL" />
+            <TextInput style={styles.input} value={labFlag} onChangeText={setLabFlag} placeholder="Flag: high, low, in_range, not_sure" autoCapitalize="none" />
+            <TextInput
+              style={[styles.input, styles.textAreaSmall]}
+              value={labNotes}
+              onChangeText={setLabNotes}
+              placeholder="Notes or question for your clinician"
+              multiline
+            />
+            <View style={styles.buttonRow}>
+              <ActionButton label="Save lab" onPress={saveLabTrend} disabled={!token || busy} />
+              <ActionButton label="Load cloud labs" onPress={loadLabTrends} disabled={!token || busy} />
+            </View>
+            {labTrends.length ? (
+              <View style={styles.list}>
+                {labTrends.slice(0, 5).map((item) => (
+                  <View key={item.id} style={styles.listItem}>
+                    <Text style={styles.listTitle}>{item.test_name}</Text>
+                    <Text style={styles.bodyText}>{item.value} {item.unit} · {item.flag} · {item.observed_on || "No date"}</Text>
+                    {item.notes ? <Text style={styles.smallText}>{item.notes}</Text> : null}
+                  </View>
+                ))}
+              </View>
+            ) : <Text style={styles.smallText}>No cloud lab trends loaded yet.</Text>}
+          </View>
+        ) : null}
+
         {screen === "recommendations" ? <InfoCard title="Care Plan" lines={["Diet, habits, and exercise recommendations will use backend care-plan APIs.", "Never show AI output as a diagnosis or prescription."]} /> : null}
         {screen === "doctors" ? <InfoCard title="Doctor Search" lines={["Use location and specialty to call the doctor search API.", "Show disclaimers and let users verify provider details."]} /> : null}
         {screen === "insurance" ? <InfoCard title="Insurance Guidance" lines={["Use the insurance match API for education only.", "Do not promise coverage or exact out-of-pocket cost."]} /> : null}
@@ -246,6 +332,7 @@ const styles = StyleSheet.create({
   status: { color: "#08766e", fontSize: 13, fontWeight: "800" },
   input: { minHeight: 46, borderRadius: 8, borderWidth: 1, borderColor: "#cbdcd5", padding: 12, backgroundColor: "#fbfffd" },
   textArea: { minHeight: 130, textAlignVertical: "top" },
+  textAreaSmall: { minHeight: 88, textAlignVertical: "top" },
   buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   button: { minHeight: 42, justifyContent: "center", borderRadius: 8, backgroundColor: "#08766e", paddingHorizontal: 14, paddingVertical: 8 },
   disabledButton: { backgroundColor: "#9bb8b2" },
@@ -254,5 +341,8 @@ const styles = StyleSheet.create({
   tab: { borderRadius: 999, borderWidth: 1, borderColor: "#cbdcd5", backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 8 },
   activeTab: { borderColor: "#08766e", backgroundColor: "#e8fff8" },
   tabText: { color: "#60716d", fontWeight: "800" },
-  activeTabText: { color: "#053f3c" }
+  activeTabText: { color: "#053f3c" },
+  list: { gap: 8 },
+  listItem: { borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
+  listTitle: { color: "#053f3c", fontSize: 15, fontWeight: "900" }
 });
