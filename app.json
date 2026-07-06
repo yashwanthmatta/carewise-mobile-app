@@ -17,7 +17,8 @@
       "apiBaseUrl": "https://carewise-api.onrender.com"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-secure-store"
     ]
   }
 }

@@ -76,6 +76,7 @@ Before App Store or Google Play submission, complete Apple App Privacy details a
 ## Current Mobile MVP
 
 - Sign up / login
+- Secure device session persistence with logout
 - Refresh-token session support
 - Verify current user via backend
 - Record consent
@@ -96,3 +97,4 @@ Binary PDF/image upload is still a next step for mobile. The current starter sup
 - Human-reviewed Privacy Policy, Terms, Medical Disclaimer, and Data Deletion workflow.
 - Apple App Privacy and Google Play Data Safety forms that match production data flows.
 - TestFlight / internal Android testing with real devices before public release.
+- Store-ready secure session QA on iOS and Android preview builds.

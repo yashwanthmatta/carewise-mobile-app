@@ -24,6 +24,7 @@ This must be reviewed before Apple App Store or Google Play submission.
 - Data deletion request
 - Lab trend save/load controls
 - Notification opt-in and opt-out
+- Clear sign-out control that removes saved session tokens from the device
 
 ## Store Forms
 
@@ -34,5 +35,6 @@ This must be reviewed before Apple App Store or Google Play submission.
 ## Security Notes
 
 - Do not store API keys in the mobile app.
+- Store user session tokens only in platform secure storage.
 - Do not log health data.
 - Keep AI processing and protected health logic server-side.

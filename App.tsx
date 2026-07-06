@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Linking,
@@ -12,9 +12,12 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as DocumentPicker from "expo-document-picker";
+import * as SecureStore from "expo-secure-store";
 import { CareWiseApiClient, type LabTrendOut, type ReportAnalysisOut, type SessionOut } from "./src/apiClient";
 
 const API_BASE_URL = "https://carewise-api.onrender.com";
+const ACCESS_TOKEN_KEY = "carewise.accessToken";
+const REFRESH_TOKEN_KEY = "carewise.refreshToken";
 
 type Screen = "dashboard" | "reports" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
 
@@ -51,6 +54,41 @@ export default function App() {
 
   const api = useMemo(() => new CareWiseApiClient(API_BASE_URL, token), [token]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSession() {
+      try {
+        const [savedAccessToken, savedRefreshToken] = await Promise.all([
+          SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
+          SecureStore.getItemAsync(REFRESH_TOKEN_KEY)
+        ]);
+
+        if (!savedAccessToken || cancelled) return;
+
+        const restoredApi = new CareWiseApiClient(API_BASE_URL, savedAccessToken);
+        const me = await restoredApi.me();
+
+        if (cancelled) return;
+        setToken(savedAccessToken);
+        setRefreshToken(savedRefreshToken ?? "");
+        setSession(me);
+        setStatus(`Welcome back, ${me.email}.`);
+      } catch {
+        await clearStoredSession();
+        if (!cancelled) {
+          setStatus("Your saved session expired. Please sign in again.");
+        }
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function run(label: string, action: () => Promise<void>) {
     setBusy(true);
     setStatus(`${label}...`);
@@ -64,12 +102,23 @@ export default function App() {
   }
 
   async function saveTokenPair(response: { access_token: string; refresh_token?: string }) {
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, response.access_token);
+    if (response.refresh_token) {
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, response.refresh_token);
+    }
     setToken(response.access_token);
     if (response.refresh_token) setRefreshToken(response.refresh_token);
     api.setToken(response.access_token);
     const me = await api.me();
     setSession(me);
     setStatus(`Signed in as ${me.email}.`);
+  }
+
+  async function clearStoredSession() {
+    await Promise.all([
+      SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY)
+    ]);
   }
 
   function signup() {
@@ -90,6 +139,20 @@ export default function App() {
     run("Refreshing session", async () => {
       const response = await api.refresh(refreshToken);
       await saveTokenPair(response);
+    });
+  }
+
+  function logout() {
+    run("Signing out", async () => {
+      await clearStoredSession();
+      api.setToken(null);
+      setToken("");
+      setRefreshToken("");
+      setSession(null);
+      setPatientId("");
+      setAnalysis(null);
+      setLabTrends([]);
+      setStatus("Signed out. Your saved mobile session was cleared from this device.");
     });
   }
 
@@ -206,6 +269,7 @@ export default function App() {
             <ActionButton label="Sign up" onPress={signup} disabled={busy} />
             <ActionButton label="Login" onPress={login} disabled={busy} />
             <ActionButton label="Refresh" onPress={refreshSession} disabled={!refreshToken || busy} />
+            <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
           </View>
           <Text style={styles.status}>{status}</Text>
           {session ? (

@@ -82,7 +82,7 @@ export class CareWiseApiClient {
     private token: string | null = null,
   ) {}
 
-  setToken(token: string) {
+  setToken(token: string | null) {
     this.token = token;
   }
 
