@@ -54,6 +54,7 @@ Use preview builds for TestFlight/internal Android testing before public store s
 - `src/navigationPlan.md` - mobile screen flow
 - `src/safetyRules.md` - mobile health safety rules
 - `src/appStorePrivacyChecklist.md` - Apple/Google privacy prep
+- `src/finalLaunchStage.md` - final-stage launch readiness map
 
 ## Important
 
@@ -82,7 +83,8 @@ Before App Store or Google Play submission, complete Apple App Privacy details a
 - Record consent
 - Sync basic patient profile
 - Paste report text
-- Upload report record
+- Pick PDF/image/text reports from the phone
+- Upload report files to backend storage
 - Analyze report
 - Save and reload lab trends through the backend
 - Legal links to the deployed CareWise pages

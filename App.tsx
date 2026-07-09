@@ -43,6 +43,7 @@ export default function App() {
   const [patientId, setPatientId] = useState("");
   const [reportText, setReportText] = useState("");
   const [reportName, setReportName] = useState("mobile-report.txt");
+  const [selectedReportFile, setSelectedReportFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [analysis, setAnalysis] = useState<ReportAnalysisOut | null>(null);
   const [labTrends, setLabTrends] = useState<LabTrendOut[]>([]);
   const [labTestName, setLabTestName] = useState("LDL cholesterol");
@@ -187,15 +188,25 @@ export default function App() {
         insurance_status: "unknown"
       })).patient_id;
       setPatientId(activePatientId);
-      const report = await api.uploadReport({
-        patient_id: activePatientId,
-        file_name: reportName || "mobile-report.txt",
-        content_type: "text/plain",
-        report_text: reportText || "No report text entered."
-      });
+      const report = selectedReportFile
+        ? await api.uploadReportFile({
+          patient_id: activePatientId,
+          report_text: reportText,
+          file: {
+            uri: selectedReportFile.uri,
+            name: selectedReportFile.name || reportName || "mobile-report",
+            type: selectedReportFile.mimeType || "application/octet-stream"
+          }
+        })
+        : await api.uploadReport({
+          patient_id: activePatientId,
+          file_name: reportName || "mobile-report.txt",
+          content_type: "text/plain",
+          report_text: reportText || "No report text entered."
+        });
       const result = await api.analyzeReport(report.id);
       setAnalysis(result);
-      setStatus(`Report analyzed with status: ${result.status}`);
+      setStatus(`Report uploaded and analyzed with status: ${result.status}`);
     });
   }
 
@@ -248,8 +259,10 @@ export default function App() {
   async function pickReportFile() {
     const result = await DocumentPicker.getDocumentAsync({ type: ["text/plain", "application/pdf", "image/*"] });
     if (result.canceled || !result.assets?.[0]) return;
-    setReportName(result.assets[0].name);
-    Alert.alert("File selected", "For this starter, paste readable report text before upload. Binary upload will be added next.");
+    const file = result.assets[0];
+    setSelectedReportFile(file);
+    setReportName(file.name);
+    setStatus(`${file.name} selected. Add readable text if the file is an image/PDF that may need OCR help.`);
   }
 
   return (
@@ -311,6 +324,14 @@ export default function App() {
               <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} />
               <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={!token || busy} />
             </View>
+            {selectedReportFile ? (
+              <View style={styles.fileBadge}>
+                <Text style={styles.listTitle}>{selectedReportFile.name}</Text>
+                <Text style={styles.smallText}>
+                  {selectedReportFile.mimeType || "Unknown type"} · {selectedReportFile.size ? `${Math.round(selectedReportFile.size / 1024)} KB` : "size unavailable"}
+                </Text>
+              </View>
+            ) : null}
             {analysis ? <Text style={styles.bodyText}>Risk: {analysis.risk_level} · Status: {analysis.status}</Text> : null}
           </View>
         ) : null}
@@ -407,6 +428,7 @@ const styles = StyleSheet.create({
   tabText: { color: "#60716d", fontWeight: "800" },
   activeTabText: { color: "#053f3c" },
   list: { gap: 8 },
+  fileBadge: { borderRadius: 8, borderWidth: 1, borderColor: "#b8e2db", backgroundColor: "#e8fff8", padding: 10 },
   listItem: { borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
   listTitle: { color: "#053f3c", fontSize: 15, fontWeight: "900" }
 });

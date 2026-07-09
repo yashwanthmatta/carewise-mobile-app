@@ -38,6 +38,9 @@ export type ReportUploadOut = {
   patient_id: string;
   file_name: string;
   status: string;
+  content_type?: string;
+  storage_url?: string;
+  file_size_bytes?: number;
 };
 
 export type ReportAnalysisOut = {
@@ -99,7 +102,9 @@ export class CareWiseApiClient {
 
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const headers = new Headers(options.headers);
-    headers.set("Content-Type", "application/json");
+    if (!(options.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json");
+    }
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
 
     const response = await fetch(`${this.baseUrl}${path}`, {
@@ -152,6 +157,26 @@ export class CareWiseApiClient {
     return this.request<ReportUploadOut>("/reports/upload", {
       method: "POST",
       body: JSON.stringify(input),
+    });
+  }
+
+  uploadReportFile(input: {
+    patient_id: string;
+    report_text?: string;
+    file: {
+      uri: string;
+      name: string;
+      type: string;
+    };
+  }) {
+    const form = new FormData();
+    form.append("patient_id", input.patient_id);
+    form.append("report_text", input.report_text ?? "");
+    form.append("file", input.file as unknown as Blob);
+
+    return this.request<ReportUploadOut>("/reports/upload-file", {
+      method: "POST",
+      body: form,
     });
   }
 
