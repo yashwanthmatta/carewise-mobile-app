@@ -49,8 +49,11 @@ assert(packageJson.scripts?.typecheck === "tsc --noEmit", "typecheck script is m
 assert(packageJson.scripts?.["release:check"] === "node scripts/mobile_release_check.js", "release:check script is missing");
 assert(packageJson.dependencies?.["expo-secure-store"], "expo-secure-store dependency is missing");
 assert(packageJson.dependencies?.["expo-document-picker"], "expo-document-picker dependency is missing");
+assert(packageJson.dependencies?.["expo-constants"], "expo-constants dependency is missing");
 
 assert(appSource.includes("SecureStore"), "App must use secure token storage");
+assert(appSource.includes("Constants.expoConfig?.extra?.apiBaseUrl"), "App must read API URL from Expo config");
+assert(!appSource.includes('const API_BASE_URL = "https://carewise-api.onrender.com"'), "App must not hardcode production API URL only in source");
 assert(appSource.includes("DocumentPicker.getDocumentAsync"), "App must expose file picking");
 assert(appSource.includes("uploadReportFile"), "App must call mobile file upload");
 assert(appSource.includes("logout"), "App must include logout behavior");

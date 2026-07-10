@@ -13,9 +13,10 @@ import {
 import { StatusBar } from "expo-status-bar";
 import * as DocumentPicker from "expo-document-picker";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 import { CareWiseApiClient, type LabTrendOut, type ReportAnalysisOut, type SessionOut } from "./src/apiClient";
 
-const API_BASE_URL = "https://carewise-api.onrender.com";
+const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
 const REFRESH_TOKEN_KEY = "carewise.refreshToken";
 

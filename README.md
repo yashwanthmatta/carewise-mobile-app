@@ -67,6 +67,8 @@ Do not put API keys in the mobile app.
 
 All AI, medical safety logic, and protected health processing should happen server-side.
 
+The app reads its backend URL from `app.json` at `expo.extra.apiBaseUrl`. Change that config value for staging or production builds instead of editing `App.tsx`.
+
 ## MVP Screen Contract
 
 - Auth: signup, login, logout, signed-in identity, password reset placeholder
