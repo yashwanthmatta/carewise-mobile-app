@@ -106,6 +106,13 @@ export class CareWiseApiClient {
     });
   }
 
+  logout(refreshToken: string) {
+    return this.request<{ status: string }>("/auth/logout", {
+      method: "POST",
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  }
+
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const headers = new Headers(options.headers);
     if (!(options.body instanceof FormData)) {

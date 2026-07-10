@@ -179,6 +179,13 @@ export default function App() {
 
   function logout() {
     run("Signing out", async () => {
+      if (refreshToken) {
+        try {
+          await api.logout(refreshToken);
+        } catch {
+          // Still clear local session if the network is down or the token was already invalidated.
+        }
+      }
       await clearStoredSession();
       api.setToken(null);
       setToken("");
@@ -187,7 +194,7 @@ export default function App() {
       setPatientId("");
       setAnalysis(null);
       setLabTrends([]);
-      setStatus("Signed out. Your saved mobile session was cleared from this device.");
+      setStatus("Signed out. Your saved mobile session was cleared from this device and the server session was revoked when reachable.");
     });
   }
 

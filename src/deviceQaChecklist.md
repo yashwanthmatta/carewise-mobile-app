@@ -18,6 +18,7 @@ Run this on at least one iPhone and one Android device before public release.
 - Request a password reset and confirm the message does not ask users to share health details.
 - Confirm password reset with a valid token in a non-production account or email-enabled environment.
 - Log out and confirm protected actions are disabled.
+- Confirm logout still clears the device if the network is unavailable.
 
 ## Consent And Profile
 

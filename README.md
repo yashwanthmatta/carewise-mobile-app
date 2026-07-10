@@ -93,6 +93,7 @@ Before App Store or Google Play submission, complete Apple App Privacy details a
 - Sign up / login
 - Password reset request and confirm flow
 - Secure device session persistence with logout
+- Backend refresh-token revocation on logout
 - Refresh-token session support
 - Verify current user via backend
 - Record consent
