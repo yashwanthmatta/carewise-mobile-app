@@ -90,6 +90,7 @@ Before App Store or Google Play submission, complete Apple App Privacy details a
 ## Current Mobile MVP
 
 - Sign up / login
+- Password reset help placeholder
 - Secure device session persistence with logout
 - Refresh-token session support
 - Verify current user via backend

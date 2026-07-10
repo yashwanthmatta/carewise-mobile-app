@@ -144,6 +144,17 @@ export default function App() {
     });
   }
 
+  function requestPasswordResetHelp() {
+    Alert.alert(
+      "Password reset",
+      "Password reset email delivery is not enabled yet. For this MVP, use the account email you signed up with or open the Data Deletion page for account support. Do not share health details in support messages.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open support", onPress: () => Linking.openURL("https://carewise-frontend.onrender.com/legal/data-deletion.html") }
+      ]
+    );
+  }
+
   function logout() {
     run("Signing out", async () => {
       await clearStoredSession();
@@ -284,6 +295,7 @@ export default function App() {
             <ActionButton label="Login" onPress={login} disabled={busy} />
             <ActionButton label="Refresh" onPress={refreshSession} disabled={!refreshToken || busy} />
             <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
+            <ActionButton label="Reset help" onPress={requestPasswordResetHelp} disabled={busy} />
           </View>
           <Text style={styles.status}>{status}</Text>
           {session ? (
