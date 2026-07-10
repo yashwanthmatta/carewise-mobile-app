@@ -26,6 +26,7 @@ Recommended path:
 ```bash
 cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outputs/carewise-mobile-app
 npm install
+npm run release:check
 npm run start
 ```
 
@@ -36,6 +37,7 @@ Then open the app with Expo Go on your phone, or press `i` for iOS simulator / `
 Install EAS CLI when you are ready to make installable builds:
 
 ```bash
+npm run release:check
 npm install -g eas-cli
 eas login
 eas build:configure

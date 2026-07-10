@@ -1,6 +1,7 @@
 # Mobile Safety Rules
 
 - Do not diagnose.
+- Show "not a diagnosis" wording anywhere AI-generated health explanations are presented.
 - Do not prescribe.
 - Do not recommend medication changes.
 - Show emergency guidance before routine plans.
