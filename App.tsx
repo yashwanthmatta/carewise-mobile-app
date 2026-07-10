@@ -37,6 +37,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [email, setEmail] = useState("patient@example.com");
   const [password, setPassword] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [status, setStatus] = useState("Sign in or create an account to sync with CareWise.");
   const [token, setToken] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
@@ -144,15 +146,35 @@ export default function App() {
     });
   }
 
-  function requestPasswordResetHelp() {
-    Alert.alert(
-      "Password reset",
-      "Password reset email delivery is not enabled yet. For this MVP, use the account email you signed up with or open the Data Deletion page for account support. Do not share health details in support messages.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Open support", onPress: () => Linking.openURL("https://carewise-frontend.onrender.com/legal/data-deletion.html") }
-      ]
-    );
+  function requestPasswordReset() {
+    run("Requesting password reset", async () => {
+      const response = await api.requestPasswordReset(email);
+      if (response.reset_token) {
+        setResetToken(response.reset_token);
+        setStatus("Reset token received for this non-production environment. Enter a new password and confirm reset.");
+        return;
+      }
+      setStatus(
+        response.delivery_status === "email_queued"
+          ? "If this email exists, a reset link will be sent. Do not share health details in support messages."
+          : "Reset request saved, but email delivery is not configured. Use support if you cannot access your account."
+      );
+    });
+  }
+
+  function confirmPasswordReset() {
+    run("Confirming password reset", async () => {
+      if (!resetToken.trim() || !newPassword.trim()) {
+        setStatus("Enter the reset token and a new password.");
+        return;
+      }
+      const response = await api.confirmPasswordReset(resetToken.trim(), newPassword);
+      await saveTokenPair(response);
+      setPassword(newPassword);
+      setNewPassword("");
+      setResetToken("");
+      setStatus("Password reset complete. You are signed in with your new password.");
+    });
   }
 
   function logout() {
@@ -290,12 +312,15 @@ export default function App() {
           <Text style={styles.sectionTitle}>Account</Text>
           <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
           <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+          <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" autoCapitalize="none" />
+          <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" secureTextEntry />
           <View style={styles.buttonRow}>
             <ActionButton label="Sign up" onPress={signup} disabled={busy} />
             <ActionButton label="Login" onPress={login} disabled={busy} />
             <ActionButton label="Refresh" onPress={refreshSession} disabled={!refreshToken || busy} />
             <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
-            <ActionButton label="Reset help" onPress={requestPasswordResetHelp} disabled={busy} />
+            <ActionButton label="Request reset" onPress={requestPasswordReset} disabled={busy} />
+            <ActionButton label="Confirm reset" onPress={confirmPasswordReset} disabled={busy || !resetToken || !newPassword} />
           </View>
           <Text style={styles.status}>{status}</Text>
           {session ? (

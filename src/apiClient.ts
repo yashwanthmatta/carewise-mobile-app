@@ -11,6 +11,12 @@ export type SessionOut = {
   email_verified: boolean;
 };
 
+export type PasswordResetRequestOut = {
+  status: string;
+  delivery_status: string;
+  reset_token?: string;
+};
+
 export type PatientProfileInput = {
   name?: string;
   date_of_birth?: string;
@@ -130,6 +136,20 @@ export class CareWiseApiClient {
     return this.request<LoginResponse>("/auth/signup", {
       method: "POST",
       body: JSON.stringify({ email, password, role }),
+    });
+  }
+
+  requestPasswordReset(email: string) {
+    return this.request<PasswordResetRequestOut>("/auth/password-reset/request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  confirmPasswordReset(token: string, newPassword: string) {
+    return this.request<LoginResponse>("/auth/password-reset/confirm", {
+      method: "POST",
+      body: JSON.stringify({ token, new_password: newPassword }),
     });
   }
 

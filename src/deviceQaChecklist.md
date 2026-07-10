@@ -15,7 +15,8 @@ Run this on at least one iPhone and one Android device before public release.
 - Log out and log back in.
 - Close and reopen the app to confirm secure session restore.
 - Refresh the session.
-- Tap reset help and confirm the message does not ask users to share health details.
+- Request a password reset and confirm the message does not ask users to share health details.
+- Confirm password reset with a valid token in a non-production account or email-enabled environment.
 - Log out and confirm protected actions are disabled.
 
 ## Consent And Profile
