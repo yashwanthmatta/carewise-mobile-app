@@ -6,7 +6,7 @@ It now includes a runnable Expo/React Native shell that points at the live backe
 
 `https://carewise-api.onrender.com`
 
-A GitHub CI workflow is prepared locally to run release readiness, TypeScript, and EAS build preflight checks on every push to `main`. Pushing that workflow requires a GitHub token with `workflow` scope.
+A GitHub CI workflow template is included at `docs/github-workflows/mobile-ci.yml`. To enable it later, copy it to `.github/workflows/mobile-ci.yml` using a GitHub token with `workflow` scope.
 
 Recommended path:
 
@@ -63,6 +63,7 @@ Use preview builds for TestFlight/internal Android testing before public store s
 - `src/releaseChecklist.md` - concrete build, test, and submission checklist
 - `src/deviceQaChecklist.md` - real iOS/Android device testing checklist
 - `src/storeListingDraft.md` - first App Store / Google Play listing copy
+- `docs/github-workflows/mobile-ci.yml` - CI workflow template to enable after GitHub token has `workflow` scope
 
 ## Important
 
