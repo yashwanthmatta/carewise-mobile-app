@@ -6,6 +6,8 @@ It now includes a runnable Expo/React Native shell that points at the live backe
 
 `https://carewise-api.onrender.com`
 
+GitHub CI runs release readiness, TypeScript, and EAS build preflight checks on every push to `main`.
+
 Recommended path:
 
 - Expo + React Native
