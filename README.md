@@ -27,6 +27,7 @@ Recommended path:
 cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outputs/carewise-mobile-app
 npm install
 npm run release:check
+npm run build:preflight
 npm run start
 ```
 
@@ -38,6 +39,7 @@ Install EAS CLI when you are ready to make installable builds:
 
 ```bash
 npm run release:check
+npm run build:preflight
 npm install -g eas-cli
 eas login
 eas build:configure

@@ -24,6 +24,7 @@ Use this before TestFlight, Android internal testing, and public store submissio
 ```bash
 npm run release:check
 npm run typecheck
+npm run build:preflight
 eas login
 eas build --platform android --profile preview
 eas build --platform ios --profile preview

@@ -10,7 +10,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "release:check": "node scripts/mobile_release_check.js"
+    "release:check": "node scripts/mobile_release_check.js",
+    "build:preflight": "node scripts/eas_build_preflight.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
