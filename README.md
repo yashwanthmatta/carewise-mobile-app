@@ -35,16 +35,14 @@ Then open the app with Expo Go on your phone, or press `i` for iOS simulator / `
 
 ## Build For Store Testing
 
-Install EAS CLI when you are ready to make installable builds:
+Use the local EAS CLI installed in this project when you are ready to make installable builds:
 
 ```bash
 npm run release:check
 npm run build:preflight
-npm install -g eas-cli
-eas login
-eas build:configure
-eas build --platform android --profile preview
-eas build --platform ios --profile preview
+npm run eas:login
+npm run build:android:preview
+npm run build:ios:preview
 ```
 
 Use preview builds for TestFlight/internal Android testing before public store submission.

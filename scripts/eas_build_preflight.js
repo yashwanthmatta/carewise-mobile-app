@@ -51,13 +51,13 @@ if (gitStatus.stdout.trim()) {
 const easVersion = run("eas", ["--version"]);
 if (easVersion.status !== 0) {
   console.warn("EAS CLI is not installed or not on PATH.");
-  console.warn("Install it with: npm install -g eas-cli");
+  console.warn("Install it locally with: npm install --save-dev eas-cli");
 } else {
   console.log(`EAS CLI found: ${easVersion.stdout.trim() || easVersion.stderr.trim()}`);
 }
 
 console.log("CareWise EAS build preflight passed.");
 console.log("Next commands:");
-console.log("  eas login");
-console.log("  eas build --platform android --profile preview");
-console.log("  eas build --platform ios --profile preview");
+console.log("  npm run eas:login");
+console.log("  npm run build:android:preview");
+console.log("  npm run build:ios:preview");

@@ -25,11 +25,11 @@ Use this before TestFlight, Android internal testing, and public store submissio
 npm run release:check
 npm run typecheck
 npm run build:preflight
-eas login
-eas build --platform android --profile preview
-eas build --platform ios --profile preview
-eas build --platform android --profile production
-eas build --platform ios --profile production
+npm run eas:login
+npm run build:android:preview
+npx eas build --platform ios --profile preview
+npx eas build --platform android --profile production
+npx eas build --platform ios --profile production
 ```
 
 ## Human Approval Required
