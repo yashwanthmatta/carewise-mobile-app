@@ -41,6 +41,13 @@ assert(releaseCheck.status === 0, releaseCheck.stdout + releaseCheck.stderr);
 const typecheck = run("npm", ["run", "typecheck"]);
 assert(typecheck.status === 0, typecheck.stdout + typecheck.stderr);
 
+if (process.env.CAREWISE_SKIP_BACKEND_CHECK === "1") {
+  console.warn("Skipping backend connectivity check because CAREWISE_SKIP_BACKEND_CHECK=1.");
+} else {
+  const backendCheck = run("npm", ["run", "backend:check"]);
+  assert(backendCheck.status === 0, backendCheck.stdout + backendCheck.stderr);
+}
+
 const gitStatus = run("git", ["status", "--short"]);
 assert(gitStatus.status === 0, "Unable to read git status.");
 if (gitStatus.stdout.trim()) {

@@ -29,6 +29,7 @@ Recommended path:
 cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outputs/carewise-mobile-app
 npm install
 npm run release:check
+npm run backend:check
 npm run build:preflight
 npm run start
 ```
@@ -41,6 +42,7 @@ Use the local EAS CLI installed in this project when you are ready to make insta
 
 ```bash
 npm run release:check
+npm run backend:check
 npm run build:preflight
 npm run eas:login
 npm run build:android:preview

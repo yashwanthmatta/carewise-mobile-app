@@ -48,6 +48,7 @@ assertFile("assets/splash.png");
 
 assert(packageJson.scripts?.typecheck === "tsc --noEmit", "typecheck script is missing");
 assert(packageJson.scripts?.["release:check"] === "node scripts/mobile_release_check.js", "release:check script is missing");
+assert(packageJson.scripts?.["backend:check"] === "node scripts/backend_connectivity_check.js", "backend:check script is missing");
 assert(packageJson.dependencies?.["expo-secure-store"], "expo-secure-store dependency is missing");
 assert(packageJson.dependencies?.["expo-document-picker"], "expo-document-picker dependency is missing");
 assert(packageJson.dependencies?.["expo-constants"], "expo-constants dependency is missing");
