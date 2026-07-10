@@ -4,14 +4,30 @@
     "slug": "carewise",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "carewise",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAFC"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.carewise.app"
+      "bundleIdentifier": "com.carewise.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSDocumentsFolderUsageDescription": "CareWise lets you choose health report files that you want to upload for simple-language explanation."
+      }
     },
     "android": {
-      "package": "com.carewise.app"
+      "package": "com.carewise.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F766E"
+      }
     },
     "extra": {
       "apiBaseUrl": "https://carewise-api.onrender.com"

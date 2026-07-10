@@ -48,6 +48,7 @@ Use preview builds for TestFlight/internal Android testing before public store s
 ## Current Files
 
 - `app.json` - Expo configuration starter
+- `assets/` - CareWise app icon and splash assets
 - `App.tsx` - mobile screen shell
 - `package.json` - Expo scripts/dependencies
 - `src/apiClient.ts` - shared backend API client
@@ -55,6 +56,8 @@ Use preview builds for TestFlight/internal Android testing before public store s
 - `src/safetyRules.md` - mobile health safety rules
 - `src/appStorePrivacyChecklist.md` - Apple/Google privacy prep
 - `src/finalLaunchStage.md` - final-stage launch readiness map
+- `src/releaseChecklist.md` - concrete build, test, and submission checklist
+- `src/storeListingDraft.md` - first App Store / Google Play listing copy
 
 ## Important
 
@@ -89,13 +92,13 @@ Before App Store or Google Play submission, complete Apple App Privacy details a
 - Save and reload lab trends through the backend
 - Legal links to the deployed CareWise pages
 
-Binary PDF/image upload is still a next step for mobile. The current starter supports selecting a file but asks the user to paste readable report text before upload.
+PDF/image/text file upload is wired to the backend multipart report API. Users can still paste readable text to improve analysis when a scanned file has no extractable text.
 
 ## Store-Blocking Items Still Required
 
 - Apple Developer account team selection and paid agreement.
 - Google Play Console account and app setup.
-- Final app icon, splash screen, screenshots, and store listing copy.
+- Final screenshots and store listing approval.
 - Human-reviewed Privacy Policy, Terms, Medical Disclaimer, and Data Deletion workflow.
 - Apple App Privacy and Google Play Data Safety forms that match production data flows.
 - TestFlight / internal Android testing with real devices before public release.
