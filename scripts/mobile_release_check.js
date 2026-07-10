@@ -31,6 +31,7 @@ const safetyRules = readText("src/safetyRules.md");
 const privacyChecklist = readText("src/appStorePrivacyChecklist.md");
 const finalLaunchStage = readText("src/finalLaunchStage.md");
 const releaseChecklist = readText("src/releaseChecklist.md");
+const deviceQaChecklist = readText("src/deviceQaChecklist.md");
 const storeListing = readText("src/storeListingDraft.md");
 
 assert(app.name === "CareWise", "Expo app name must be CareWise");
@@ -67,6 +68,7 @@ assert(safetyRules.toLowerCase().includes("not a diagnosis"), "Safety rules must
 assert(privacyChecklist.includes("Google Play Data Safety"), "Privacy checklist must mention Google Play Data Safety");
 assert(finalLaunchStage.includes("must not claim to diagnose"), "Final launch stage must include safe positioning");
 assert(releaseChecklist.includes("Do Not Submit If"), "Release checklist must include submission blockers");
+assert(deviceQaChecklist.includes("Do not submit the app"), "Device QA checklist must include release blockers");
 assert(storeListing.includes("CareWise AI is not a medical diagnosis tool"), "Store listing must include medical disclaimer");
 
 console.log("CareWise mobile release check passed.");

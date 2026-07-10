@@ -10,6 +10,7 @@ This is the final-stage path from working MVP to real iOS and Android launch.
 - Mobile multipart report upload to the production backend.
 - Backend report storage, analysis, lab trends, privacy export, and deletion foundation.
 - Web MVP for investor demos and user testing.
+- Real-device QA checklist for iOS and Android preview builds.
 
 ## Must Finish Before Public Store Release
 

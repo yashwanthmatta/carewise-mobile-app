@@ -5,6 +5,7 @@ Use this before TestFlight, Android internal testing, and public store submissio
 ## Code Readiness
 
 - Run `npm run typecheck`.
+- Follow `src/deviceQaChecklist.md`.
 - Run `npm run phone` and test on a real iPhone and Android device.
 - Verify signup, login, saved session restore, refresh, logout, consent, profile sync, report file upload, report analysis, and lab trend save/load.
 - Confirm report uploads reach backend storage and are removed by the data deletion workflow.
