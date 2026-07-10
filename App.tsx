@@ -39,6 +39,7 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
   const [status, setStatus] = useState("Sign in or create an account to sync with CareWise.");
   const [token, setToken] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
@@ -174,6 +175,37 @@ export default function App() {
       setNewPassword("");
       setResetToken("");
       setStatus("Password reset complete. You are signed in with your new password.");
+    });
+  }
+
+  function requestEmailVerification() {
+    run("Requesting email verification", async () => {
+      const response = await api.requestEmailVerification();
+      if (response.verification_token) {
+        setVerificationToken(response.verification_token);
+        setStatus("Verification token received for this non-production environment. Confirm it below.");
+        return;
+      }
+      setStatus(
+        response.delivery_status === "already_verified"
+          ? "Your email is already verified."
+          : response.delivery_status === "email_queued"
+            ? "If email is configured, a verification link will be sent."
+            : "Verification request saved, but email delivery is not configured yet."
+      );
+    });
+  }
+
+  function confirmEmailVerification() {
+    run("Confirming email verification", async () => {
+      if (!verificationToken.trim()) {
+        setStatus("Enter the email verification token.");
+        return;
+      }
+      const verified = await api.confirmEmailVerification(verificationToken.trim());
+      setSession(verified);
+      setVerificationToken("");
+      setStatus("Email verified.");
     });
   }
 
@@ -321,6 +353,7 @@ export default function App() {
           <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
           <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" autoCapitalize="none" />
           <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" secureTextEntry />
+          <TextInput style={styles.input} value={verificationToken} onChangeText={setVerificationToken} placeholder="Email verification token" autoCapitalize="none" />
           <View style={styles.buttonRow}>
             <ActionButton label="Sign up" onPress={signup} disabled={busy} />
             <ActionButton label="Login" onPress={login} disabled={busy} />
@@ -328,6 +361,8 @@ export default function App() {
             <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
             <ActionButton label="Request reset" onPress={requestPasswordReset} disabled={busy} />
             <ActionButton label="Confirm reset" onPress={confirmPasswordReset} disabled={busy || !resetToken || !newPassword} />
+            <ActionButton label="Verify email" onPress={requestEmailVerification} disabled={!token || busy} />
+            <ActionButton label="Confirm email" onPress={confirmEmailVerification} disabled={busy || !verificationToken} />
           </View>
           <Text style={styles.status}>{status}</Text>
           {session ? (

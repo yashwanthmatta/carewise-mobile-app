@@ -63,10 +63,14 @@ assert(appSource.includes("logout"), "App must include logout behavior");
 assert(appSource.includes("api.logout(refreshToken)"), "App logout must revoke refresh tokens through the backend");
 assert(appSource.includes("requestPasswordReset"), "App must include password reset request behavior");
 assert(appSource.includes("confirmPasswordReset"), "App must include password reset confirm behavior");
+assert(appSource.includes("requestEmailVerification"), "App must include email verification request behavior");
+assert(appSource.includes("confirmEmailVerification"), "App must include email verification confirm behavior");
 
 assert(apiClient.includes("/reports/upload-file"), "API client must call multipart report upload endpoint");
 assert(apiClient.includes("/auth/password-reset/request"), "API client must call password reset request endpoint");
 assert(apiClient.includes("/auth/password-reset/confirm"), "API client must call password reset confirm endpoint");
+assert(apiClient.includes("/auth/email-verification/request"), "API client must call email verification request endpoint");
+assert(apiClient.includes("/auth/email-verification/confirm"), "API client must call email verification confirm endpoint");
 assert(apiClient.includes("/auth/logout"), "API client must call logout endpoint");
 assert(apiClient.includes("FormData"), "API client must use FormData for file uploads");
 assert(apiClient.includes("/reports/") && apiClient.includes("/analyze"), "API client must analyze uploaded reports");
