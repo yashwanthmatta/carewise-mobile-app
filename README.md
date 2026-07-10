@@ -61,6 +61,7 @@ Use preview builds for TestFlight/internal Android testing before public store s
 - `src/navigationPlan.md` - mobile screen flow
 - `src/safetyRules.md` - mobile health safety rules
 - `src/appStorePrivacyChecklist.md` - Apple/Google privacy prep
+- `src/storePrivacyAnswersDraft.md` - draft Apple App Privacy and Google Play Data Safety answers
 - `src/finalLaunchStage.md` - final-stage launch readiness map
 - `src/releaseChecklist.md` - concrete build, test, and submission checklist
 - `src/deviceQaChecklist.md` - real iOS/Android device testing checklist

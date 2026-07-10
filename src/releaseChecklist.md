@@ -41,6 +41,7 @@ npx eas build --platform ios --profile production
 - Legal review of Privacy Policy, Terms, Medical Disclaimer, and Data Deletion Request page.
 - Apple App Privacy answers.
 - Google Play Data Safety answers.
+- Review and finalize `src/storePrivacyAnswersDraft.md`.
 - Clinician review of safety wording and high-risk escalation behavior.
 
 ## Do Not Submit If

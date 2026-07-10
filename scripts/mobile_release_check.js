@@ -29,6 +29,7 @@ const appSource = readText("App.tsx");
 const apiClient = readText("src/apiClient.ts");
 const safetyRules = readText("src/safetyRules.md");
 const privacyChecklist = readText("src/appStorePrivacyChecklist.md");
+const storePrivacyAnswers = readText("src/storePrivacyAnswersDraft.md");
 const finalLaunchStage = readText("src/finalLaunchStage.md");
 const releaseChecklist = readText("src/releaseChecklist.md");
 const deviceQaChecklist = readText("src/deviceQaChecklist.md");
@@ -68,6 +69,8 @@ assert(!apiClient.includes("OPENAI_API_KEY"), "Mobile app must not include OpenA
 
 assert(safetyRules.toLowerCase().includes("not a diagnosis"), "Safety rules must include non-diagnostic wording");
 assert(privacyChecklist.includes("Google Play Data Safety"), "Privacy checklist must mention Google Play Data Safety");
+assert(storePrivacyAnswers.includes("Do not sell health data"), "Store privacy answers must prohibit selling health data");
+assert(storePrivacyAnswers.includes("CareWise AI is not a medical diagnosis"), "Store privacy answers must include non-diagnostic positioning");
 assert(finalLaunchStage.includes("must not claim to diagnose"), "Final launch stage must include safe positioning");
 assert(releaseChecklist.includes("Do Not Submit If"), "Release checklist must include submission blockers");
 assert(deviceQaChecklist.includes("Do not submit the app"), "Device QA checklist must include release blockers");

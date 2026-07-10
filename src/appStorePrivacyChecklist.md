@@ -30,6 +30,7 @@ This must be reviewed before Apple App Store or Google Play submission.
 
 - Apple App Privacy details must match actual collected data.
 - Google Play Data Safety form must match actual collected data.
+- Start from `src/storePrivacyAnswersDraft.md`, then update it to match final production behavior.
 - Do not claim the app diagnoses, cures, or replaces licensed care.
 
 ## Security Notes
