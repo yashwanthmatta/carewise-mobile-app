@@ -25,6 +25,7 @@ Use this before TestFlight, Android internal testing, and public store submissio
 ```bash
 npm run release:check
 npm run backend:check
+npm run auth:smoke
 npm run typecheck
 npm run build:preflight
 npm run eas:login
