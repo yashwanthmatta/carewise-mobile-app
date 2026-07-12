@@ -8,6 +8,7 @@ Use this before TestFlight, Android internal testing, and public store submissio
 - Follow `src/deviceQaChecklist.md`.
 - Run `npm run phone` and test on a real iPhone and Android device.
 - Verify signup, login, saved session restore, refresh, logout, consent, profile sync, report file upload, report analysis, and lab trend save/load.
+- Verify the Legal screen can load a privacy export summary and submit a data deletion request for the signed-in user.
 - Confirm report uploads reach backend storage and are removed by the data deletion workflow.
 - Confirm no health report text, access tokens, or API keys are printed in app logs.
 

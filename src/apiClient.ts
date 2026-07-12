@@ -91,6 +91,21 @@ export type LabTrendOut = {
   created_at: string;
 };
 
+export type PrivacyExportSummaryOut = {
+  account: {
+    id: string;
+    email: string;
+    role: string;
+  };
+  counts: Record<string, number>;
+  message: string;
+};
+
+export type DataDeletionRequestOut = {
+  id: string;
+  status: string;
+};
+
 export class CareWiseApiClient {
   constructor(
     private readonly baseUrl: string,
@@ -281,6 +296,17 @@ export class CareWiseApiClient {
     return this.request("/notifications/devices", {
       method: "POST",
       body: JSON.stringify({ channel, device_token: deviceToken, enabled: true }),
+    });
+  }
+
+  getPrivacyExportSummary() {
+    return this.request<PrivacyExportSummaryOut>("/privacy/me/export-summary");
+  }
+
+  requestDataDeletion(reason: string) {
+    return this.request<DataDeletionRequestOut>("/privacy/me/delete-request", {
+      method: "POST",
+      body: JSON.stringify({ reason }),
     });
   }
 }

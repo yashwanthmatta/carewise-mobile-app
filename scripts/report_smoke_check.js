@@ -98,6 +98,23 @@ async function main() {
   assert(Array.isArray(trends), "Lab trends response must be an array.");
   assert(trends.some((item) => item.id === labTrend.id), "Saved lab trend must be returned by list endpoint.");
 
+  const privacySummary = await request("/privacy/me/export-summary", {
+    headers,
+  });
+  assert(privacySummary.account?.email === email, "Privacy summary must belong to the smoke-test account.");
+  assert(privacySummary.counts?.reports >= 1, "Privacy summary must include uploaded report count.");
+  assert(privacySummary.counts?.lab_trends >= 1, "Privacy summary must include saved lab trend count.");
+
+  const deletionRequest = await request("/privacy/me/delete-request", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      reason: "Synthetic mobile smoke test cleanup request. No real patient data.",
+    }),
+  });
+  assert(deletionRequest.id, "Deletion request must return an id.");
+  assert(deletionRequest.status === "requested", "Deletion request status must be requested.");
+
   console.log(`CareWise report smoke check passed for ${apiBaseUrl} with ${email}.`);
 }
 

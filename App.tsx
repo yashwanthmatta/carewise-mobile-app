@@ -14,7 +14,13 @@ import { StatusBar } from "expo-status-bar";
 import * as DocumentPicker from "expo-document-picker";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
-import { CareWiseApiClient, type LabTrendOut, type ReportAnalysisOut, type SessionOut } from "./src/apiClient";
+import {
+  CareWiseApiClient,
+  type LabTrendOut,
+  type PrivacyExportSummaryOut,
+  type ReportAnalysisOut,
+  type SessionOut
+} from "./src/apiClient";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
@@ -55,6 +61,8 @@ export default function App() {
   const [labUnit, setLabUnit] = useState("mg/dL");
   const [labFlag, setLabFlag] = useState("not_sure");
   const [labNotes, setLabNotes] = useState("");
+  const [privacySummary, setPrivacySummary] = useState<PrivacyExportSummaryOut | null>(null);
+  const [deletionReason, setDeletionReason] = useState("Please delete my CareWise account data.");
   const [busy, setBusy] = useState(false);
 
   const api = useMemo(() => new CareWiseApiClient(API_BASE_URL, token), [token]);
@@ -329,6 +337,38 @@ export default function App() {
     });
   }
 
+  function loadPrivacySummary() {
+    run("Loading privacy summary", async () => {
+      const summary = await api.getPrivacyExportSummary();
+      setPrivacySummary(summary);
+      setStatus("Privacy export summary loaded. This is a count summary, not medical advice.");
+    });
+  }
+
+  function requestDataDeletion() {
+    if (!token) {
+      setStatus("Sign in before requesting data deletion.");
+      return;
+    }
+    Alert.alert(
+      "Request data deletion?",
+      "CareWise will record a deletion request for your account. This does not replace emergency, medical, or billing support.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Request",
+          style: "destructive",
+          onPress: () => {
+            run("Requesting data deletion", async () => {
+              const request = await api.requestDataDeletion(deletionReason.trim() || "Mobile app data deletion request.");
+              setStatus(`Deletion request saved: ${request.id} (${request.status}).`);
+            });
+          }
+        }
+      ]
+    );
+  }
+
   async function pickReportFile() {
     const result = await DocumentPicker.getDocumentAsync({ type: ["text/plain", "application/pdf", "image/*"] });
     if (result.canceled || !result.assets?.[0]) return;
@@ -456,10 +496,33 @@ export default function App() {
         {screen === "legal" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Legal</Text>
+            <Text style={styles.bodyText}>Review policies, check what CareWise has stored for your account, or request deletion. CareWise AI is not a medical diagnosis tool.</Text>
             <ActionButton label="Privacy Policy" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/privacy.html")} />
             <ActionButton label="Terms" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/terms.html")} />
             <ActionButton label="Medical Disclaimer" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/disclaimer.html")} />
             <ActionButton label="Data Deletion" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/data-deletion.html")} />
+            <View style={styles.divider} />
+            <Text style={styles.listTitle}>Account privacy controls</Text>
+            <TextInput
+              style={[styles.input, styles.textAreaSmall]}
+              value={deletionReason}
+              onChangeText={setDeletionReason}
+              placeholder="Reason for deletion request"
+              multiline
+            />
+            <View style={styles.buttonRow}>
+              <ActionButton label="Export summary" onPress={loadPrivacySummary} disabled={!token || busy} />
+              <ActionButton label="Request deletion" onPress={requestDataDeletion} disabled={!token || busy} />
+            </View>
+            {privacySummary ? (
+              <View style={styles.listItem}>
+                <Text style={styles.listTitle}>{privacySummary.account.email}</Text>
+                <Text style={styles.bodyText}>{privacySummary.message}</Text>
+                {Object.entries(privacySummary.counts).map(([key, value]) => (
+                  <Text key={key} style={styles.smallText}>{key.replace(/_/g, " ")}: {value}</Text>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -508,6 +571,7 @@ const styles = StyleSheet.create({
   tabText: { color: "#60716d", fontWeight: "800" },
   activeTabText: { color: "#053f3c" },
   list: { gap: 8 },
+  divider: { height: 1, backgroundColor: "#dbe8e4", marginVertical: 4 },
   fileBadge: { borderRadius: 8, borderWidth: 1, borderColor: "#b8e2db", backgroundColor: "#e8fff8", padding: 10 },
   listItem: { borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
   listTitle: { color: "#053f3c", fontSize: 15, fontWeight: "900" }
