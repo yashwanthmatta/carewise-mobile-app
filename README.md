@@ -31,6 +31,7 @@ npm install
 npm run release:check
 npm run backend:check
 npm run auth:smoke
+npm run report:smoke
 npm run build:preflight
 npm run start
 ```
@@ -45,6 +46,7 @@ Use the local EAS CLI installed in this project when you are ready to make insta
 npm run release:check
 npm run backend:check
 npm run auth:smoke
+npm run report:smoke
 npm run build:preflight
 npm run eas:login
 npm run build:android:preview

@@ -13,6 +13,7 @@
     "release:check": "node scripts/mobile_release_check.js",
     "backend:check": "node scripts/backend_connectivity_check.js",
     "auth:smoke": "node scripts/auth_smoke_check.js",
+    "report:smoke": "node scripts/report_smoke_check.js",
     "build:preflight": "node scripts/eas_build_preflight.js",
     "eas:login": "eas login",
     "build:android:preview": "eas build --platform android --profile preview",

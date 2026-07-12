@@ -52,6 +52,12 @@ if (process.env.CAREWISE_SKIP_BACKEND_CHECK === "1") {
   } else {
     console.warn("Skipping auth smoke check. Set CAREWISE_RUN_AUTH_SMOKE=1 to create a temporary live test account.");
   }
+  if (process.env.CAREWISE_RUN_REPORT_SMOKE === "1") {
+    const reportSmoke = run("npm", ["run", "report:smoke"]);
+    assert(reportSmoke.status === 0, reportSmoke.stdout + reportSmoke.stderr);
+  } else {
+    console.warn("Skipping report smoke check. Set CAREWISE_RUN_REPORT_SMOKE=1 to create temporary synthetic report data.");
+  }
 }
 
 const gitStatus = run("git", ["status", "--short"]);
