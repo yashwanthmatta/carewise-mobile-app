@@ -30,6 +30,7 @@ cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outpu
 npm install
 npm run ci:check
 npm run launch:report
+npm run launch:smoke
 npm run release:check
 npm run store:check
 npm run review:check
@@ -49,6 +50,7 @@ Use the local EAS CLI installed in this project when you are ready to make insta
 ```bash
 npm run ci:check
 npm run launch:report
+npm run launch:smoke
 npm run release:check
 npm run store:check
 npm run review:check

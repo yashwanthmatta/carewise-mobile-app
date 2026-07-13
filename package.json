@@ -15,6 +15,7 @@
     "store:check": "node scripts/store_submission_check.js",
     "review:check": "node scripts/app_review_check.js",
     "launch:report": "node scripts/generate_launch_report.js",
+    "launch:smoke": "node scripts/launch_smoke_check.js",
     "backend:check": "node scripts/backend_connectivity_check.js",
     "auth:smoke": "node scripts/auth_smoke_check.js",
     "report:smoke": "node scripts/report_smoke_check.js",

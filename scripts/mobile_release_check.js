@@ -55,6 +55,7 @@ assert(packageJson.scripts?.["release:check"] === "node scripts/mobile_release_c
 assert(packageJson.scripts?.["store:check"] === "node scripts/store_submission_check.js", "store:check script is missing");
 assert(packageJson.scripts?.["review:check"] === "node scripts/app_review_check.js", "review:check script is missing");
 assert(packageJson.scripts?.["launch:report"] === "node scripts/generate_launch_report.js", "launch:report script is missing");
+assert(packageJson.scripts?.["launch:smoke"] === "node scripts/launch_smoke_check.js", "launch:smoke script is missing");
 assert(packageJson.scripts?.["backend:check"] === "node scripts/backend_connectivity_check.js", "backend:check script is missing");
 assert(packageJson.scripts?.["auth:smoke"] === "node scripts/auth_smoke_check.js", "auth:smoke script is missing");
 assert(packageJson.scripts?.["report:smoke"] === "node scripts/report_smoke_check.js", "report:smoke script is missing");

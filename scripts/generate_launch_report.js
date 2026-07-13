@@ -28,6 +28,8 @@ const requiredScripts = [
   "release:check",
   "store:check",
   "review:check",
+  "launch:report",
+  "launch:smoke",
   "backend:check",
   "auth:smoke",
   "report:smoke",
@@ -86,6 +88,8 @@ ${storePacket.reviewNotes.map((note) => `- ${note}`).join("\n")}
 
 \`\`\`bash
 npm run ci:check
+npm run launch:report
+npm run launch:smoke
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke

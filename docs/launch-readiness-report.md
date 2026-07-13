@@ -17,6 +17,8 @@ Generated from the local mobile project configuration.
 - [x] `release:check` script exists
 - [x] `store:check` script exists
 - [x] `review:check` script exists
+- [x] `launch:report` script exists
+- [x] `launch:smoke` script exists
 - [x] `backend:check` script exists
 - [x] `auth:smoke` script exists
 - [x] `report:smoke` script exists
@@ -67,6 +69,8 @@ Generated from the local mobile project configuration.
 
 ```bash
 npm run ci:check
+npm run launch:report
+npm run launch:smoke
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke
