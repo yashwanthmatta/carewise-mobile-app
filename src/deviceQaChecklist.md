@@ -9,6 +9,7 @@ Run this on at least one iPhone and one Android device before public release.
 - Confirm the app opens without a blank screen or crash.
 - Confirm the backend status message is understandable if the network is slow.
 - Turn on airplane mode and confirm account/report actions show a friendly connection message.
+- Turn on VoiceOver or TalkBack and confirm tabs/buttons announce useful names and states.
 
 ## Account Flow
 

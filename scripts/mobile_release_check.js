@@ -78,6 +78,11 @@ assert(appSource.includes("passwordValidationMessage"), "App must validate passw
 assert(appSource.includes("Do not reuse passwords"), "App must show password reuse guidance.");
 assert(appSource.includes("DocumentPicker.getDocumentAsync"), "App must expose file picking");
 assert(appSource.includes("uploadReportFile"), "App must call mobile file upload");
+assert(appSource.includes('accessibilityRole="button"'), "Action buttons must expose accessibility role.");
+assert(appSource.includes("accessibilityLabel={label}"), "Action buttons must expose accessibility labels.");
+assert(appSource.includes('accessibilityRole="tab"'), "Navigation tabs must expose accessibility role.");
+assert(appSource.includes("accessibilityState={{ selected: screen === item.key }}"), "Navigation tabs must expose selected state.");
+assert(appSource.includes("accessibilityState={{ disabled }}"), "Disabled buttons must expose disabled state.");
 assert(appSource.includes("logout"), "App must include logout behavior");
 assert(appSource.includes("api.logout(refreshToken)"), "App logout must revoke refresh tokens through the backend");
 assert(appSource.includes("requestPasswordReset"), "App must include password reset request behavior");

@@ -468,7 +468,14 @@ export default function App() {
 
         <View style={styles.tabs}>
           {screens.map((item) => (
-            <Pressable key={item.key} onPress={() => setScreen(item.key)} style={[styles.tab, screen === item.key && styles.activeTab]}>
+            <Pressable
+              key={item.key}
+              onPress={() => setScreen(item.key)}
+              style={[styles.tab, screen === item.key && styles.activeTab]}
+              accessibilityRole="tab"
+              accessibilityLabel={`${item.label} tab`}
+              accessibilityState={{ selected: screen === item.key }}
+            >
               <Text style={[styles.tabText, screen === item.key && styles.activeTabText]}>{item.label}</Text>
             </Pressable>
           ))}
@@ -588,7 +595,14 @@ export default function App() {
 
 function ActionButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={[styles.button, disabled && styles.disabledButton]}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[styles.button, disabled && styles.disabledButton]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+    >
       <Text style={styles.buttonText}>{label}</Text>
     </Pressable>
   );
