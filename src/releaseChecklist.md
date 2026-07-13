@@ -26,6 +26,7 @@ Use this before TestFlight, Android internal testing, and public store submissio
 ```bash
 npm run release:check
 npm run store:check
+npm run review:check
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke
@@ -46,6 +47,7 @@ npx eas build --platform ios --profile production
 - Apple App Privacy answers.
 - Google Play Data Safety answers.
 - Review and finalize `src/storePrivacyAnswersDraft.md`.
+- Review `src/appReviewTestPlan.md` and create temporary reviewer credentials only inside App Store Connect / Play Console if required.
 - Clinician review of safety wording and high-risk escalation behavior.
 
 ## Do Not Submit If

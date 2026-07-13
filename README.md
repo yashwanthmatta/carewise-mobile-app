@@ -30,6 +30,7 @@ cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outpu
 npm install
 npm run release:check
 npm run store:check
+npm run review:check
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke
@@ -46,6 +47,7 @@ Use the local EAS CLI installed in this project when you are ready to make insta
 ```bash
 npm run release:check
 npm run store:check
+npm run review:check
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke
@@ -73,6 +75,7 @@ Use preview builds for TestFlight/internal Android testing before public store s
 - `src/deviceQaChecklist.md` - real iOS/Android device testing checklist
 - `src/storeListingDraft.md` - first App Store / Google Play listing copy
 - `src/storeSubmissionPacket.json` - checked submission metadata, review notes, screenshots, and blockers
+- `src/appReviewTestPlan.md` - safe synthetic reviewer flow for Apple/Google review
 - `docs/github-workflows/mobile-ci.yml` - CI workflow template to enable after GitHub token has `workflow` scope
 
 ## Important
@@ -120,6 +123,7 @@ PDF/image/text file upload is wired to the backend multipart report API. Users c
 - Apple Developer account team selection and paid agreement.
 - Google Play Console account and app setup.
 - Final screenshots and store listing approval.
+- Temporary reviewer account details entered only in App Store Connect / Play Console when required.
 - Human-reviewed Privacy Policy, Terms, Medical Disclaimer, and Data Deletion workflow.
 - Apple App Privacy and Google Play Data Safety forms that match production data flows.
 - TestFlight / internal Android testing with real devices before public release.

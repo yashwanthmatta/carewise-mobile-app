@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "release:check": "node scripts/mobile_release_check.js",
     "store:check": "node scripts/store_submission_check.js",
+    "review:check": "node scripts/app_review_check.js",
     "backend:check": "node scripts/backend_connectivity_check.js",
     "auth:smoke": "node scripts/auth_smoke_check.js",
     "report:smoke": "node scripts/report_smoke_check.js",
