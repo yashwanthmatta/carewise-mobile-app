@@ -97,6 +97,11 @@ assert(apiClient.includes("/privacy/me/delete-request"), "API client must call d
 assert(apiClient.includes("/auth/logout"), "API client must call logout endpoint");
 assert(apiClient.includes("FormData"), "API client must use FormData for file uploads");
 assert(apiClient.includes("/reports/") && apiClient.includes("/analyze"), "API client must analyze uploaded reports");
+assert(apiClient.includes("REQUEST_TIMEOUT_MS = 20000"), "API client must define a network timeout.");
+assert(apiClient.includes("AbortController"), "API client must cancel slow requests.");
+assert(apiClient.includes("Check your internet connection"), "API client must show friendly offline messaging.");
+assert(apiClient.includes("Please sign in again to continue."), "API client must show friendly session-expired messaging.");
+assert(apiClient.includes("That file is too large"), "API client must show friendly upload-size messaging.");
 assert(!apiClient.includes("OPENAI_API_KEY"), "Mobile app must not include OpenAI API keys");
 
 assert(safetyRules.toLowerCase().includes("not a diagnosis"), "Safety rules must include non-diagnostic wording");

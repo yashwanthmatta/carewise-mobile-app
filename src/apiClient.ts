@@ -106,6 +106,8 @@ export type DataDeletionRequestOut = {
   status: string;
 };
 
+const REQUEST_TIMEOUT_MS = 20000;
+
 export class CareWiseApiClient {
   constructor(
     private readonly baseUrl: string,
@@ -135,19 +137,41 @@ export class CareWiseApiClient {
   }
 
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const headers = new Headers(options.headers);
     if (!(options.body instanceof FormData)) {
       headers.set("Content-Type", "application/json");
     }
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      headers,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}${path}`, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("CareWise is taking too long to respond. Check your connection and try again.");
+      }
+      throw new Error("CareWise could not connect. Check your internet connection and try again.");
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
-      throw new Error(`CareWise API error ${response.status}`);
+      if (response.status === 401) {
+        throw new Error("Please sign in again to continue.");
+      }
+      if (response.status === 413) {
+        throw new Error("That file is too large. Try a smaller report or paste readable text.");
+      }
+      if (response.status >= 500) {
+        throw new Error("CareWise is temporarily unavailable. Please try again soon.");
+      }
+      throw new Error(`CareWise could not complete this request. Status ${response.status}.`);
     }
 
     return response.json() as Promise<T>;

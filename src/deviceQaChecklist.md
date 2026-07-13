@@ -8,6 +8,7 @@ Run this on at least one iPhone and one Android device before public release.
 - Confirm the CareWise icon and splash screen appear correctly.
 - Confirm the app opens without a blank screen or crash.
 - Confirm the backend status message is understandable if the network is slow.
+- Turn on airplane mode and confirm account/report actions show a friendly connection message.
 
 ## Account Flow
 
@@ -22,6 +23,7 @@ Run this on at least one iPhone and one Android device before public release.
 - Request email verification and confirm the token in a non-production account or email-enabled environment.
 - Log out and confirm protected actions are disabled.
 - Confirm logout still clears the device if the network is unavailable.
+- Confirm an expired session shows a friendly sign-in-again message.
 
 ## Consent And Profile
 
@@ -37,6 +39,7 @@ Run this on at least one iPhone and one Android device before public release.
 - Confirm the app shows the selected filename and file type.
 - Confirm analysis returns a simple explanation or a clear "needs readable text" result.
 - Confirm scanned/unreadable files tell the user to paste readable text or ask a clinician to review the original report.
+- Confirm oversized files show a friendly smaller-file message.
 
 ## Lab Trends
 
