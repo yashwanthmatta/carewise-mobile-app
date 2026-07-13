@@ -35,6 +35,9 @@ assert(app.ios?.bundleIdentifier, "iOS bundle identifier is required.");
 assert(app.android?.package, "Android package name is required.");
 assert(app.extra?.apiBaseUrl?.startsWith("https://"), "Backend API URL must be HTTPS.");
 
+const versionCheck = run("npm", ["run", "version:check"]);
+assert(versionCheck.status === 0, versionCheck.stdout + versionCheck.stderr);
+
 const releaseCheck = run("npm", ["run", "release:check"]);
 assert(releaseCheck.status === 0, releaseCheck.stdout + releaseCheck.stderr);
 

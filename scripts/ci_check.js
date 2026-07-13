@@ -22,6 +22,7 @@ function run(label, command, args, options = {}) {
 }
 
 try {
+  run("Version metadata", "npm", ["run", "version:check"]);
   run("Release readiness", "npm", ["run", "release:check"]);
   run("Store submission packet", "npm", ["run", "store:check"]);
   run("App review test plan", "npm", ["run", "review:check"]);

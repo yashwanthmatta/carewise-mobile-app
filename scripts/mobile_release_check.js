@@ -50,6 +50,7 @@ assertFile("assets/adaptive-icon.png");
 assertFile("assets/splash.png");
 
 assert(packageJson.scripts?.typecheck === "tsc --noEmit", "typecheck script is missing");
+assert(packageJson.scripts?.["version:check"] === "node scripts/version_check.js", "version:check script is missing");
 assert(packageJson.scripts?.["ci:check"] === "node scripts/ci_check.js", "ci:check script is missing");
 assert(packageJson.scripts?.["release:check"] === "node scripts/mobile_release_check.js", "release:check script is missing");
 assert(packageJson.scripts?.["store:check"] === "node scripts/store_submission_check.js", "store:check script is missing");

@@ -25,6 +25,7 @@ const releaseChecklist = readText("src/releaseChecklist.md");
 
 const requiredScripts = [
   "ci:check",
+  "version:check",
   "release:check",
   "store:check",
   "review:check",
@@ -49,6 +50,8 @@ Generated from the local mobile project configuration.
 - Version: ${app.version}
 - iOS bundle ID: ${app.ios?.bundleIdentifier ?? "missing"}
 - Android package: ${app.android?.package ?? "missing"}
+- iOS build number: ${app.ios?.buildNumber ?? "missing"}
+- Android version code: ${app.android?.versionCode ?? "missing"}
 - Backend API: ${app.extra?.apiBaseUrl ?? "missing"}
 
 ## Automated Gates
@@ -88,6 +91,7 @@ ${storePacket.reviewNotes.map((note) => `- ${note}`).join("\n")}
 
 \`\`\`bash
 npm run ci:check
+npm run version:check
 npm run launch:report
 npm run launch:smoke
 npm run backend:check

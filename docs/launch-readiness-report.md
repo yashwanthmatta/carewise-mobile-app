@@ -9,11 +9,14 @@ Generated from the local mobile project configuration.
 - Version: 0.1.0
 - iOS bundle ID: com.carewise.app
 - Android package: com.carewise.app
+- iOS build number: 1
+- Android version code: 1
 - Backend API: https://carewise-api.onrender.com
 
 ## Automated Gates
 
 - [x] `ci:check` script exists
+- [x] `version:check` script exists
 - [x] `release:check` script exists
 - [x] `store:check` script exists
 - [x] `review:check` script exists
@@ -69,6 +72,7 @@ Generated from the local mobile project configuration.
 
 ```bash
 npm run ci:check
+npm run version:check
 npm run launch:report
 npm run launch:smoke
 npm run backend:check

@@ -28,6 +28,7 @@ Recommended path:
 ```bash
 cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outputs/carewise-mobile-app
 npm install
+npm run version:check
 npm run ci:check
 npm run launch:report
 npm run launch:smoke
@@ -48,6 +49,7 @@ Then open the app with Expo Go on your phone, or press `i` for iOS simulator / `
 Use the local EAS CLI installed in this project when you are ready to make installable builds:
 
 ```bash
+npm run version:check
 npm run ci:check
 npm run launch:report
 npm run launch:smoke
@@ -85,6 +87,7 @@ Use preview builds for TestFlight/internal Android testing before public store s
 - `src/appReviewTestPlan.md` - safe synthetic reviewer flow for Apple/Google review
 - `docs/github-workflows/mobile-ci.yml` - CI workflow template to enable after GitHub token has `workflow` scope
 - `docs/launch-readiness-report.md` - generated readiness summary for app-store planning
+- `docs/release-versioning.md` - version/build-number rules for TestFlight and Play builds
 
 ## Important
 
