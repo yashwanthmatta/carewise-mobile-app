@@ -47,6 +47,13 @@ function passwordValidationMessage(value: string) {
   return "";
 }
 
+function emailValidationMessage(value: string) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+    return "Enter a valid email address.";
+  }
+  return "";
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [email, setEmail] = useState("");
@@ -144,8 +151,14 @@ export default function App() {
 
   function signup() {
     run("Creating account", async () => {
-      if (!email.trim() || !password.trim()) {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail || !password.trim()) {
         setStatus("Enter your email and password before creating an account.");
+        return;
+      }
+      const emailIssue = emailValidationMessage(normalizedEmail);
+      if (emailIssue) {
+        setStatus(emailIssue);
         return;
       }
       const passwordIssue = passwordValidationMessage(password);
@@ -153,18 +166,24 @@ export default function App() {
         setStatus(passwordIssue);
         return;
       }
-      const response = await api.signup(email, password, "patient");
+      const response = await api.signup(normalizedEmail, password, "patient");
       await saveTokenPair(response);
     });
   }
 
   function login() {
     run("Signing in", async () => {
-      if (!email.trim() || !password.trim()) {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail || !password.trim()) {
         setStatus("Enter your email and password before signing in.");
         return;
       }
-      const response = await api.login(email, password);
+      const emailIssue = emailValidationMessage(normalizedEmail);
+      if (emailIssue) {
+        setStatus(emailIssue);
+        return;
+      }
+      const response = await api.login(normalizedEmail, password);
       await saveTokenPair(response);
     });
   }
@@ -178,11 +197,17 @@ export default function App() {
 
   function requestPasswordReset() {
     run("Requesting password reset", async () => {
-      if (!email.trim()) {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) {
         setStatus("Enter your account email before requesting a password reset.");
         return;
       }
-      const response = await api.requestPasswordReset(email);
+      const emailIssue = emailValidationMessage(normalizedEmail);
+      if (emailIssue) {
+        setStatus(emailIssue);
+        return;
+      }
+      const response = await api.requestPasswordReset(normalizedEmail);
       if (response.reset_token) {
         setResetToken(response.reset_token);
         setStatus("Reset token received for this non-production environment. Enter a new password and confirm reset.");

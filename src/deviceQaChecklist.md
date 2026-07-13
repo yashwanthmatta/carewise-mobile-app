@@ -12,6 +12,7 @@ Run this on at least one iPhone and one Android device before public release.
 ## Account Flow
 
 - Create a new patient account with a test email.
+- Confirm invalid email formats show a friendly message before signup, login, or reset.
 - Confirm short passwords show the minimum-length guidance before signup or reset.
 - Log out and log back in.
 - Close and reopen the app to confirm secure session restore.
