@@ -10,6 +10,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "ci:check": "node scripts/ci_check.js",
     "release:check": "node scripts/mobile_release_check.js",
     "store:check": "node scripts/store_submission_check.js",
     "review:check": "node scripts/app_review_check.js",

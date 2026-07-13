@@ -27,11 +27,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Release readiness check
-        run: npm run release:check
-
-      - name: TypeScript check
-        run: npm run typecheck
-
-      - name: EAS build preflight
-        run: npm run build:preflight
+      - name: CareWise CI check
+        run: npm run ci:check

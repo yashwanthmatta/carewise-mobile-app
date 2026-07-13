@@ -38,6 +38,12 @@ assert(app.extra?.apiBaseUrl?.startsWith("https://"), "Backend API URL must be H
 const releaseCheck = run("npm", ["run", "release:check"]);
 assert(releaseCheck.status === 0, releaseCheck.stdout + releaseCheck.stderr);
 
+const storeCheck = run("npm", ["run", "store:check"]);
+assert(storeCheck.status === 0, storeCheck.stdout + storeCheck.stderr);
+
+const reviewCheck = run("npm", ["run", "review:check"]);
+assert(reviewCheck.status === 0, reviewCheck.stdout + reviewCheck.stderr);
+
 const typecheck = run("npm", ["run", "typecheck"]);
 assert(typecheck.status === 0, typecheck.stdout + typecheck.stderr);
 

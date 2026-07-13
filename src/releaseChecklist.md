@@ -24,6 +24,7 @@ Use this before TestFlight, Android internal testing, and public store submissio
 ## Store Build Commands
 
 ```bash
+npm run ci:check
 npm run release:check
 npm run store:check
 npm run review:check

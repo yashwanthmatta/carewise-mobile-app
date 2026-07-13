@@ -28,6 +28,7 @@ Recommended path:
 ```bash
 cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outputs/carewise-mobile-app
 npm install
+npm run ci:check
 npm run release:check
 npm run store:check
 npm run review:check
@@ -45,6 +46,7 @@ Then open the app with Expo Go on your phone, or press `i` for iOS simulator / `
 Use the local EAS CLI installed in this project when you are ready to make installable builds:
 
 ```bash
+npm run ci:check
 npm run release:check
 npm run store:check
 npm run review:check
