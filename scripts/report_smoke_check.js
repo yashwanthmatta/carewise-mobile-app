@@ -115,7 +115,13 @@ async function main() {
   assert(deletionRequest.id, "Deletion request must return an id.");
   assert(deletionRequest.status === "requested", "Deletion request status must be requested.");
 
-  console.log(`CareWise report smoke check passed for ${apiBaseUrl} with ${email}.`);
+  const cleanup = await request("/privacy/me", {
+    method: "DELETE",
+    headers,
+  });
+  assert(cleanup.status === "deleted", "Smoke report account cleanup must delete the temporary account.");
+
+  console.log(`CareWise report smoke check passed and cleaned up ${email} for ${apiBaseUrl}.`);
 }
 
 main().catch((error) => {

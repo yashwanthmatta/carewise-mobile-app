@@ -64,6 +64,7 @@ npm run build:ios:preview
 ```
 
 Use preview builds for TestFlight/internal Android testing before public store submission.
+`npm run launch:smoke` creates temporary synthetic accounts, verifies the live backend, and deletes those test accounts when the checks pass.
 
 ## Current Files
 

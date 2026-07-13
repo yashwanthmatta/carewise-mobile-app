@@ -18,7 +18,7 @@ function run(label, command, args) {
 }
 
 try {
-  console.log("CareWise live launch smoke uses temporary synthetic accounts and no real patient data.");
+  console.log("CareWise live launch smoke uses temporary synthetic accounts, no real patient data, and self-cleans successful test accounts.");
   run("Backend readiness", "npm", ["run", "backend:check"]);
   run("Authentication smoke", "npm", ["run", "auth:smoke"]);
   run("Report, lab trend, privacy smoke", "npm", ["run", "report:smoke"]);

@@ -88,7 +88,13 @@ async function main() {
     assert(confirmed.access_token, "Password reset confirm must return an access token in non-production.");
   }
 
-  console.log(`CareWise auth smoke check passed for ${apiBaseUrl} with ${email}.`);
+  const cleanup = await request("/privacy/me", {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${signup.access_token}` },
+  });
+  assert(cleanup.status === "deleted", "Smoke account cleanup must delete the temporary account.");
+
+  console.log(`CareWise auth smoke check passed and cleaned up ${email} for ${apiBaseUrl}.`);
 }
 
 main().catch((error) => {
