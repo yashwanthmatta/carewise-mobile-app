@@ -25,6 +25,7 @@ import {
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
 const REFRESH_TOKEN_KEY = "carewise.refreshToken";
+const MIN_PASSWORD_LENGTH = 12;
 
 type Screen = "dashboard" | "reports" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
 
@@ -38,6 +39,13 @@ const screens: { key: Screen; label: string }[] = [
   { key: "subscriptions", label: "Plans" },
   { key: "legal", label: "Legal" }
 ];
+
+function passwordValidationMessage(value: string) {
+  if (value.length < MIN_PASSWORD_LENGTH) {
+    return `Use at least ${MIN_PASSWORD_LENGTH} characters for your password.`;
+  }
+  return "";
+}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
@@ -140,6 +148,11 @@ export default function App() {
         setStatus("Enter your email and password before creating an account.");
         return;
       }
+      const passwordIssue = passwordValidationMessage(password);
+      if (passwordIssue) {
+        setStatus(passwordIssue);
+        return;
+      }
       const response = await api.signup(email, password, "patient");
       await saveTokenPair(response);
     });
@@ -187,6 +200,11 @@ export default function App() {
     run("Confirming password reset", async () => {
       if (!resetToken.trim() || !newPassword.trim()) {
         setStatus("Enter the reset token and a new password.");
+        return;
+      }
+      const passwordIssue = passwordValidationMessage(newPassword);
+      if (passwordIssue) {
+        setStatus(passwordIssue);
         return;
       }
       const response = await api.confirmPasswordReset(resetToken.trim(), newPassword);
@@ -403,6 +421,7 @@ export default function App() {
           <Text style={styles.sectionTitle}>Account</Text>
           <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email address" autoCapitalize="none" keyboardType="email-address" />
           <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+          <Text style={styles.smallText}>Use at least {MIN_PASSWORD_LENGTH} characters. Do not reuse passwords from email, banking, or medical portals.</Text>
           <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" autoCapitalize="none" />
           <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" secureTextEntry />
           <TextInput style={styles.input} value={verificationToken} onChangeText={setVerificationToken} placeholder="Email verification token" autoCapitalize="none" />

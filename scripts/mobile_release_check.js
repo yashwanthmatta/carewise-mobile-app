@@ -70,6 +70,9 @@ assert(!appSource.includes('const API_BASE_URL = "https://carewise-api.onrender.
 assert(!appSource.includes('useState("patient@example.com")'), "Production app must not prefill demo email addresses.");
 assert(appSource.includes('placeholder="Email address"'), "Account email field must use a placeholder instead of a prefilled value.");
 assert(appSource.includes("Enter your email and password before signing in."), "App must validate missing sign-in credentials.");
+assert(appSource.includes("MIN_PASSWORD_LENGTH = 12"), "App must define a minimum password length.");
+assert(appSource.includes("passwordValidationMessage"), "App must validate password strength before account creation and reset.");
+assert(appSource.includes("Do not reuse passwords"), "App must show password reuse guidance.");
 assert(appSource.includes("DocumentPicker.getDocumentAsync"), "App must expose file picking");
 assert(appSource.includes("uploadReportFile"), "App must call mobile file upload");
 assert(appSource.includes("logout"), "App must include logout behavior");
