@@ -1,0 +1,55 @@
+{
+  "appName": "CareWise AI",
+  "bundleId": "com.carewise.app",
+  "androidPackage": "com.carewise.app",
+  "category": {
+    "apple": "Health & Fitness",
+    "googlePlay": "Health & Fitness"
+  },
+  "ageRatingNotes": [
+    "No emergency care",
+    "No diagnosis, cure, treatment, or prescription claims",
+    "Health report uploads and wellness education only"
+  ],
+  "support": {
+    "url": "https://carewise-frontend.onrender.com/legal/data-deletion.html",
+    "privacyPolicyUrl": "https://carewise-frontend.onrender.com/legal/privacy.html",
+    "termsUrl": "https://carewise-frontend.onrender.com/legal/terms.html",
+    "medicalDisclaimerUrl": "https://carewise-frontend.onrender.com/legal/disclaimer.html",
+    "dataDeletionUrl": "https://carewise-frontend.onrender.com/legal/data-deletion.html"
+  },
+  "reviewNotes": [
+    "CareWise AI explains uploaded health reports in simple language for education and visit preparation.",
+    "CareWise AI is not a medical diagnosis tool and does not provide emergency care.",
+    "Users can request data deletion in the mobile Legal screen and through the public data deletion page.",
+    "Test accounts used for review should not include real protected health information."
+  ],
+  "screenshotChecklist": [
+    {
+      "name": "Home",
+      "mustShow": "Simple CareWise AI purpose and non-diagnostic positioning"
+    },
+    {
+      "name": "Report upload",
+      "mustShow": "PDF/image/text upload with safe explanation wording"
+    },
+    {
+      "name": "Report result",
+      "mustShow": "Risk/status and clinician-review language, not diagnosis"
+    },
+    {
+      "name": "Lab trends",
+      "mustShow": "Saved lab values and clinician interpretation reminder"
+    },
+    {
+      "name": "Legal",
+      "mustShow": "Privacy policy, disclaimer, export summary, and deletion request controls"
+    }
+  ],
+  "submissionBlockers": [
+    "Do not submit before legal review of privacy policy, terms, medical disclaimer, and deletion workflow.",
+    "Do not submit before clinician review of high-risk wording.",
+    "Do not submit if backend storage is not private.",
+    "Do not submit if Apple App Privacy or Google Play Data Safety answers do not match production behavior."
+  ]
+}

@@ -34,6 +34,7 @@ const finalLaunchStage = readText("src/finalLaunchStage.md");
 const releaseChecklist = readText("src/releaseChecklist.md");
 const deviceQaChecklist = readText("src/deviceQaChecklist.md");
 const storeListing = readText("src/storeListingDraft.md");
+const storeSubmissionPacket = readText("src/storeSubmissionPacket.json");
 
 assert(app.name === "CareWise", "Expo app name must be CareWise");
 assert(app.slug === "carewise", "Expo slug must be carewise");
@@ -49,6 +50,7 @@ assertFile("assets/splash.png");
 
 assert(packageJson.scripts?.typecheck === "tsc --noEmit", "typecheck script is missing");
 assert(packageJson.scripts?.["release:check"] === "node scripts/mobile_release_check.js", "release:check script is missing");
+assert(packageJson.scripts?.["store:check"] === "node scripts/store_submission_check.js", "store:check script is missing");
 assert(packageJson.scripts?.["backend:check"] === "node scripts/backend_connectivity_check.js", "backend:check script is missing");
 assert(packageJson.scripts?.["auth:smoke"] === "node scripts/auth_smoke_check.js", "auth:smoke script is missing");
 assert(packageJson.scripts?.["report:smoke"] === "node scripts/report_smoke_check.js", "report:smoke script is missing");
@@ -90,5 +92,7 @@ assert(finalLaunchStage.includes("must not claim to diagnose"), "Final launch st
 assert(releaseChecklist.includes("Do Not Submit If"), "Release checklist must include submission blockers");
 assert(deviceQaChecklist.includes("Do not submit the app"), "Device QA checklist must include release blockers");
 assert(storeListing.includes("CareWise AI is not a medical diagnosis tool"), "Store listing must include medical disclaimer");
+assert(storeSubmissionPacket.includes('"screenshotChecklist"'), "Store submission packet must include screenshot checklist");
+assert(storeSubmissionPacket.includes("Do not submit before legal review"), "Store submission packet must include legal submission blockers");
 
 console.log("CareWise mobile release check passed.");

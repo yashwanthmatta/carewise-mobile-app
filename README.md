@@ -29,6 +29,7 @@ Recommended path:
 cd /Users/yashwanthmatta/Documents/Codex/2026-06-14/okay-i-want-to-build-a/outputs/carewise-mobile-app
 npm install
 npm run release:check
+npm run store:check
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke
@@ -44,6 +45,7 @@ Use the local EAS CLI installed in this project when you are ready to make insta
 
 ```bash
 npm run release:check
+npm run store:check
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke
@@ -70,6 +72,7 @@ Use preview builds for TestFlight/internal Android testing before public store s
 - `src/releaseChecklist.md` - concrete build, test, and submission checklist
 - `src/deviceQaChecklist.md` - real iOS/Android device testing checklist
 - `src/storeListingDraft.md` - first App Store / Google Play listing copy
+- `src/storeSubmissionPacket.json` - checked submission metadata, review notes, screenshots, and blockers
 - `docs/github-workflows/mobile-ci.yml` - CI workflow template to enable after GitHub token has `workflow` scope
 
 ## Important

@@ -25,6 +25,7 @@ Use this before TestFlight, Android internal testing, and public store submissio
 
 ```bash
 npm run release:check
+npm run store:check
 npm run backend:check
 npm run auth:smoke
 npm run report:smoke
