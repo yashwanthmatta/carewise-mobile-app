@@ -67,6 +67,9 @@ assert(packageJson.dependencies?.["expo-constants"], "expo-constants dependency 
 assert(appSource.includes("SecureStore"), "App must use secure token storage");
 assert(appSource.includes("Constants.expoConfig?.extra?.apiBaseUrl"), "App must read API URL from Expo config");
 assert(!appSource.includes('const API_BASE_URL = "https://carewise-api.onrender.com"'), "App must not hardcode production API URL only in source");
+assert(!appSource.includes('useState("patient@example.com")'), "Production app must not prefill demo email addresses.");
+assert(appSource.includes('placeholder="Email address"'), "Account email field must use a placeholder instead of a prefilled value.");
+assert(appSource.includes("Enter your email and password before signing in."), "App must validate missing sign-in credentials.");
 assert(appSource.includes("DocumentPicker.getDocumentAsync"), "App must expose file picking");
 assert(appSource.includes("uploadReportFile"), "App must call mobile file upload");
 assert(appSource.includes("logout"), "App must include logout behavior");

@@ -41,7 +41,7 @@ const screens: { key: Screen; label: string }[] = [
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
-  const [email, setEmail] = useState("patient@example.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -136,6 +136,10 @@ export default function App() {
 
   function signup() {
     run("Creating account", async () => {
+      if (!email.trim() || !password.trim()) {
+        setStatus("Enter your email and password before creating an account.");
+        return;
+      }
       const response = await api.signup(email, password, "patient");
       await saveTokenPair(response);
     });
@@ -143,6 +147,10 @@ export default function App() {
 
   function login() {
     run("Signing in", async () => {
+      if (!email.trim() || !password.trim()) {
+        setStatus("Enter your email and password before signing in.");
+        return;
+      }
       const response = await api.login(email, password);
       await saveTokenPair(response);
     });
@@ -157,6 +165,10 @@ export default function App() {
 
   function requestPasswordReset() {
     run("Requesting password reset", async () => {
+      if (!email.trim()) {
+        setStatus("Enter your account email before requesting a password reset.");
+        return;
+      }
       const response = await api.requestPasswordReset(email);
       if (response.reset_token) {
         setResetToken(response.reset_token);
@@ -389,7 +401,7 @@ export default function App() {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Account</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email address" autoCapitalize="none" keyboardType="email-address" />
           <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
           <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" autoCapitalize="none" />
           <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" secureTextEntry />

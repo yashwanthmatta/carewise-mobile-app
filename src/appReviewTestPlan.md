@@ -5,6 +5,7 @@ Use this for Apple App Review, Google Play review, TestFlight, and Android inter
 ## Reviewer Access
 
 - Reviewers can create a fresh patient account from the app signup screen.
+- The app should not prefill reviewer credentials; enter a synthetic reviewer email and password during the test.
 - If a store reviewer requires a pre-created account, create a temporary account in the production backend shortly before submission and paste those credentials only into App Store Connect or Play Console reviewer notes.
 - Do not commit reviewer passwords, personal email passwords, API keys, or real patient data to this repository.
 - Test accounts should use synthetic data only and should be deleted after review.
