@@ -38,9 +38,11 @@ npm run typecheck
 npm run build:preflight
 npm run eas:login
 npm run build:android:preview
-npx eas build --platform ios --profile preview
-npx eas build --platform android --profile production
-npx eas build --platform ios --profile production
+npm run build:ios:preview
+npm run build:android:production
+npm run build:ios:production
+npm run submit:android:production
+npm run submit:ios:production
 ```
 
 ## Human Approval Required

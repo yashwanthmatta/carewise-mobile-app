@@ -60,6 +60,14 @@ assert(packageJson.scripts?.["launch:smoke"] === "node scripts/launch_smoke_chec
 assert(packageJson.scripts?.["backend:check"] === "node scripts/backend_connectivity_check.js", "backend:check script is missing");
 assert(packageJson.scripts?.["auth:smoke"] === "node scripts/auth_smoke_check.js", "auth:smoke script is missing");
 assert(packageJson.scripts?.["report:smoke"] === "node scripts/report_smoke_check.js", "report:smoke script is missing");
+assert(packageJson.scripts?.["build:preflight"] === "node scripts/eas_build_preflight.js", "build:preflight script is missing");
+assert(packageJson.scripts?.["eas:login"] === "eas login", "eas:login script is missing");
+assert(packageJson.scripts?.["build:android:preview"] === "eas build --platform android --profile preview", "build:android:preview script is missing");
+assert(packageJson.scripts?.["build:ios:preview"] === "eas build --platform ios --profile preview", "build:ios:preview script is missing");
+assert(packageJson.scripts?.["build:android:production"] === "eas build --platform android --profile production", "build:android:production script is missing");
+assert(packageJson.scripts?.["build:ios:production"] === "eas build --platform ios --profile production", "build:ios:production script is missing");
+assert(packageJson.scripts?.["submit:android:production"] === "eas submit --platform android --profile production", "submit:android:production script is missing");
+assert(packageJson.scripts?.["submit:ios:production"] === "eas submit --platform ios --profile production", "submit:ios:production script is missing");
 assert(packageJson.dependencies?.["expo-secure-store"], "expo-secure-store dependency is missing");
 assert(packageJson.dependencies?.["expo-document-picker"], "expo-document-picker dependency is missing");
 assert(packageJson.dependencies?.["expo-constants"], "expo-constants dependency is missing");

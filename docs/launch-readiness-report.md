@@ -28,6 +28,10 @@ Generated from the local mobile project configuration.
 - [x] `build:preflight` script exists
 - [x] `build:android:preview` script exists
 - [x] `build:ios:preview` script exists
+- [x] `build:android:production` script exists
+- [x] `build:ios:production` script exists
+- [x] `submit:android:production` script exists
+- [x] `submit:ios:production` script exists
 - [x] Store listing includes non-diagnostic wording
 - [x] Reviewer test plan uses synthetic data
 - [x] Release checklist includes submission blockers
@@ -81,4 +85,8 @@ npm run report:smoke
 npm run eas:login
 npm run build:android:preview
 npm run build:ios:preview
+npm run build:android:production
+npm run build:ios:production
+npm run submit:android:production
+npm run submit:ios:production
 ```

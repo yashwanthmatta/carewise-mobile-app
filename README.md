@@ -63,9 +63,13 @@ npm run build:preflight
 npm run eas:login
 npm run build:android:preview
 npm run build:ios:preview
+npm run build:android:production
+npm run build:ios:production
+npm run submit:android:production
+npm run submit:ios:production
 ```
 
-Use preview builds for TestFlight/internal Android testing before public store submission.
+Use preview builds for TestFlight/internal Android testing before public store submission. Run production build and submit commands only after legal, clinician, privacy, and real-device QA are complete.
 `npm run launch:smoke` creates temporary synthetic accounts, verifies the live backend, and deletes those test accounts when the checks pass.
 
 ## Current Files
@@ -99,12 +103,14 @@ The app reads its backend URL from `app.json` at `expo.extra.apiBaseUrl`. Change
 
 ## MVP Screen Contract
 
-- Auth: signup, login, logout, signed-in identity, password reset placeholder
-- Patient: profile, consent history, medications, weekly check-ins
+- Auth: signup, login, logout, signed-in identity, password reset, email verification
+- Patient: profile, consent history, privacy export, data deletion request
 - Reports: upload file metadata, paste/OCR report text, analyze, show risk and next steps
-- Care: intake, monthly plan, diet, exercise, doctor summary, save/export
-- Clinician: review queue, decision status, audit trail
-- Payments: plan selection and checkout placeholder
+- Labs: save and reload cloud lab trends
+- Care: backend recommendation request with diet style and goals
+- Doctors: location and specialty search
+- Insurance: education-only matching without coverage guarantees
+- Payments: backend subscription checkout request
 - Legal: privacy, terms, medical disclaimer, deletion request
 
 Before App Store or Google Play submission, complete Apple App Privacy details and Google Play Data Safety answers from the real data flows.
@@ -125,6 +131,10 @@ Before App Store or Google Play submission, complete Apple App Privacy details a
 - Upload report files to backend storage
 - Analyze report
 - Save and reload lab trends through the backend
+- Generate backend care-plan recommendations with safe non-diagnostic wording
+- Search doctor options by location and specialty
+- Request insurance guidance without coverage guarantees
+- Start backend subscription checkout when payment configuration is ready
 - Legal links to the deployed CareWise pages
 
 PDF/image/text file upload is wired to the backend multipart report API. Users can still paste readable text to improve analysis when a scanned file has no extractable text.

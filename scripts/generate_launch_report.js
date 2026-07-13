@@ -37,6 +37,10 @@ const requiredScripts = [
   "build:preflight",
   "build:android:preview",
   "build:ios:preview",
+  "build:android:production",
+  "build:ios:production",
+  "submit:android:production",
+  "submit:ios:production",
 ];
 
 const report = `# CareWise Mobile Launch Readiness Report
@@ -100,6 +104,10 @@ npm run report:smoke
 npm run eas:login
 npm run build:android:preview
 npm run build:ios:preview
+npm run build:android:production
+npm run build:ios:production
+npm run submit:android:production
+npm run submit:ios:production
 \`\`\`
 `;
 
