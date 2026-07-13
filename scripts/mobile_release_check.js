@@ -83,6 +83,10 @@ assert(appSource.includes("accessibilityLabel={label}"), "Action buttons must ex
 assert(appSource.includes('accessibilityRole="tab"'), "Navigation tabs must expose accessibility role.");
 assert(appSource.includes("accessibilityState={{ selected: screen === item.key }}"), "Navigation tabs must expose selected state.");
 assert(appSource.includes("accessibilityState={{ disabled }}"), "Disabled buttons must expose disabled state.");
+assert(appSource.includes('accessibilityLabel="Email address"'), "Email field must expose an accessibility label.");
+assert(appSource.includes('accessibilityLabel="Readable report text"'), "Report text field must expose an accessibility label.");
+assert(appSource.includes('accessibilityLabel="Lab value"'), "Lab value field must expose an accessibility label.");
+assert(appSource.includes('accessibilityLabel="Reason for data deletion request"'), "Deletion reason field must expose an accessibility label.");
 assert(appSource.includes("logout"), "App must include logout behavior");
 assert(appSource.includes("api.logout(refreshToken)"), "App logout must revoke refresh tokens through the backend");
 assert(appSource.includes("requestPasswordReset"), "App must include password reset request behavior");

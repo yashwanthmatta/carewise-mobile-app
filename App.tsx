@@ -444,12 +444,12 @@ export default function App() {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Account</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email address" autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email address" accessibilityLabel="Email address" autoCapitalize="none" keyboardType="email-address" />
+          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" accessibilityLabel="Password" secureTextEntry />
           <Text style={styles.smallText}>Use at least {MIN_PASSWORD_LENGTH} characters. Do not reuse passwords from email, banking, or medical portals.</Text>
-          <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" autoCapitalize="none" />
-          <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" secureTextEntry />
-          <TextInput style={styles.input} value={verificationToken} onChangeText={setVerificationToken} placeholder="Email verification token" autoCapitalize="none" />
+          <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" accessibilityLabel="Password reset token" autoCapitalize="none" />
+          <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" accessibilityLabel="New password" secureTextEntry />
+          <TextInput style={styles.input} value={verificationToken} onChangeText={setVerificationToken} placeholder="Email verification token" accessibilityLabel="Email verification token" autoCapitalize="none" />
           <View style={styles.buttonRow}>
             <ActionButton label="Sign up" onPress={signup} disabled={busy} />
             <ActionButton label="Login" onPress={login} disabled={busy} />
@@ -495,12 +495,13 @@ export default function App() {
         {screen === "reports" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Report Upload</Text>
-            <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name" />
+            <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name" accessibilityLabel="Report name" />
             <TextInput
               style={[styles.input, styles.textArea]}
               value={reportText}
               onChangeText={setReportText}
               placeholder="Paste readable lab/report text"
+              accessibilityLabel="Readable report text"
               multiline
             />
             <View style={styles.buttonRow}>
@@ -523,15 +524,16 @@ export default function App() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Lab Trends</Text>
             <Text style={styles.bodyText}>Save key values for visit preparation. CareWise does not diagnose; a licensed clinician should interpret your original report and reference range.</Text>
-            <TextInput style={styles.input} value={labTestName} onChangeText={setLabTestName} placeholder="Test name, example LDL cholesterol" />
-            <TextInput style={styles.input} value={labValue} onChangeText={setLabValue} placeholder="Value, example 142" keyboardType="decimal-pad" />
-            <TextInput style={styles.input} value={labUnit} onChangeText={setLabUnit} placeholder="Unit, example mg/dL" />
-            <TextInput style={styles.input} value={labFlag} onChangeText={setLabFlag} placeholder="Flag: high, low, in_range, not_sure" autoCapitalize="none" />
+            <TextInput style={styles.input} value={labTestName} onChangeText={setLabTestName} placeholder="Test name, example LDL cholesterol" accessibilityLabel="Lab test name" />
+            <TextInput style={styles.input} value={labValue} onChangeText={setLabValue} placeholder="Value, example 142" accessibilityLabel="Lab value" keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={labUnit} onChangeText={setLabUnit} placeholder="Unit, example mg/dL" accessibilityLabel="Lab unit" />
+            <TextInput style={styles.input} value={labFlag} onChangeText={setLabFlag} placeholder="Flag: high, low, in_range, not_sure" accessibilityLabel="Lab flag" autoCapitalize="none" />
             <TextInput
               style={[styles.input, styles.textAreaSmall]}
               value={labNotes}
               onChangeText={setLabNotes}
               placeholder="Notes or question for your clinician"
+              accessibilityLabel="Lab notes or clinician question"
               multiline
             />
             <View style={styles.buttonRow}>
@@ -571,6 +573,7 @@ export default function App() {
               value={deletionReason}
               onChangeText={setDeletionReason}
               placeholder="Reason for deletion request"
+              accessibilityLabel="Reason for data deletion request"
               multiline
             />
             <View style={styles.buttonRow}>
