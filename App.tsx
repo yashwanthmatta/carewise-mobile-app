@@ -54,6 +54,19 @@ function emailValidationMessage(value: string) {
   return "";
 }
 
+function formatApiResult(value: unknown) {
+  if (typeof value === "string") return value;
+  return JSON.stringify(value, null, 2);
+}
+
+function getCheckoutUrl(value: unknown) {
+  if (!value || typeof value !== "object") return "";
+  const candidate = value as { checkout_url?: unknown; url?: unknown };
+  if (typeof candidate.checkout_url === "string") return candidate.checkout_url;
+  if (typeof candidate.url === "string") return candidate.url;
+  return "";
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [email, setEmail] = useState("");
@@ -78,6 +91,18 @@ export default function App() {
   const [labNotes, setLabNotes] = useState("");
   const [privacySummary, setPrivacySummary] = useState<PrivacyExportSummaryOut | null>(null);
   const [deletionReason, setDeletionReason] = useState("Please delete my CareWise account data.");
+  const [dietStyle, setDietStyle] = useState("balanced");
+  const [careGoals, setCareGoals] = useState("Understand my report, improve daily habits, prepare doctor questions");
+  const [carePlanResult, setCarePlanResult] = useState("");
+  const [doctorLocation, setDoctorLocation] = useState("Austin, TX");
+  const [doctorSpecialty, setDoctorSpecialty] = useState("primary care");
+  const [doctorSearchResult, setDoctorSearchResult] = useState("");
+  const [insuranceRegion, setInsuranceRegion] = useState("US");
+  const [insuranceConditions, setInsuranceConditions] = useState("general wellness");
+  const [insuranceBudget, setInsuranceBudget] = useState("medium");
+  const [insuranceMatchResult, setInsuranceMatchResult] = useState("");
+  const [planCode, setPlanCode] = useState<"basic" | "plus" | "premium">("basic");
+  const [subscriptionResult, setSubscriptionResult] = useState("");
   const [busy, setBusy] = useState(false);
 
   const api = useMemo(() => new CareWiseApiClient(API_BASE_URL, token), [token]);
@@ -424,6 +449,70 @@ export default function App() {
     );
   }
 
+  async function ensurePatientProfile() {
+    if (patientId) return patientId;
+    const profile = await api.saveProfile({
+      name: "Mobile Patient",
+      conditions: "General wellness planning",
+      location_region: insuranceRegion.trim() || "US",
+      insurance_status: "unknown"
+    });
+    setPatientId(profile.patient_id);
+    return profile.patient_id;
+  }
+
+  function generateCarePlan() {
+    run("Generating care plan", async () => {
+      const activePatientId = await ensurePatientProfile();
+      const goals = careGoals
+        .split(",")
+        .map((goal) => goal.trim())
+        .filter(Boolean);
+      const contextText = [
+        reportText.trim(),
+        analysis ? `Latest report risk level: ${analysis.risk_level}. Summary: ${formatApiResult(analysis.summary)}` : "",
+        labTrends.length ? `Recent saved labs: ${labTrends.slice(0, 5).map((item) => `${item.test_name} ${item.value} ${item.unit} ${item.flag}`).join("; ")}` : ""
+      ].filter(Boolean).join("\n\n") || "General wellness planning. Explain in simple, non-diagnostic language.";
+      const result = await api.getRecommendations(activePatientId, contextText, dietStyle.trim() || "balanced", goals);
+      setCarePlanResult(formatApiResult(result));
+      setStatus("Care plan generated. Review changes with a licensed clinician before acting on medical concerns.");
+    });
+  }
+
+  function searchDoctorList() {
+    run("Searching doctors", async () => {
+      const result = await api.searchDoctors(doctorLocation.trim() || "US", doctorSpecialty.trim() || "primary care");
+      setDoctorSearchResult(formatApiResult(result));
+      setStatus("Doctor search loaded. Verify network status, credentials, location, and availability directly with the provider.");
+    });
+  }
+
+  function matchInsurancePlan() {
+    run("Matching insurance options", async () => {
+      const result = await api.matchInsurance(
+        insuranceRegion.trim() || "US",
+        insuranceConditions.trim() || "general wellness",
+        insuranceBudget.trim() || "medium"
+      );
+      setInsuranceMatchResult(formatApiResult(result));
+      setStatus("Insurance guidance loaded. Confirm benefits, exclusions, and costs with the insurer before enrolling.");
+    });
+  }
+
+  function startSubscriptionCheckout() {
+    run("Starting plan checkout", async () => {
+      const result = await api.createSubscriptionCheckout(planCode);
+      const checkoutUrl = getCheckoutUrl(result);
+      setSubscriptionResult(formatApiResult(result));
+      if (checkoutUrl) {
+        await Linking.openURL(checkoutUrl);
+        setStatus("Checkout opened. Payment processing is handled outside CareWise by the configured provider.");
+        return;
+      }
+      setStatus("Plan request completed. Checkout is not configured yet for this environment.");
+    });
+  }
+
   async function pickReportFile() {
     const result = await DocumentPicker.getDocumentAsync({ type: ["text/plain", "application/pdf", "image/*"] });
     if (result.canceled || !result.assets?.[0]) return;
@@ -554,10 +643,66 @@ export default function App() {
           </View>
         ) : null}
 
-        {screen === "recommendations" ? <InfoCard title="Care Plan" lines={["Diet, habits, and exercise recommendations will use backend care-plan APIs.", "Never show AI output as a diagnosis or prescription."]} /> : null}
-        {screen === "doctors" ? <InfoCard title="Doctor Search" lines={["Use location and specialty to call the doctor search API.", "Show disclaimers and let users verify provider details."]} /> : null}
-        {screen === "insurance" ? <InfoCard title="Insurance Guidance" lines={["Use the insurance match API for education only.", "Do not promise coverage or exact out-of-pocket cost."]} /> : null}
-        {screen === "subscriptions" ? <InfoCard title="Subscriptions" lines={["Plans come from the backend.", "Stripe Checkout opens when Stripe keys are configured."]} /> : null}
+        {screen === "recommendations" ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Care Plan</Text>
+            <Text style={styles.bodyText}>Generate simple wellness suggestions from your report context, saved labs, and goals. This is not a diagnosis or prescription.</Text>
+            <TextInput style={styles.input} value={dietStyle} onChangeText={setDietStyle} placeholder="Diet style: balanced, vegetarian, vegan, pescatarian" accessibilityLabel="Diet style" />
+            <TextInput
+              style={[styles.input, styles.textAreaSmall]}
+              value={careGoals}
+              onChangeText={setCareGoals}
+              placeholder="Goals separated by commas"
+              accessibilityLabel="Care goals"
+              multiline
+            />
+            <ActionButton label="Generate care plan" onPress={generateCarePlan} disabled={!token || busy} />
+            {carePlanResult ? <Text style={styles.resultBox}>{carePlanResult}</Text> : <Text style={styles.smallText}>Upload a report first for more relevant guidance.</Text>}
+          </View>
+        ) : null}
+        {screen === "doctors" ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Doctor Search</Text>
+            <Text style={styles.bodyText}>Search by location and specialty. CareWise can suggest what type of clinician to discuss findings with, but provider details must be verified directly.</Text>
+            <TextInput style={styles.input} value={doctorLocation} onChangeText={setDoctorLocation} placeholder="Location, example Austin, TX" accessibilityLabel="Doctor search location" />
+            <TextInput style={styles.input} value={doctorSpecialty} onChangeText={setDoctorSpecialty} placeholder="Specialty, example cardiology" accessibilityLabel="Doctor search specialty" />
+            <ActionButton label="Search doctors" onPress={searchDoctorList} disabled={!token || busy} />
+            {doctorSearchResult ? <Text style={styles.resultBox}>{doctorSearchResult}</Text> : <Text style={styles.smallText}>Results depend on the backend provider data configured for launch.</Text>}
+          </View>
+        ) : null}
+        {screen === "insurance" ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Insurance Guidance</Text>
+            <Text style={styles.bodyText}>Compare educational coverage fit. CareWise does not guarantee eligibility, coverage, claim approval, or exact out-of-pocket costs.</Text>
+            <TextInput style={styles.input} value={insuranceRegion} onChangeText={setInsuranceRegion} placeholder="Region, example US or Texas" accessibilityLabel="Insurance region" />
+            <TextInput style={styles.input} value={insuranceConditions} onChangeText={setInsuranceConditions} placeholder="Health context, example high LDL" accessibilityLabel="Insurance health context" />
+            <TextInput style={styles.input} value={insuranceBudget} onChangeText={setInsuranceBudget} placeholder="Budget level: low, medium, high" accessibilityLabel="Insurance budget level" autoCapitalize="none" />
+            <ActionButton label="Match insurance" onPress={matchInsurancePlan} disabled={!token || busy} />
+            {insuranceMatchResult ? <Text style={styles.resultBox}>{insuranceMatchResult}</Text> : <Text style={styles.smallText}>Keep this as education until licensed insurance review is ready.</Text>}
+          </View>
+        ) : null}
+        {screen === "subscriptions" ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Plans</Text>
+            <Text style={styles.bodyText}>Start a backend checkout request for the selected plan. Payments stay outside CareWise until the configured payment provider is ready.</Text>
+            <View style={styles.buttonRow}>
+              {(["basic", "plus", "premium"] as const).map((code) => (
+                <Pressable
+                  key={code}
+                  onPress={() => setPlanCode(code)}
+                  style={[styles.planPill, planCode === code && styles.activePlanPill]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${code} plan`}
+                  accessibilityState={{ selected: planCode === code }}
+                >
+                  <Text style={[styles.tabText, planCode === code && styles.activeTabText]}>{code}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <ActionButton label="Start checkout" onPress={startSubscriptionCheckout} disabled={!token || busy} />
+            {subscriptionResult ? <Text style={styles.resultBox}>{subscriptionResult}</Text> : <Text style={styles.smallText}>Use test payments only until legal, privacy, and billing reviews are complete.</Text>}
+          </View>
+        ) : null}
         {screen === "legal" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Legal</Text>
@@ -611,15 +756,6 @@ function ActionButton({ label, onPress, disabled = false }: { label: string; onP
   );
 }
 
-function InfoCard({ title, lines }: { title: string; lines: string[] }) {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {lines.map((line) => <Text key={line} style={styles.bodyText}>{line}</Text>)}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#f6fbf9" },
   container: { padding: 18, gap: 14 },
@@ -643,9 +779,12 @@ const styles = StyleSheet.create({
   activeTab: { borderColor: "#08766e", backgroundColor: "#e8fff8" },
   tabText: { color: "#60716d", fontWeight: "800" },
   activeTabText: { color: "#053f3c" },
+  planPill: { borderRadius: 999, borderWidth: 1, borderColor: "#cbdcd5", backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 10 },
+  activePlanPill: { borderColor: "#08766e", backgroundColor: "#e8fff8" },
   list: { gap: 8 },
   divider: { height: 1, backgroundColor: "#dbe8e4", marginVertical: 4 },
   fileBadge: { borderRadius: 8, borderWidth: 1, borderColor: "#b8e2db", backgroundColor: "#e8fff8", padding: 10 },
   listItem: { borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
+  resultBox: { color: "#244944", fontSize: 12, lineHeight: 18, borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
   listTitle: { color: "#053f3c", fontSize: 15, fontWeight: "900" }
 });
