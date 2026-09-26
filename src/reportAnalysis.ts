@@ -149,7 +149,7 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Routine follow-up": "Seguimiento de rutina",
       "The report text includes symptoms that should not wait for routine AI guidance.": "El texto del informe incluye síntomas que no deben esperar a una orientación de rutina.",
       "Vitamin D appears in the report text, but CareWise could not confidently read the value.": "La vitamina D aparece en el informe, pero CareWise no pudo leer el valor con seguridad.",
-      "CareWise needs pasted lab values or OCR text to explain specific markers.": "CareWise necesita los valores del laboratorio o el texto escaneado para explicar marcadores específicos.",
+      "CareWise needs typed or pasted lab values to explain specific results.": "CareWise necesita los valores del laboratorio escritos o pegados para explicar resultados específicos.",
       "If these symptoms are happening now, seek emergency care or call local emergency services.": "Si estos síntomas están ocurriendo ahora, busque atención de emergencia o llame a los servicios de emergencia locales.",
       "Discuss heart-risk context, diet pattern, exercise, family history, and follow-up timing with a clinician.": "Hable con un profesional de salud sobre su riesgo cardíaco, su alimentación, el ejercicio, sus antecedentes familiares y cuándo hacer seguimiento.",
       "Ask whether fasting status, alcohol, refined carbs, medicines, or thyroid/metabolic factors could affect triglycerides.": "Pregunte si el ayuno, el alcohol, los carbohidratos refinados, los medicamentos o factores tiroideos o metabólicos podrían afectar sus triglicéridos.",
@@ -157,7 +157,7 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Paste key lab rows, values, units, and reference flags from the report.": "Pegue las filas principales del informe: valores, unidades e indicadores de referencia.",
       "Build meals around vegetables, fiber-rich carbs, lean protein, and unsaturated fats unless your clinician gave different advice.": "Base sus comidas en verduras, carbohidratos ricos en fibra, proteínas magras y grasas insaturadas, salvo que su profesional de salud le haya indicado otra cosa.",
       "Aim for consistent walking or movement you can repeat most days, adjusted for your clinician's guidance.": "Procure caminar o moverse de forma constante la mayoría de los días, según las indicaciones de su profesional de salud.",
-      "Paste OCR text or key lab values before using report analysis.": "Pegue el texto escaneado o los valores principales antes de usar el análisis del informe.",
+      "Type or paste your lab results first, or press Try sample report.": "Escriba o pegue primero sus resultados, o pulse «Try sample report».",
       "Ask a licensed professional to review the original report.": "Pida a un profesional de salud autorizado que revise el informe original.",
       "What LDL goal is appropriate for me based on my age, family history, blood pressure, and other risks?": "¿Qué meta de LDL es adecuada para mí según mi edad, mis antecedentes familiares, mi presión arterial y otros riesgos?",
       "Does my A1C need repeat testing or a diabetes care plan?": "¿Necesito repetir la prueba de A1C o un plan de atención para la diabetes?",
@@ -230,6 +230,40 @@ function readReportNumber(text: string, patterns: RegExp[]): number | null {
   return null;
 }
 
+// Skips a lab footnote code like the "01" in "Cholesterol, Total 01  289 mg/dL".
+const LAB_FOOTNOTE = String.raw`(?:\b0\d\s+\D{0,12}?)?`;
+const LAB_UNIT = String.raw`\s*(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl|%)?`;
+
+function readLabMeasure(text: string, namePattern: string): { value: number; unit: string } | null {
+  const match = text.match(new RegExp(`${namePattern}\\D{0,24}?${LAB_FOOTNOTE}(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
+  if (!match) return null;
+  return { value: Number(match[1]), unit: (match[2] || "").replace(/\s+/g, "").toLowerCase() };
+}
+
+// UK and European labs report lipids in mmol/L and A1C in mmol/mol (IFCC).
+// Convert to the US units the explanations use; a value with no unit that is
+// only plausible in the other unit is treated as that unit.
+function readCholesterolMgDl(text: string, namePattern: string): number | null {
+  const measure = readLabMeasure(text, namePattern);
+  if (!measure) return null;
+  if (measure.unit === "mmol/l" || (!measure.unit && measure.value < 25)) return Math.round(measure.value * 38.67);
+  return measure.value;
+}
+
+function readTriglyceridesMgDl(text: string): number | null {
+  const measure = readLabMeasure(text, "triglycerides");
+  if (!measure) return null;
+  if (measure.unit === "mmol/l" || (!measure.unit && measure.value < 15)) return Math.round(measure.value * 88.57);
+  return measure.value;
+}
+
+function readA1cPercent(text: string): number | null {
+  const measure = readLabMeasure(text, String.raw`(?:hemoglobin\s*)?a1c`);
+  if (!measure) return null;
+  if (measure.unit === "mmol/mol" || (!measure.unit && measure.value > 20)) return Math.round((0.0915 * measure.value + 2.15) * 10) / 10;
+  return measure.value;
+}
+
 function buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, vitaminD, systolic, diastolic }: MarkerValues): LabValue[] {
   const values: (LabValue | null)[] = [
     ldl !== null ? { label: "LDL cholesterol", value: ldl, unit: "mg/dL", flag: ldl >= 160 ? "High" : ldl >= 130 ? "Needs attention" : "In range discussion" } : null,
@@ -247,10 +281,10 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
   const urgentMatches = getNonNegatedEmergencyMatches(lower);
   if (hasHypertensiveCrisis(lower)) urgentMatches.push("blood pressure over 180/120");
 
-  const ldl = readReportNumber(lower, [/\bldl(?: cholesterol)?\D{0,24}(\d+(?:\.\d+)?)/i]);
-  const totalCholesterol = readReportNumber(lower, [/(?:total cholesterol|cholesterol,?\s*total)\D{0,24}(\d+(?:\.\d+)?)/i]);
-  const triglycerides = readReportNumber(lower, [/triglycerides\D{0,24}(\d+(?:\.\d+)?)/i]);
-  const a1c = readReportNumber(lower, [/(?:hemoglobin\s*)?a1c\D{0,24}(\d+(?:\.\d+)?)/i]);
+  const ldl = readCholesterolMgDl(lower, String.raw`\bldl(?: cholesterol)?`);
+  const totalCholesterol = readCholesterolMgDl(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`);
+  const triglycerides = readTriglyceridesMgDl(lower);
+  const a1c = readA1cPercent(lower);
   // Skip the "25-hydroxy" / "25-OH" in the test name so it is not read as the value.
   const vitaminD = readReportNumber(lower, [/vitamin d(?:[\s,]*\(?25[\s-]*(?:hydroxy|oh)\)?)?\D{0,24}(\d+(?:\.\d+)?)/i]);
   const systolic = readReportNumber(lower, [/blood pressure\D{0,60}(\d{2,3})\s*\/\s*\d{2,3}/i]);
@@ -333,7 +367,7 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     findings.push({
       label: "Readable values",
       level: "Not enough structured data",
-      detail: "CareWise needs pasted lab values or OCR text to explain specific markers.",
+      detail: "CareWise needs typed or pasted lab values to explain specific results.",
     });
     suggestions.push("Paste key lab rows, values, units, and reference flags from the report.");
     score = 72;
