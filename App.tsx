@@ -33,17 +33,20 @@ import {
   type ReportAnalysis,
   type ReportLanguage
 } from "./src/reportAnalysis";
+import HealthRecordScreen, { loadHealthRecord } from "./src/HealthRecordScreen";
+import { buildHistoryBriefText } from "./src/healthRecord";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
 const REFRESH_TOKEN_KEY = "carewise.refreshToken";
 const MIN_PASSWORD_LENGTH = 12;
 
-type Screen = "dashboard" | "reports" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
+type Screen = "dashboard" | "reports" | "record" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
 
 const screens: { key: Screen; label: string }[] = [
   { key: "dashboard", label: "Home" },
   { key: "reports", label: "Reports" },
+  { key: "record", label: "Record" },
   { key: "labs", label: "Labs" },
   { key: "recommendations", label: "Care" },
   { key: "doctors", label: "Doctors" },
@@ -556,7 +559,9 @@ export default function App() {
     if (!localAnalysis) return;
     const person = reportPerson.trim() && reportPerson.trim().toLowerCase() !== "me" ? reportPerson.trim() : "Me";
     try {
-      await Share.share({ title: "CareWise doctor brief", message: buildDoctorBriefText(localAnalysis, person) });
+      const history = buildHistoryBriefText(await loadHealthRecord(), person);
+      const brief = buildDoctorBriefText(localAnalysis, person);
+      await Share.share({ title: "CareWise doctor brief", message: history ? `${brief}\n\n${history}` : brief });
     } catch {
       setStatus("Could not open the share sheet.");
     }
@@ -710,6 +715,8 @@ export default function App() {
             </Text>
           </View>
         ) : null}
+
+        {screen === "record" ? <HealthRecordScreen extraPeople={reportPerson.trim() ? [reportPerson] : []} /> : null}
 
         {screen === "labs" ? (
           <View style={styles.card}>
