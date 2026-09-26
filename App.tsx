@@ -5,6 +5,7 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -21,6 +22,17 @@ import {
   type ReportAnalysisOut,
   type SessionOut
 } from "./src/apiClient";
+import {
+  REPORT_LANGUAGES,
+  SAMPLE_REPORT_TEXT,
+  analyzeReportTextLocally,
+  buildDoctorBriefText,
+  reportUiText,
+  translateReportAnalysis,
+  translateReportText,
+  type ReportAnalysis,
+  type ReportLanguage
+} from "./src/reportAnalysis";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
@@ -83,6 +95,9 @@ export default function App() {
   const [reportName, setReportName] = useState("mobile-report.txt");
   const [selectedReportFile, setSelectedReportFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [analysis, setAnalysis] = useState<ReportAnalysisOut | null>(null);
+  const [localAnalysis, setLocalAnalysis] = useState<ReportAnalysis | null>(null);
+  const [reportLanguage, setReportLanguage] = useState<ReportLanguage>("en");
+  const [reportPerson, setReportPerson] = useState("");
   const [labTrends, setLabTrends] = useState<LabTrendOut[]>([]);
   const [labTestName, setLabTestName] = useState("LDL cholesterol");
   const [labValue, setLabValue] = useState("");
@@ -522,6 +537,35 @@ export default function App() {
     setStatus(`${file.name} selected. Add readable text if the file is an image/PDF that may need OCR help.`);
   }
 
+  function useSampleReport() {
+    setReportName("sample-blood-work.txt");
+    setReportText(SAMPLE_REPORT_TEXT);
+    setStatus("Sample report added. Tap Explain on this phone.");
+  }
+
+  function explainReportOnDevice() {
+    if (!reportText.trim()) {
+      setStatus("Paste report text or use the sample report first.");
+      return;
+    }
+    setLocalAnalysis(analyzeReportTextLocally(reportText));
+    setStatus("Explained on this phone. Nothing was uploaded.");
+  }
+
+  async function shareDoctorBrief() {
+    if (!localAnalysis) return;
+    const person = reportPerson.trim() && reportPerson.trim().toLowerCase() !== "me" ? reportPerson.trim() : "Me";
+    try {
+      await Share.share({ title: "CareWise doctor brief", message: buildDoctorBriefText(localAnalysis, person) });
+    } catch {
+      setStatus("Could not open the share sheet.");
+    }
+  }
+
+  const reportView = localAnalysis ? translateReportAnalysis(localAnalysis, reportLanguage) : null;
+  const reportUi = reportUiText(reportLanguage);
+  const uiText = (key: string, english: string) => (typeof reportUi?.[key] === "string" ? (reportUi[key] as string) : english);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -593,6 +637,11 @@ export default function App() {
               accessibilityLabel="Readable report text"
               multiline
             />
+            <TextInput style={styles.input} value={reportPerson} onChangeText={setReportPerson} placeholder="Whose report is this? Me, Mom, Dad..." accessibilityLabel="Whose report is this" />
+            <View style={styles.buttonRow}>
+              <ActionButton label="Try sample report" onPress={useSampleReport} disabled={busy} />
+              <ActionButton label="Explain on this phone" onPress={explainReportOnDevice} disabled={busy} />
+            </View>
             <View style={styles.buttonRow}>
               <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} />
               <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={!token || busy} />
@@ -606,6 +655,59 @@ export default function App() {
               </View>
             ) : null}
             {analysis ? <Text style={styles.bodyText}>Risk: {analysis.risk_level} · Status: {analysis.status}</Text> : null}
+          </View>
+        ) : null}
+
+        {screen === "reports" && reportView ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>{uiText("title", "Plain-English report summary")}</Text>
+            <View style={styles.buttonRow}>
+              {(Object.keys(REPORT_LANGUAGES) as ReportLanguage[]).map((code) => (
+                <Pressable
+                  key={code}
+                  onPress={() => setReportLanguage(code)}
+                  style={[styles.planPill, reportLanguage === code && styles.activePlanPill]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show report in ${REPORT_LANGUAGES[code]}`}
+                  accessibilityState={{ selected: reportLanguage === code }}
+                >
+                  <Text style={styles.tabText}>{REPORT_LANGUAGES[code]}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.listTitle}>
+              {reportView.score}/100 ·{" "}
+              {translateReportText(
+                reportView.riskLevel === "urgent" ? "Urgent review" : reportView.riskLevel === "needs_review" ? "Clinician review" : reportView.riskLevel === "attention" ? "Needs attention" : "Routine follow-up",
+                reportLanguage
+              )}
+            </Text>
+            {uiText("draftNotice", "") ? <Text style={styles.smallText}>{uiText("draftNotice", "")}</Text> : null}
+            {reportView.labValues.length ? <Text style={styles.listTitle}>{uiText("detectedValues", "Detected values")}</Text> : null}
+            {reportView.labValues.map((item) => (
+              <View key={item.label} style={styles.listItem}>
+                <Text style={styles.listTitle}>{item.label}: {item.value} {item.unit}</Text>
+                <Text style={styles.smallText}>{item.flag}</Text>
+              </View>
+            ))}
+            <Text style={styles.listTitle}>{uiText("keyFindings", "Key findings")}</Text>
+            {reportView.findings.map((item) => (
+              <Text key={`${item.label}-${item.detail}`} style={styles.bodyText}>• {item.label}: {item.level}. {item.detail}</Text>
+            ))}
+            <Text style={styles.listTitle}>{uiText("suggestions", "Wellness suggestions")}</Text>
+            {reportView.suggestions.map((item) => (
+              <Text key={item} style={styles.bodyText}>• {item}</Text>
+            ))}
+            <Text style={styles.listTitle}>{uiText("questions", "Questions to ask your doctor")}</Text>
+            {reportView.questions.map((item, index) => (
+              <Text key={item} style={styles.bodyText}>{index + 1}. {item}</Text>
+            ))}
+            <View style={styles.buttonRow}>
+              <ActionButton label={uiText("doctorBrief", "Doctor brief")} onPress={shareDoctorBrief} />
+            </View>
+            <Text style={styles.smallText}>
+              {uiText("safetyText", "This is not a diagnosis or treatment plan. A licensed professional should interpret your original report with your full history.")}
+            </Text>
           </View>
         ) : null}
 
