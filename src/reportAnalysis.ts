@@ -1,3 +1,5 @@
+import { SCAN_TEXT, explainScanReport, type ScanExplanation } from "./scanReport";
+import { LAB_TEST_NAMES_ES, readLabPanel, type LabPanelResult } from "./labPanel";
 // On-device report explanation, shared with the CareWise web app.
 // Generated from carewise-frontend/script.js (analyzeReportTextLocally and the
 // Spanish report translations); keep the two in sync when either changes.
@@ -14,6 +16,9 @@ export type ReportAnalysis = {
   questions: string[];
   riskAreas: { heart: string; diabetes: string; vitamins: string };
   labValues: LabValue[];
+  panelResults: LabPanelResult[];
+  scan: { en: ScanExplanation; es: ScanExplanation } | null;
+  scanOnly: boolean;
 };
 type MarkerValues = {
   ldl: number | null;
@@ -168,6 +173,23 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Which values from my original report should I focus on first?": "¿En qué valores de mi informe original debo fijarme primero?",
       "Should any lab values be repeated or reviewed with more health history?": "¿Se debe repetir algún valor o revisarlo con más antecedentes de salud?",
       "Would primary care, a dietitian, pharmacist, or specialist be the right next step?": "¿El siguiente paso adecuado sería mi médico de cabecera, un nutricionista, un farmacéutico o un especialista?",
+      "Marked critical by the lab": "Marcado como crítico por el laboratorio",
+      "Above the lab's range": "Por encima del rango del laboratorio",
+      "Below the lab's range": "Por debajo del rango del laboratorio",
+      "Marked abnormal by the lab": "Marcado como anormal por el laboratorio",
+      "Within the lab's range": "Dentro del rango del laboratorio",
+      "Other tests": "Otras pruebas",
+      "Critical imaging result": "Resultado de imagen crítico",
+      "Contact your doctor today": "Comuníquese hoy con su médico",
+      "The report says a critical result was communicated to a doctor. If you have not heard from your doctor, contact them today.": "El informe dice que se comunicó un resultado crítico a un médico. Si su médico no le ha contactado, comuníquese hoy.",
+      "Imaging report": "Informe de imagen",
+      "Explained below": "Explicado abajo",
+      "The report mentions a possible next step. What should I do, and how soon?": "El informe menciona un posible siguiente paso. ¿Qué debo hacer y con qué urgencia?",
+      "What does the Impression mean for me in everyday terms?": "¿Qué significa la Impresión para mí en palabras sencillas?",
+      "Does anything in this report need a follow-up scan or another test, and when?": "¿Algo de este informe necesita otro estudio o prueba de control, y cuándo?",
+      "Is any finding related to the symptoms that led to this scan?": "¿Algún hallazgo está relacionado con los síntomas que motivaron este estudio?",
+      "Which of my results outside the lab's range matter most, and do any need follow-up?": "¿Cuáles de mis resultados fuera del rango del laboratorio son más importantes y alguno necesita seguimiento?",
+      "Bring the full report, and any earlier scans, to your appointment so your doctor can compare them.": "Lleve el informe completo y cualquier estudio anterior a su cita para que su médico pueda compararlos.",
     },
     patterns: [
       [/^LDL appears around (.+) mg\/dL\.$/, "El LDL aparece alrededor de $1 mg/dL."],
@@ -176,6 +198,11 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       [/^A1C appears around (.+)%\.$/, "La A1C aparece alrededor de $1 %."],
       [/^Systolic blood pressure appears around (.+)\.$/, "La presión arterial sistólica aparece alrededor de $1."],
       [/^Vitamin D appears around (.+)\.$/, "La vitamina D aparece alrededor de $1."],
+      [/^(.+)\. The lab marked this result as critical\. Contact your doctor or the lab today\.$/, "$1. El laboratorio marcó este resultado como crítico. Comuníquese hoy con su médico o con el laboratorio."],
+      [/^(.+); lab range not printed\.$/, "$1; rango del laboratorio no impreso."],
+      [/^(.+); lab range (.+)\.$/, "$1; rango del laboratorio $2."],
+      [/^All (\d+) tests read from your report are within the lab's ranges\.$/, "Las $1 pruebas leídas de su informe están dentro de los rangos del laboratorio."],
+      [/^This looks like an? (.+) report\. CareWise explains the radiologist's words; it does not read the images\.$/, "Parece un informe de imagen ($1). CareWise explica las palabras del radiólogo; no lee las imágenes."],
     ],
   },
 };
@@ -234,8 +261,8 @@ function readReportNumber(text: string, patterns: RegExp[]): number | null {
 const LAB_FOOTNOTE = String.raw`(?:\b0\d\s+\D{0,12}?)?`;
 const LAB_UNIT = String.raw`\s*(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl|%)?`;
 
-function readLabMeasure(text: string, namePattern: string): { value: number; unit: string } | null {
-  const match = text.match(new RegExp(`${namePattern}\\D{0,24}?${LAB_FOOTNOTE}(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
+function readLabMeasure(text: string, namePattern: string, maxGap = 24): { value: number; unit: string } | null {
+  const match = text.match(new RegExp(`${namePattern}\\D{0,${maxGap}}?${LAB_FOOTNOTE}(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
   if (!match) return null;
   return { value: Number(match[1]), unit: (match[2] || "").replace(/\s+/g, "").toLowerCase() };
 }
@@ -250,6 +277,22 @@ function readCholesterolMgDl(text: string, namePattern: string): number | null {
   return measure.value;
 }
 
+// Many labs print total cholesterol simply as "Cholesterol". Accept that only
+// when it is not part of an LDL, HDL, VLDL or non-HDL name or a ratio.
+function readPlainCholesterolMgDl(text: string): number | null {
+  const pattern = /\bcholesterol\b/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text))) {
+    const before = text.slice(Math.max(0, match.index - 9), match.index);
+    const after = text.slice(match.index + match[0].length, match.index + match[0].length + 12);
+    if (/(?:ldl|hdl|vldl)[\s-]*$/i.test(before)) continue;
+    if (/^\s*[,/(-]?\s*(?:ldl|hdl|vldl|ratio|non)/i.test(after)) continue;
+    const value = readCholesterolMgDl(text.slice(match.index), "cholesterol");
+    if (value !== null) return value;
+  }
+  return null;
+}
+
 function readTriglyceridesMgDl(text: string): number | null {
   const measure = readLabMeasure(text, "triglycerides");
   if (!measure) return null;
@@ -258,7 +301,8 @@ function readTriglyceridesMgDl(text: string): number | null {
 }
 
 function readA1cPercent(text: string): number | null {
-  const measure = readLabMeasure(text, String.raw`(?:hemoglobin\s*)?a1c`);
+  // UK reports say "HbA1c level - IFCC standardised 44 mmol/mol", so allow a longer label.
+  const measure = readLabMeasure(text, String.raw`(?:hemoglobin\s*)?a1c`, 40);
   if (!measure) return null;
   if (measure.unit === "mmol/mol" || (!measure.unit && measure.value > 20)) return Math.round((0.0915 * measure.value + 2.15) * 10) / 10;
   return measure.value;
@@ -282,7 +326,7 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
   if (hasHypertensiveCrisis(lower)) urgentMatches.push("blood pressure over 180/120");
 
   const ldl = readCholesterolMgDl(lower, String.raw`\bldl(?: cholesterol)?`);
-  const totalCholesterol = readCholesterolMgDl(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`);
+  const totalCholesterol = readCholesterolMgDl(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`) ?? readPlainCholesterolMgDl(lower);
   const triglycerides = readTriglyceridesMgDl(lower);
   const a1c = readA1cPercent(lower);
   // Skip the "25-hydroxy" / "25-OH" in the test name so it is not read as the value.
@@ -363,6 +407,46 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     findings.push({ label: "Vitamin D", level: "Mentioned", detail: "Vitamin D appears in the report text, but CareWise could not confidently read the value." });
   }
 
+  // Any other lab rows, compared with the range and flags the lab printed.
+  const panelResults = readLabPanel(text);
+  let panelPenalty = 0;
+  panelResults.forEach((item) => {
+    const shown = `${item.valueText} ${item.unit}`.trim();
+    if (item.status === "critical") {
+      urgentMatches.push(`${item.name} marked critical by the lab`);
+      score -= 20;
+      findings.push({ label: item.name, level: "Marked critical by the lab", detail: `${shown}. The lab marked this result as critical. Contact your doctor or the lab today.` });
+    } else if (item.status === "above" || item.status === "below" || item.status === "outside") {
+      panelPenalty += 3;
+      findings.push({
+        label: item.name,
+        level: item.status === "above" ? "Above the lab's range" : item.status === "below" ? "Below the lab's range" : "Marked abnormal by the lab",
+        detail: `${shown}; lab range ${item.rangeText || "not printed"}.`,
+      });
+    }
+  });
+  score -= Math.min(15, panelPenalty);
+  if (panelResults.some((item) => item.status !== "within" && item.status !== "unknown")) {
+    questions.push("Which of my results outside the lab's range matter most, and do any need follow-up?");
+  }
+  // Radiology reports: explain the radiologist's words; never read images or judge findings.
+  const scanEn = explainScanReport(text, "en");
+  const scan = scanEn.isScan ? { en: scanEn, es: explainScanReport(text, "es") } : null;
+  const scanOnly = Boolean(scan) && !findings.length && !labValues.length && !panelResults.length;
+  if (scan) {
+    if (scan.en.critical) {
+      urgentMatches.push("critical imaging result");
+      findings.push({ label: "Critical imaging result", level: "Contact your doctor today", detail: SCAN_TEXT.en.critical });
+    }
+    if (scanOnly) findings.push({ label: SCAN_TEXT.en.finding, level: SCAN_TEXT.en.findingLevel, detail: SCAN_TEXT.en.findingDetail(scan.en.modality) });
+    if (scan.en.followUps.length) questions.push("The report mentions a possible next step. What should I do, and how soon?");
+    questions.push(...SCAN_TEXT.en.questions);
+  }
+
+  if (panelResults.length && !findings.length) {
+    findings.push({ label: "Other tests", level: "Within the lab's range", detail: `All ${panelResults.length} tests read from your report are within the lab's ranges.` });
+  }
+
   if (!findings.length) {
     findings.push({
       label: "Readable values",
@@ -373,10 +457,14 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     score = 72;
   }
 
-  suggestions.push("Build meals around vegetables, fiber-rich carbs, lean protein, and unsaturated fats unless your clinician gave different advice.");
-  suggestions.push("Aim for consistent walking or movement you can repeat most days, adjusted for your clinician's guidance.");
-  questions.push("Which results matter most for me, and when should I repeat labs?");
-  questions.push("Should I see primary care, a dietitian, or a specialist based on these results?");
+  if (!scanOnly) {
+    suggestions.push("Build meals around vegetables, fiber-rich carbs, lean protein, and unsaturated fats unless your clinician gave different advice.");
+    suggestions.push("Aim for consistent walking or movement you can repeat most days, adjusted for your clinician's guidance.");
+    questions.push("Which results matter most for me, and when should I repeat labs?");
+    questions.push("Should I see primary care, a dietitian, or a specialist based on these results?");
+  } else {
+    suggestions.push("Bring the full report, and any earlier scans, to your appointment so your doctor can compare them.");
+  }
 
   const riskAreas = {
     heart: (ldl ?? 0) >= 160 || (systolic ?? 0) >= 140 ? "Medium Risk" : (ldl ?? 0) >= 130 || (totalCholesterol ?? 0) >= 200 || (triglycerides ?? 0) >= 150 || (systolic ?? 0) >= 130 ? "Needs Attention" : "Low Risk",
@@ -393,6 +481,9 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     questions: [...new Set(questions)].slice(0, 5),
     riskAreas,
     labValues,
+    panelResults,
+    scan,
+    scanOnly,
   };
 }
 
@@ -400,6 +491,7 @@ export function translateReportText(text: string, language: ReportLanguage): str
   const table = REPORT_TRANSLATIONS[language];
   if (!table || typeof text !== "string") return text;
   if (table.phrases[text]) return table.phrases[text];
+  if (language === "es" && LAB_TEST_NAMES_ES[text]) return LAB_TEST_NAMES_ES[text];
   const pattern = table.patterns.find(([regex]) => regex.test(text));
   return pattern ? text.replace(pattern[0], pattern[1]) : text;
 }
@@ -447,9 +539,19 @@ export function buildDoctorBriefText(analysis: ReportAnalysis, person = "Me"): s
     person === "Me"
       ? "Prepared by the patient with CareWise AI from their own report text."
       : `Prepared by a family caregiver for ${person} with CareWise AI from the report text.`,
-    `Health score ${analysis.score}/100 (educational estimate).`,
+    ...(analysis.scanOnly ? [] : [`Health score ${analysis.score}/100 (educational estimate).`]),
     "",
     ...(analysis.labValues.length ? ["Values detected in the report:", ...analysis.labValues.map((item) => `- ${item.label}: ${item.value} ${item.unit} (${item.flag})`), ""] : []),
+    ...((analysis.panelResults || []).length
+      ? ["Other tests on the report (compared with the lab's printed range):", ...(analysis.panelResults || []).map((item) => `- ${item.name}: ${item.valueText} ${item.unit}${item.rangeText ? ` (range ${item.rangeText})` : ""}${item.status !== "within" && item.status !== "unknown" ? ` [${item.status}]` : ""}`), ""]
+      : []),
+    ...(analysis.scan
+      ? [
+          `Imaging report (${analysis.scan.en.modality || "imaging"}), explained from the radiologist's text only.`,
+          ...(analysis.scan.en.followUps.length ? ["Lines the patient would like to discuss:", ...analysis.scan.en.followUps.map((item) => `- "${item.sentence}"`)] : []),
+          "",
+        ]
+      : []),
     "Discussion points:",
     ...analysis.findings.map((item) => `- ${item.label}: ${item.level}. ${item.detail}`),
     "",

@@ -34,7 +34,10 @@ import {
   type ReportLanguage
 } from "./src/reportAnalysis";
 import HealthRecordScreen, { loadHealthRecord } from "./src/HealthRecordScreen";
-import { buildHistoryBriefText } from "./src/healthRecord";
+import { buildHistoryBriefText, getRecordFor, normalizeRecordPerson } from "./src/healthRecord";
+import { buildPersonalPlan } from "./src/personalPlan";
+import { LAB_PANEL_TEXT, labTestInfo } from "./src/labPanel";
+import { SCAN_TEXT } from "./src/scanReport";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
@@ -99,6 +102,7 @@ export default function App() {
   const [selectedReportFile, setSelectedReportFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [analysis, setAnalysis] = useState<ReportAnalysisOut | null>(null);
   const [localAnalysis, setLocalAnalysis] = useState<ReportAnalysis | null>(null);
+  const [planReactions, setPlanReactions] = useState<string[]>([]);
   const [reportLanguage, setReportLanguage] = useState<ReportLanguage>("en");
   const [reportPerson, setReportPerson] = useState("");
   const [labTrends, setLabTrends] = useState<LabTrendOut[]>([]);
@@ -552,6 +556,9 @@ export default function App() {
       return;
     }
     setLocalAnalysis(analyzeReportTextLocally(reportText));
+    loadHealthRecord().then((items) =>
+      setPlanReactions(getRecordFor(items, normalizeRecordPerson(reportPerson)).filter((item) => item.type === "reaction").map((item) => item.name))
+    );
     setStatus("Explained on this phone. Nothing was uploaded.");
   }
 
@@ -568,6 +575,7 @@ export default function App() {
   }
 
   const reportView = localAnalysis ? translateReportAnalysis(localAnalysis, reportLanguage) : null;
+  const personalPlan = localAnalysis && !localAnalysis.scanOnly ? buildPersonalPlan(localAnalysis, reportLanguage === "es" ? "es" : "en", planReactions) : null;
   const reportUi = reportUiText(reportLanguage);
   const uiText = (key: string, english: string) => (typeof reportUi?.[key] === "string" ? (reportUi[key] as string) : english);
 
@@ -681,7 +689,7 @@ export default function App() {
               ))}
             </View>
             <Text style={styles.listTitle}>
-              {reportView.score}/100 ·{" "}
+              {localAnalysis?.scanOnly ? SCAN_TEXT[reportLanguage === "es" ? "es" : "en"].scoreLabel : `${reportView.score}/100`} ·{" "}
               {translateReportText(
                 reportView.riskLevel === "urgent" ? "Urgent review" : reportView.riskLevel === "needs_review" ? "Clinician review" : reportView.riskLevel === "attention" ? "Needs attention" : "Routine follow-up",
                 reportLanguage
@@ -707,6 +715,90 @@ export default function App() {
             {reportView.questions.map((item, index) => (
               <Text key={item} style={styles.bodyText}>{index + 1}. {item}</Text>
             ))}
+            {localAnalysis?.scan ? (() => {
+              const lang = reportLanguage === "es" ? "es" : "en";
+              const scan = localAnalysis.scan[lang];
+              const t = SCAN_TEXT[lang];
+              return (
+                <View style={styles.planBox}>
+                  <Text style={styles.sectionTitle}>{t.title}{scan.modality ? ` · ${scan.modality}` : ""}</Text>
+                  <Text style={styles.smallText}>{t.notice}</Text>
+                  {scan.critical ? (
+                    <View style={[styles.planCard, styles.planUrgent]}>
+                      <Text style={styles.listTitle}>{t.critical}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.planCard}>
+                    <Text style={styles.listTitle}>{t.impression}</Text>
+                    <Text style={styles.bodyText}>{scan.impression || t.noImpression}</Text>
+                  </View>
+                  {scan.followUps.length ? (
+                    <View style={[styles.planCard, styles.planSafety]}>
+                      <Text style={styles.listTitle}>{t.ask}</Text>
+                      <Text style={styles.smallText}>{t.askIntro}</Text>
+                      {scan.followUps.map((item) => (
+                        <Text key={item.sentence} style={styles.bodyText}>• "{item.sentence}"</Text>
+                      ))}
+                    </View>
+                  ) : null}
+                  {scan.terms.length ? (
+                    <View style={styles.planCard}>
+                      <Text style={styles.listTitle}>{t.terms}</Text>
+                      {scan.terms.map((item) => (
+                        <Text key={item.term} style={styles.bodyText}>
+                          <Text style={styles.listTitle}>{item.term}: </Text>
+                          {item.meaning}
+                        </Text>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })() : null}
+            {localAnalysis?.panelResults?.length ? (
+              <View style={styles.planBox}>
+                <Text style={styles.sectionTitle}>{LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"].title}</Text>
+                <Text style={styles.smallText}>{LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"].note}</Text>
+                {localAnalysis.panelResults.map((item) => {
+                  const t = LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"];
+                  const info = labTestInfo(item.key);
+                  const flagged = item.status !== "within" && item.status !== "unknown";
+                  return (
+                    <View key={item.key} style={[styles.listItem, item.status === "critical" && styles.planUrgent]}>
+                      <Text style={styles.listTitle}>
+                        {reportLanguage === "es" && info ? info.es : item.name}: {`${item.valueText} ${item.unit}`.trim()}
+                      </Text>
+                      <Text style={[styles.smallText, flagged && styles.labFlagText]}>
+                        {t[`status_${item.status}` as keyof typeof t]} · {t.range}: {item.rangeText || t.noRange}
+                      </Text>
+                      {info ? <Text style={styles.bodyText}>{reportLanguage === "es" ? info.whatEs : info.what}</Text> : null}
+                    </View>
+                  );
+                })}
+              </View>
+            ) : null}
+            {personalPlan ? (
+              <View style={styles.planBox}>
+                <Text style={styles.sectionTitle}>{personalPlan.title}</Text>
+                {personalPlan.sections.map((section) => (
+                  <View key={section.key} style={[styles.planCard, section.key === "safety" && styles.planSafety, personalPlan.urgent && section.key === "move" && styles.planUrgent]}>
+                    <Text style={styles.listTitle}>{section.title}</Text>
+                    {section.items.map((item, index) => {
+                      const next = section.items[index + 1];
+                      const note = next && next.why === item.why && next.source === item.source
+                        ? ""
+                        : [item.why ? `${personalPlan.whyLabel}: ${item.why}` : "", item.source ? `${personalPlan.sourceLabel}: ${item.source}` : ""].filter(Boolean).join(" · ");
+                      return (
+                        <View key={`${section.key}-${index}`}>
+                          <Text style={styles.bodyText}>• {item.text}</Text>
+                          {note ? <Text style={styles.smallText}>{note}</Text> : null}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            ) : null}
             <View style={styles.buttonRow}>
               <ActionButton label={uiText("doctorBrief", "Doctor brief")} onPress={shareDoctorBrief} />
             </View>
@@ -895,5 +987,10 @@ const styles = StyleSheet.create({
   fileBadge: { borderRadius: 8, borderWidth: 1, borderColor: "#b8e2db", backgroundColor: "#e8fff8", padding: 10 },
   listItem: { borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
   resultBox: { color: "#244944", fontSize: 12, lineHeight: 18, borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
-  listTitle: { color: "#053f3c", fontSize: 15, fontWeight: "900" }
+  listTitle: { color: "#053f3c", fontSize: 15, fontWeight: "900" },
+  planBox: { gap: 10, marginTop: 6 },
+  planCard: { gap: 6, borderRadius: 12, borderWidth: 1, borderColor: "#dbe8e4", borderTopWidth: 4, borderTopColor: "#08766e", padding: 12, backgroundColor: "#fff" },
+  planSafety: { borderTopColor: "#c2552d", backgroundColor: "#fdf8f5" },
+  planUrgent: { borderTopColor: "#b91c1c", backgroundColor: "#fdf2f2" },
+  labFlagText: { color: "#9a3b17" }
 });
