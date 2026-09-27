@@ -1,3 +1,4 @@
+import { LAB_TEST_NAMES_ES, readLabPanel, type LabPanelResult } from "./labPanel";
 // On-device report explanation, shared with the CareWise web app.
 // Generated from carewise-frontend/script.js (analyzeReportTextLocally and the
 // Spanish report translations); keep the two in sync when either changes.
@@ -14,6 +15,7 @@ export type ReportAnalysis = {
   questions: string[];
   riskAreas: { heart: string; diabetes: string; vitamins: string };
   labValues: LabValue[];
+  panelResults: LabPanelResult[];
 };
 type MarkerValues = {
   ldl: number | null;
@@ -168,6 +170,13 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Which values from my original report should I focus on first?": "¿En qué valores de mi informe original debo fijarme primero?",
       "Should any lab values be repeated or reviewed with more health history?": "¿Se debe repetir algún valor o revisarlo con más antecedentes de salud?",
       "Would primary care, a dietitian, pharmacist, or specialist be the right next step?": "¿El siguiente paso adecuado sería mi médico de cabecera, un nutricionista, un farmacéutico o un especialista?",
+      "Marked critical by the lab": "Marcado como crítico por el laboratorio",
+      "Above the lab's range": "Por encima del rango del laboratorio",
+      "Below the lab's range": "Por debajo del rango del laboratorio",
+      "Marked abnormal by the lab": "Marcado como anormal por el laboratorio",
+      "Within the lab's range": "Dentro del rango del laboratorio",
+      "Other tests": "Otras pruebas",
+      "Which of my results outside the lab's range matter most, and do any need follow-up?": "¿Cuáles de mis resultados fuera del rango del laboratorio son más importantes y alguno necesita seguimiento?",
     },
     patterns: [
       [/^LDL appears around (.+) mg\/dL\.$/, "El LDL aparece alrededor de $1 mg/dL."],
@@ -176,6 +185,10 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       [/^A1C appears around (.+)%\.$/, "La A1C aparece alrededor de $1 %."],
       [/^Systolic blood pressure appears around (.+)\.$/, "La presión arterial sistólica aparece alrededor de $1."],
       [/^Vitamin D appears around (.+)\.$/, "La vitamina D aparece alrededor de $1."],
+      [/^(.+)\. The lab marked this result as critical\. Contact your doctor or the lab today\.$/, "$1. El laboratorio marcó este resultado como crítico. Comuníquese hoy con su médico o con el laboratorio."],
+      [/^(.+); lab range not printed\.$/, "$1; rango del laboratorio no impreso."],
+      [/^(.+); lab range (.+)\.$/, "$1; rango del laboratorio $2."],
+      [/^All (\d+) tests read from your report are within the lab's ranges\.$/, "Las $1 pruebas leídas de su informe están dentro de los rangos del laboratorio."],
     ],
   },
 };
@@ -380,6 +393,32 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     findings.push({ label: "Vitamin D", level: "Mentioned", detail: "Vitamin D appears in the report text, but CareWise could not confidently read the value." });
   }
 
+  // Any other lab rows, compared with the range and flags the lab printed.
+  const panelResults = readLabPanel(text);
+  let panelPenalty = 0;
+  panelResults.forEach((item) => {
+    const shown = `${item.valueText} ${item.unit}`.trim();
+    if (item.status === "critical") {
+      urgentMatches.push(`${item.name} marked critical by the lab`);
+      score -= 20;
+      findings.push({ label: item.name, level: "Marked critical by the lab", detail: `${shown}. The lab marked this result as critical. Contact your doctor or the lab today.` });
+    } else if (item.status === "above" || item.status === "below" || item.status === "outside") {
+      panelPenalty += 3;
+      findings.push({
+        label: item.name,
+        level: item.status === "above" ? "Above the lab's range" : item.status === "below" ? "Below the lab's range" : "Marked abnormal by the lab",
+        detail: `${shown}; lab range ${item.rangeText || "not printed"}.`,
+      });
+    }
+  });
+  score -= Math.min(15, panelPenalty);
+  if (panelResults.some((item) => item.status !== "within" && item.status !== "unknown")) {
+    questions.push("Which of my results outside the lab's range matter most, and do any need follow-up?");
+  }
+  if (panelResults.length && !findings.length) {
+    findings.push({ label: "Other tests", level: "Within the lab's range", detail: `All ${panelResults.length} tests read from your report are within the lab's ranges.` });
+  }
+
   if (!findings.length) {
     findings.push({
       label: "Readable values",
@@ -410,6 +449,7 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     questions: [...new Set(questions)].slice(0, 5),
     riskAreas,
     labValues,
+    panelResults,
   };
 }
 
@@ -417,6 +457,7 @@ export function translateReportText(text: string, language: ReportLanguage): str
   const table = REPORT_TRANSLATIONS[language];
   if (!table || typeof text !== "string") return text;
   if (table.phrases[text]) return table.phrases[text];
+  if (language === "es" && LAB_TEST_NAMES_ES[text]) return LAB_TEST_NAMES_ES[text];
   const pattern = table.patterns.find(([regex]) => regex.test(text));
   return pattern ? text.replace(pattern[0], pattern[1]) : text;
 }
@@ -467,6 +508,9 @@ export function buildDoctorBriefText(analysis: ReportAnalysis, person = "Me"): s
     `Health score ${analysis.score}/100 (educational estimate).`,
     "",
     ...(analysis.labValues.length ? ["Values detected in the report:", ...analysis.labValues.map((item) => `- ${item.label}: ${item.value} ${item.unit} (${item.flag})`), ""] : []),
+    ...((analysis.panelResults || []).length
+      ? ["Other tests on the report (compared with the lab's printed range):", ...(analysis.panelResults || []).map((item) => `- ${item.name}: ${item.valueText} ${item.unit}${item.rangeText ? ` (range ${item.rangeText})` : ""}${item.status !== "within" && item.status !== "unknown" ? ` [${item.status}]` : ""}`), ""]
+      : []),
     "Discussion points:",
     ...analysis.findings.map((item) => `- ${item.label}: ${item.level}. ${item.detail}`),
     "",

@@ -36,6 +36,7 @@ import {
 import HealthRecordScreen, { loadHealthRecord } from "./src/HealthRecordScreen";
 import { buildHistoryBriefText, getRecordFor, normalizeRecordPerson } from "./src/healthRecord";
 import { buildPersonalPlan } from "./src/personalPlan";
+import { LAB_PANEL_TEXT, labTestInfo } from "./src/labPanel";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
@@ -713,6 +714,28 @@ export default function App() {
             {reportView.questions.map((item, index) => (
               <Text key={item} style={styles.bodyText}>{index + 1}. {item}</Text>
             ))}
+            {localAnalysis?.panelResults?.length ? (
+              <View style={styles.planBox}>
+                <Text style={styles.sectionTitle}>{LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"].title}</Text>
+                <Text style={styles.smallText}>{LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"].note}</Text>
+                {localAnalysis.panelResults.map((item) => {
+                  const t = LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"];
+                  const info = labTestInfo(item.key);
+                  const flagged = item.status !== "within" && item.status !== "unknown";
+                  return (
+                    <View key={item.key} style={[styles.listItem, item.status === "critical" && styles.planUrgent]}>
+                      <Text style={styles.listTitle}>
+                        {reportLanguage === "es" && info ? info.es : item.name}: {`${item.valueText} ${item.unit}`.trim()}
+                      </Text>
+                      <Text style={[styles.smallText, flagged && styles.labFlagText]}>
+                        {t[`status_${item.status}` as keyof typeof t]} · {t.range}: {item.rangeText || t.noRange}
+                      </Text>
+                      {info ? <Text style={styles.bodyText}>{reportLanguage === "es" ? info.whatEs : info.what}</Text> : null}
+                    </View>
+                  );
+                })}
+              </View>
+            ) : null}
             {personalPlan ? (
               <View style={styles.planBox}>
                 <Text style={styles.sectionTitle}>{personalPlan.title}</Text>
@@ -927,5 +950,6 @@ const styles = StyleSheet.create({
   planBox: { gap: 10, marginTop: 6 },
   planCard: { gap: 6, borderRadius: 12, borderWidth: 1, borderColor: "#dbe8e4", borderTopWidth: 4, borderTopColor: "#08766e", padding: 12, backgroundColor: "#fff" },
   planSafety: { borderTopColor: "#c2552d", backgroundColor: "#fdf8f5" },
-  planUrgent: { borderTopColor: "#b91c1c", backgroundColor: "#fdf2f2" }
+  planUrgent: { borderTopColor: "#b91c1c", backgroundColor: "#fdf2f2" },
+  labFlagText: { color: "#9a3b17" }
 });
