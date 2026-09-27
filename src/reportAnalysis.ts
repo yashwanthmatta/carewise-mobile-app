@@ -234,8 +234,8 @@ function readReportNumber(text: string, patterns: RegExp[]): number | null {
 const LAB_FOOTNOTE = String.raw`(?:\b0\d\s+\D{0,12}?)?`;
 const LAB_UNIT = String.raw`\s*(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl|%)?`;
 
-function readLabMeasure(text: string, namePattern: string): { value: number; unit: string } | null {
-  const match = text.match(new RegExp(`${namePattern}\\D{0,24}?${LAB_FOOTNOTE}(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
+function readLabMeasure(text: string, namePattern: string, maxGap = 24): { value: number; unit: string } | null {
+  const match = text.match(new RegExp(`${namePattern}\\D{0,${maxGap}}?${LAB_FOOTNOTE}(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
   if (!match) return null;
   return { value: Number(match[1]), unit: (match[2] || "").replace(/\s+/g, "").toLowerCase() };
 }
@@ -250,6 +250,22 @@ function readCholesterolMgDl(text: string, namePattern: string): number | null {
   return measure.value;
 }
 
+// Many labs print total cholesterol simply as "Cholesterol". Accept that only
+// when it is not part of an LDL, HDL, VLDL or non-HDL name or a ratio.
+function readPlainCholesterolMgDl(text: string): number | null {
+  const pattern = /\bcholesterol\b/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text))) {
+    const before = text.slice(Math.max(0, match.index - 9), match.index);
+    const after = text.slice(match.index + match[0].length, match.index + match[0].length + 12);
+    if (/(?:ldl|hdl|vldl)[\s-]*$/i.test(before)) continue;
+    if (/^\s*[,/(-]?\s*(?:ldl|hdl|vldl|ratio|non)/i.test(after)) continue;
+    const value = readCholesterolMgDl(text.slice(match.index), "cholesterol");
+    if (value !== null) return value;
+  }
+  return null;
+}
+
 function readTriglyceridesMgDl(text: string): number | null {
   const measure = readLabMeasure(text, "triglycerides");
   if (!measure) return null;
@@ -258,7 +274,8 @@ function readTriglyceridesMgDl(text: string): number | null {
 }
 
 function readA1cPercent(text: string): number | null {
-  const measure = readLabMeasure(text, String.raw`(?:hemoglobin\s*)?a1c`);
+  // UK reports say "HbA1c level - IFCC standardised 44 mmol/mol", so allow a longer label.
+  const measure = readLabMeasure(text, String.raw`(?:hemoglobin\s*)?a1c`, 40);
   if (!measure) return null;
   if (measure.unit === "mmol/mol" || (!measure.unit && measure.value > 20)) return Math.round((0.0915 * measure.value + 2.15) * 10) / 10;
   return measure.value;
@@ -282,7 +299,7 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
   if (hasHypertensiveCrisis(lower)) urgentMatches.push("blood pressure over 180/120");
 
   const ldl = readCholesterolMgDl(lower, String.raw`\bldl(?: cholesterol)?`);
-  const totalCholesterol = readCholesterolMgDl(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`);
+  const totalCholesterol = readCholesterolMgDl(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`) ?? readPlainCholesterolMgDl(lower);
   const triglycerides = readTriglyceridesMgDl(lower);
   const a1c = readA1cPercent(lower);
   // Skip the "25-hydroxy" / "25-OH" in the test name so it is not read as the value.
