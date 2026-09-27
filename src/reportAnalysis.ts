@@ -1,3 +1,4 @@
+import { SCAN_TEXT, explainScanReport, type ScanExplanation } from "./scanReport";
 import { LAB_TEST_NAMES_ES, readLabPanel, type LabPanelResult } from "./labPanel";
 // On-device report explanation, shared with the CareWise web app.
 // Generated from carewise-frontend/script.js (analyzeReportTextLocally and the
@@ -16,6 +17,8 @@ export type ReportAnalysis = {
   riskAreas: { heart: string; diabetes: string; vitamins: string };
   labValues: LabValue[];
   panelResults: LabPanelResult[];
+  scan: { en: ScanExplanation; es: ScanExplanation } | null;
+  scanOnly: boolean;
 };
 type MarkerValues = {
   ldl: number | null;
@@ -176,7 +179,17 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Marked abnormal by the lab": "Marcado como anormal por el laboratorio",
       "Within the lab's range": "Dentro del rango del laboratorio",
       "Other tests": "Otras pruebas",
+      "Critical imaging result": "Resultado de imagen crítico",
+      "Contact your doctor today": "Comuníquese hoy con su médico",
+      "The report says a critical result was communicated to a doctor. If you have not heard from your doctor, contact them today.": "El informe dice que se comunicó un resultado crítico a un médico. Si su médico no le ha contactado, comuníquese hoy.",
+      "Imaging report": "Informe de imagen",
+      "Explained below": "Explicado abajo",
+      "The report mentions a possible next step. What should I do, and how soon?": "El informe menciona un posible siguiente paso. ¿Qué debo hacer y con qué urgencia?",
+      "What does the Impression mean for me in everyday terms?": "¿Qué significa la Impresión para mí en palabras sencillas?",
+      "Does anything in this report need a follow-up scan or another test, and when?": "¿Algo de este informe necesita otro estudio o prueba de control, y cuándo?",
+      "Is any finding related to the symptoms that led to this scan?": "¿Algún hallazgo está relacionado con los síntomas que motivaron este estudio?",
       "Which of my results outside the lab's range matter most, and do any need follow-up?": "¿Cuáles de mis resultados fuera del rango del laboratorio son más importantes y alguno necesita seguimiento?",
+      "Bring the full report, and any earlier scans, to your appointment so your doctor can compare them.": "Lleve el informe completo y cualquier estudio anterior a su cita para que su médico pueda compararlos.",
     },
     patterns: [
       [/^LDL appears around (.+) mg\/dL\.$/, "El LDL aparece alrededor de $1 mg/dL."],
@@ -189,6 +202,7 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       [/^(.+); lab range not printed\.$/, "$1; rango del laboratorio no impreso."],
       [/^(.+); lab range (.+)\.$/, "$1; rango del laboratorio $2."],
       [/^All (\d+) tests read from your report are within the lab's ranges\.$/, "Las $1 pruebas leídas de su informe están dentro de los rangos del laboratorio."],
+      [/^This looks like an? (.+) report\. CareWise explains the radiologist's words; it does not read the images\.$/, "Parece un informe de imagen ($1). CareWise explica las palabras del radiólogo; no lee las imágenes."],
     ],
   },
 };
@@ -415,6 +429,20 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
   if (panelResults.some((item) => item.status !== "within" && item.status !== "unknown")) {
     questions.push("Which of my results outside the lab's range matter most, and do any need follow-up?");
   }
+  // Radiology reports: explain the radiologist's words; never read images or judge findings.
+  const scanEn = explainScanReport(text, "en");
+  const scan = scanEn.isScan ? { en: scanEn, es: explainScanReport(text, "es") } : null;
+  const scanOnly = Boolean(scan) && !findings.length && !labValues.length && !panelResults.length;
+  if (scan) {
+    if (scan.en.critical) {
+      urgentMatches.push("critical imaging result");
+      findings.push({ label: "Critical imaging result", level: "Contact your doctor today", detail: SCAN_TEXT.en.critical });
+    }
+    if (scanOnly) findings.push({ label: SCAN_TEXT.en.finding, level: SCAN_TEXT.en.findingLevel, detail: SCAN_TEXT.en.findingDetail(scan.en.modality) });
+    if (scan.en.followUps.length) questions.push("The report mentions a possible next step. What should I do, and how soon?");
+    questions.push(...SCAN_TEXT.en.questions);
+  }
+
   if (panelResults.length && !findings.length) {
     findings.push({ label: "Other tests", level: "Within the lab's range", detail: `All ${panelResults.length} tests read from your report are within the lab's ranges.` });
   }
@@ -429,10 +457,14 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     score = 72;
   }
 
-  suggestions.push("Build meals around vegetables, fiber-rich carbs, lean protein, and unsaturated fats unless your clinician gave different advice.");
-  suggestions.push("Aim for consistent walking or movement you can repeat most days, adjusted for your clinician's guidance.");
-  questions.push("Which results matter most for me, and when should I repeat labs?");
-  questions.push("Should I see primary care, a dietitian, or a specialist based on these results?");
+  if (!scanOnly) {
+    suggestions.push("Build meals around vegetables, fiber-rich carbs, lean protein, and unsaturated fats unless your clinician gave different advice.");
+    suggestions.push("Aim for consistent walking or movement you can repeat most days, adjusted for your clinician's guidance.");
+    questions.push("Which results matter most for me, and when should I repeat labs?");
+    questions.push("Should I see primary care, a dietitian, or a specialist based on these results?");
+  } else {
+    suggestions.push("Bring the full report, and any earlier scans, to your appointment so your doctor can compare them.");
+  }
 
   const riskAreas = {
     heart: (ldl ?? 0) >= 160 || (systolic ?? 0) >= 140 ? "Medium Risk" : (ldl ?? 0) >= 130 || (totalCholesterol ?? 0) >= 200 || (triglycerides ?? 0) >= 150 || (systolic ?? 0) >= 130 ? "Needs Attention" : "Low Risk",
@@ -450,6 +482,8 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     riskAreas,
     labValues,
     panelResults,
+    scan,
+    scanOnly,
   };
 }
 
@@ -505,11 +539,18 @@ export function buildDoctorBriefText(analysis: ReportAnalysis, person = "Me"): s
     person === "Me"
       ? "Prepared by the patient with CareWise AI from their own report text."
       : `Prepared by a family caregiver for ${person} with CareWise AI from the report text.`,
-    `Health score ${analysis.score}/100 (educational estimate).`,
+    ...(analysis.scanOnly ? [] : [`Health score ${analysis.score}/100 (educational estimate).`]),
     "",
     ...(analysis.labValues.length ? ["Values detected in the report:", ...analysis.labValues.map((item) => `- ${item.label}: ${item.value} ${item.unit} (${item.flag})`), ""] : []),
     ...((analysis.panelResults || []).length
       ? ["Other tests on the report (compared with the lab's printed range):", ...(analysis.panelResults || []).map((item) => `- ${item.name}: ${item.valueText} ${item.unit}${item.rangeText ? ` (range ${item.rangeText})` : ""}${item.status !== "within" && item.status !== "unknown" ? ` [${item.status}]` : ""}`), ""]
+      : []),
+    ...(analysis.scan
+      ? [
+          `Imaging report (${analysis.scan.en.modality || "imaging"}), explained from the radiologist's text only.`,
+          ...(analysis.scan.en.followUps.length ? ["Lines the patient would like to discuss:", ...analysis.scan.en.followUps.map((item) => `- "${item.sentence}"`)] : []),
+          "",
+        ]
       : []),
     "Discussion points:",
     ...analysis.findings.map((item) => `- ${item.label}: ${item.level}. ${item.detail}`),

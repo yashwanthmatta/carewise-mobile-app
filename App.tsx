@@ -37,6 +37,7 @@ import HealthRecordScreen, { loadHealthRecord } from "./src/HealthRecordScreen";
 import { buildHistoryBriefText, getRecordFor, normalizeRecordPerson } from "./src/healthRecord";
 import { buildPersonalPlan } from "./src/personalPlan";
 import { LAB_PANEL_TEXT, labTestInfo } from "./src/labPanel";
+import { SCAN_TEXT } from "./src/scanReport";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
@@ -574,7 +575,7 @@ export default function App() {
   }
 
   const reportView = localAnalysis ? translateReportAnalysis(localAnalysis, reportLanguage) : null;
-  const personalPlan = localAnalysis ? buildPersonalPlan(localAnalysis, reportLanguage === "es" ? "es" : "en", planReactions) : null;
+  const personalPlan = localAnalysis && !localAnalysis.scanOnly ? buildPersonalPlan(localAnalysis, reportLanguage === "es" ? "es" : "en", planReactions) : null;
   const reportUi = reportUiText(reportLanguage);
   const uiText = (key: string, english: string) => (typeof reportUi?.[key] === "string" ? (reportUi[key] as string) : english);
 
@@ -688,7 +689,7 @@ export default function App() {
               ))}
             </View>
             <Text style={styles.listTitle}>
-              {reportView.score}/100 ·{" "}
+              {localAnalysis?.scanOnly ? SCAN_TEXT[reportLanguage === "es" ? "es" : "en"].scoreLabel : `${reportView.score}/100`} ·{" "}
               {translateReportText(
                 reportView.riskLevel === "urgent" ? "Urgent review" : reportView.riskLevel === "needs_review" ? "Clinician review" : reportView.riskLevel === "attention" ? "Needs attention" : "Routine follow-up",
                 reportLanguage
@@ -714,6 +715,46 @@ export default function App() {
             {reportView.questions.map((item, index) => (
               <Text key={item} style={styles.bodyText}>{index + 1}. {item}</Text>
             ))}
+            {localAnalysis?.scan ? (() => {
+              const lang = reportLanguage === "es" ? "es" : "en";
+              const scan = localAnalysis.scan[lang];
+              const t = SCAN_TEXT[lang];
+              return (
+                <View style={styles.planBox}>
+                  <Text style={styles.sectionTitle}>{t.title}{scan.modality ? ` · ${scan.modality}` : ""}</Text>
+                  <Text style={styles.smallText}>{t.notice}</Text>
+                  {scan.critical ? (
+                    <View style={[styles.planCard, styles.planUrgent]}>
+                      <Text style={styles.listTitle}>{t.critical}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.planCard}>
+                    <Text style={styles.listTitle}>{t.impression}</Text>
+                    <Text style={styles.bodyText}>{scan.impression || t.noImpression}</Text>
+                  </View>
+                  {scan.followUps.length ? (
+                    <View style={[styles.planCard, styles.planSafety]}>
+                      <Text style={styles.listTitle}>{t.ask}</Text>
+                      <Text style={styles.smallText}>{t.askIntro}</Text>
+                      {scan.followUps.map((item) => (
+                        <Text key={item.sentence} style={styles.bodyText}>• "{item.sentence}"</Text>
+                      ))}
+                    </View>
+                  ) : null}
+                  {scan.terms.length ? (
+                    <View style={styles.planCard}>
+                      <Text style={styles.listTitle}>{t.terms}</Text>
+                      {scan.terms.map((item) => (
+                        <Text key={item.term} style={styles.bodyText}>
+                          <Text style={styles.listTitle}>{item.term}: </Text>
+                          {item.meaning}
+                        </Text>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })() : null}
             {localAnalysis?.panelResults?.length ? (
               <View style={styles.planBox}>
                 <Text style={styles.sectionTitle}>{LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"].title}</Text>
