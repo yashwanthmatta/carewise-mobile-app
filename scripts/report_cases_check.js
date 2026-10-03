@@ -32,6 +32,30 @@ const cases = [
   ["serious kidney results", "Creatinine 2.3 mg/dL 0.6-1.3\neGFR 28 mL/min/1.73m2 >60", (a) => [a.riskLevel === "needs_review", panel(a, "egfr")?.far === true]],
   ["micrograms shown correctly", "Iron 40 ug/dL 60-170\nFerritin 8 ng/mL 15-150", (a) => [/ug\/dl/i.test(panel(a, "iron")?.unit || ""), panel(a, "ferritin")?.far === true]],
   ["inclusive lower limit", "HDL cholesterol 35 mg/dL >=40", (a) => [panel(a, "hdl")?.status === "below"]],
+  // Second round: typed values with no range, danger levels, decimal commas and new tests.
+  ["typed values with no range", "cholestrol 250, hemoglobin 8, sugar 300", (a) => [
+    a.riskLevel === "needs_review", panel(a, "hemoglobin")?.status === "below", panel(a, "glucose")?.status === "above",
+    a.labValues.some((v) => v.label === "Total cholesterol"),
+  ]],
+  ["typed creatinine alone", "creatinine 2.4", (a) => [panel(a, "creatinine")?.status === "above", a.riskLevel !== "routine"]],
+  ["typed normal hemoglobin", "hemoglobin 13.5", (a) => [panel(a, "hemoglobin")?.status === "within", a.riskLevel === "routine"]],
+  ["dangerously low sugar", "Glucose 45 mg/dL (70-99)", (a) => [a.riskLevel === "urgent", panel(a, "glucose")?.danger === true]],
+  ["raised troponin", "Troponin I 0.8 ng/mL (<0.04)", (a) => [a.riskLevel === "urgent"]],
+  ["very high INR", "INR 5.6 (0.8-1.2)\nPT 45 sec (11-13.5)", (a) => [a.riskLevel === "urgent", panel(a, "pt")?.status === "above"]],
+  ["high INR below danger level", "INR 3.1 (0.8-1.2)", (a) => [a.riskLevel === "needs_review"]],
+  ["very low sodium", "Sodium 118 mmol/L 135-145", (a) => [a.riskLevel === "urgent"]],
+  ["European decimal commas", "Creatinine 1,4 mg/dL (0,7-1,2)\nHemoglobin 10,2 g/dL (12,0-16,0)", (a) => [
+    panel(a, "creatinine")?.value === 1.4, panel(a, "creatinine")?.status === "above", panel(a, "hemoglobin")?.status === "below",
+  ]],
+  ["platelets with a thousands comma", "Platelets 250,000 /uL (150,000-450,000)", (a) => [panel(a, "platelets")?.status === "within"]],
+  ["urine dipstick words", "Urine protein: Positive (Negative)\nUrine glucose: Negative (Negative)\nUrine blood: Trace (Negative)", (a) => [
+    panel(a, "urineprotein")?.status === "above", panel(a, "urineglucose")?.status === "within", a.noData === false,
+  ]],
+  ["inflammation markers", "CRP 45 mg/L (<5)\nESR 60 mm/hr (0-20)", (a) => [panel(a, "esr")?.status === "above", a.riskLevel === "needs_review"]],
+  ["patient ID is not a result", "Collected: 03/10/2026 10:45\nPatient ID: 448812  Age: 67\nPt ID 448812\nLDL Cholesterol 95 mg/dL (<100)", (a) => [
+    !panel(a, "pt"), a.riskLevel === "routine",
+  ]],
+  ["result with no range is not called normal", "Ferritin 20", (a) => [a.riskLevel === "attention", a.findings.some((f) => f.level === "No range to compare")]],
 ];
 
 let failed = 0;

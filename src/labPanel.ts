@@ -19,6 +19,9 @@ export type LabPanelResult = {
   far: boolean;
   // True when the lab printed no range and a common general guide was used instead.
   generalRange: boolean;
+  // At a level many labs treat as a critical value (for example glucose under 54 mg/dL
+  // or a raised troponin), whatever range was printed: contact a doctor today.
+  danger: boolean;
 };
 
 type LabTest = { key: string; name: string; es: string; aliases: string[]; what: string; whatEs: string };
@@ -70,10 +73,18 @@ export const LAB_TESTS: LabTest[] = [
   { key: "magnesium", name: "Magnesium", es: "Magnesio", aliases: ["magnesium"], what: "A mineral for muscles, nerves and heart rhythm.", whatEs: "Un mineral para los músculos, los nervios y el ritmo cardíaco." },
   { key: "phosphorus", name: "Phosphorus", es: "Fósforo", aliases: ["phosphorus", "phosphate"], what: "A mineral that works with calcium for bones.", whatEs: "Un mineral que trabaja con el calcio para los huesos." },
   { key: "crp", name: "CRP (inflammation)", es: "PCR (inflamación)", aliases: ["c-reactive protein", "c reactive protein", "hs-crp", "crp"], what: "A marker of inflammation in the body.", whatEs: "Un marcador de inflamación en el cuerpo." },
+  { key: "inr", name: "INR (blood clotting)", es: "INR (coagulación)", aliases: ["pt\\/inr", "inr"], what: "How long your blood takes to clot compared with normal; often checked for people on blood thinners.", whatEs: "Cuánto tarda la sangre en coagular comparado con lo normal; se revisa a menudo en personas que toman anticoagulantes." },
+  { key: "pt", name: "Prothrombin time (PT)", es: "Tiempo de protrombina (TP)", aliases: ["prothrombin time", "pt(?=\\s*:?\\s*\\d+(?:\\.\\d+)?\\s*(?:sec|s\\b|seconds))"], what: "The time your blood takes to clot, in seconds.", whatEs: "El tiempo que tarda la sangre en coagular, en segundos." },
+  { key: "troponin", name: "Troponin (heart)", es: "Troponina (corazón)", aliases: ["high[- ]sensitivity troponin(?: [it])?", "hs-?tn[it]", "troponin [it]", "troponin"], what: "A protein released when the heart muscle is injured.", whatEs: "Una proteína que se libera cuando el músculo del corazón sufre daño." },
+  { key: "esr", name: "ESR (inflammation)", es: "VSG (inflamación)", aliases: ["erythrocyte sedimentation rate", "sed rate", "esr"], what: "A general marker of inflammation in the body.", whatEs: "Un marcador general de inflamación en el cuerpo." },
+  { key: "urineprotein", name: "Urine protein", es: "Proteína en orina", aliases: ["urine protein", "protein,? urine"], what: "Protein in the urine; kidneys usually keep it in the blood.", whatEs: "Proteína en la orina; los riñones suelen mantenerla en la sangre." },
+  { key: "urineglucose", name: "Urine glucose", es: "Glucosa en orina", aliases: ["urine glucose", "glucose,? urine", "urine sugar"], what: "Sugar in the urine, which can appear when blood sugar is high.", whatEs: "Azúcar en la orina, que puede aparecer cuando el azúcar en sangre está alto." },
+  { key: "urineblood", name: "Urine blood", es: "Sangre en orina", aliases: ["urine blood", "blood,? urine", "occult blood,? urine"], what: "Traces of blood in the urine.", whatEs: "Rastros de sangre en la orina." },
+  { key: "urineketones", name: "Urine ketones", es: "Cetonas en orina", aliases: ["urine ketones?", "ketones?,? urine", "ketones"], what: "Ketones appear when the body burns fat for energy instead of sugar.", whatEs: "Las cetonas aparecen cuando el cuerpo usa grasa en lugar de azúcar para obtener energía." },
   { key: "psa", name: "PSA (prostate)", es: "PSA (próstata)", aliases: ["prostate specific antigen", "psa"], what: "A protein made by the prostate.", whatEs: "Una proteína producida por la próstata." }
 ];
 
-const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|g\/dl|g\/l|mg\/l|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|pg\/ml|fl|pg|%)/i;
+const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|g\/dl|g\/l|mg\/l|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|ng\/l|pg\/ml|mm\/hr?|seconds|sec|fl|pg|%)/i;
 const RANGE_PATTERN = /(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)|(<=?|>=?|≤|≥)\s*(\d+(?:\.\d+)?)/;
 const FLAG_PATTERN = /(?:^|[\s(])(HH|LL|H|L|High|Low|HIGH|LOW|Critical|CRITICAL|CRIT|Panic|PANIC|Abnormal|ABNORMAL)(?=[\s*)]|$)/;
 const COMPILED = LAB_TESTS.map((test) => ({ test, patterns: test.aliases.map((alias) => new RegExp(`\\b${alias}\\b`, "i")) }));
@@ -109,7 +120,59 @@ function generalRangeFor(key: string, line: string, value: number, unit: string)
   if (key === "hdl") {
     return mmol ? { low: 1.0, high: null, bound: ">=", text: "1.0 or higher (general guide)" } : { low: 40, high: null, bound: ">=", text: "40 or higher (general guide)" };
   }
-  return null;
+  // Adult reference points; the lab's own range always wins when one is printed.
+  const guide = (low: number | null, high: number | null, text: string, bound = "") => ({ low, high, bound, text: `${text} (general guide)` });
+  switch (key) {
+    case "glucose": return mmol ? guide(3.9, 7.8, "3.9-7.8, any time of day") : guide(70, 140, "70-140, any time of day");
+    case "hemoglobin": return value > 25 ? guide(120, 175, "120-175 g/L") : guide(12, 17.5, "12-17.5");
+    case "creatinine": return /mol/i.test(unit) || value > 20 ? guide(53, 115, "53-115") : guide(0.6, 1.3, "0.6-1.3");
+    case "egfr": return guide(60, null, "60 or higher", ">=");
+    case "potassium": return guide(3.5, 5.1, "3.5-5.1");
+    case "sodium": return guide(135, 145, "135-145");
+    case "calcium": return value > 5 ? guide(8.5, 10.2, "8.5-10.2") : guide(2.1, 2.6, "2.1-2.6");
+    case "platelets": return value > 2000 ? guide(150000, 450000, "150,000-450,000") : guide(150, 450, "150-450");
+    case "wbc": return value > 300 ? guide(4000, 11000, "4,000-11,000") : guide(4, 11, "4-11");
+    case "tsh": return guide(0.4, 4.0, "0.4-4.0");
+    default: return null;
+  }
+}
+
+// Levels many hospital labs phone through as critical values. Deliberately
+// conservative: only clearly dangerous numbers, in the units the result uses.
+function dangerFrom(key: string, value: number, unit: string, status: LabPanelStatus): boolean {
+  const mmol = /mmol/i.test(unit);
+  switch (key) {
+    case "glucose": return mmol || (!unit && value < 25) ? value < 3.0 || value > 22.2 : value < 54 || value > 400;
+    case "potassium": return value < 2.8 || value > 6.2;
+    case "sodium": return value < 120 || value > 160;
+    case "calcium": return value > 5 ? value < 6.5 || value > 13 : value < 1.63 || value > 3.25;
+    case "hemoglobin": return value > 25 ? value < 70 : value < 7;
+    case "platelets": return value > 2000 ? value < 20000 : value < 20;
+    case "inr": return value >= 5;
+    // A raised troponin can mean heart injury: never something to wait on.
+    case "troponin": return status === "above";
+    default: return false;
+  }
+}
+
+// Urine dipstick results are words: Negative, Trace, Positive, 1+ to 4+, Small, Moderate, Large.
+const QUALITATIVE = /^[\s:=-]*(negative|neg|nil|absent|not detected|trace|positive|pos|present|detected|small|moderate|large|[1-4]\+)/i;
+function qualitativeFrom(word: string): { value: number; status: LabPanelStatus; far: boolean } {
+  const w = word.toLowerCase();
+  if (/^(negative|neg|nil|absent|not detected)$/.test(w)) return { value: 0, status: "within", far: false };
+  if (w === "trace" || w === "1+" || w === "small") return { value: 1, status: "above", far: false };
+  if (w === "3+" || w === "4+" || w === "large") return { value: 3, status: "above", far: true };
+  return { value: 2, status: "above", far: false };
+}
+
+// "1,4" (European decimal comma) becomes 1.4 and "250,000" becomes 250000, so values
+// and ranges read correctly; common misspellings of test names are corrected.
+export function normalizeReportText(text: string): string {
+  return String(text || "")
+    .replace(/(\d),(\d{3})(?![\d,])/g, "$1$2")
+    .replace(/(\d),(\d{1,2})(?![\d])/g, "$1.$2")
+    .replace(/\bcholest(?:rol|erol|eral|orol)\b/gi, "cholesterol")
+    .replace(/\bh(?:a?e)?moglobi?n\b/gi, "hemoglobin");
 }
 
 // Typed notes often list several results on one line ("ldl 160, hdl 35, sugar 130").
@@ -124,7 +187,7 @@ function splitTypedLine(line: string): string[] {
 export function readLabPanel(text: string): LabPanelResult[] {
   const results: LabPanelResult[] = [];
   const seen = new Set<string>();
-  String(text || "").split(/\r?\n/).flatMap(splitTypedLine).forEach((line) => {
+  normalizeReportText(text).split(/\r?\n/).flatMap(splitTypedLine).forEach((line) => {
     let best: { test: LabTest; index: number; length: number } | null = null;
     COMPILED.forEach(({ test, patterns }) => {
       if (seen.has(test.key)) return;
@@ -140,6 +203,14 @@ export function readLabPanel(text: string): LabPanelResult[] {
     const { test, index, length } = best as { test: LabTest; index: number; length: number };
     const rest = line.slice(index + length);
     if (/ratio/i.test(line.slice(index, index + length + 12))) return;
+    if (test.key.startsWith("urine")) {
+      const word = rest.match(QUALITATIVE);
+      if (!word) return;
+      const reading = qualitativeFrom(word[1]);
+      seen.add(test.key);
+      results.push({ key: test.key, name: test.name, value: reading.value, valueText: word[1].replace(/^./, (c) => c.toUpperCase()), unit: "", rangeText: "Negative", flag: "", status: reading.status, far: reading.far, generalRange: false, danger: false });
+      return;
+    }
     const valueMatch = rest.match(/^[^\d<>\n]{0,40}?\s*(?:\b0\d\s+[^\d\n]{0,12}?)?([<>]?)\s*(\d+(?:\.\d+)?)/);
     if (!valueMatch || valueMatch.index === undefined) return;
     const value = Number(valueMatch[2]);
@@ -166,7 +237,8 @@ export function readLabPanel(text: string): LabPanelResult[] {
       flag,
       status,
       far: farFrom(status, value, lowUsed, highUsed),
-      generalRange: Boolean(general)
+      generalRange: Boolean(general),
+      danger: dangerFrom(test.key, value, unit, status)
     });
   });
   return results;
