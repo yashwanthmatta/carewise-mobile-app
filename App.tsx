@@ -575,7 +575,7 @@ export default function App() {
   }
 
   const reportView = localAnalysis ? translateReportAnalysis(localAnalysis, reportLanguage) : null;
-  const personalPlan = localAnalysis && !localAnalysis.scanOnly ? buildPersonalPlan(localAnalysis, reportLanguage === "es" ? "es" : "en", planReactions) : null;
+  const personalPlan = localAnalysis && !localAnalysis.scanOnly && !localAnalysis.noData ? buildPersonalPlan(localAnalysis, reportLanguage === "es" ? "es" : "en", planReactions) : null;
   const reportUi = reportUiText(reportLanguage);
   const uiText = (key: string, english: string) => (typeof reportUi?.[key] === "string" ? (reportUi[key] as string) : english);
 
@@ -689,11 +689,15 @@ export default function App() {
               ))}
             </View>
             <Text style={styles.listTitle}>
-              {localAnalysis?.scanOnly ? SCAN_TEXT[reportLanguage === "es" ? "es" : "en"].scoreLabel : `${reportView.score}/100`} ·{" "}
-              {translateReportText(
-                reportView.riskLevel === "urgent" ? "Urgent review" : reportView.riskLevel === "needs_review" ? "Clinician review" : reportView.riskLevel === "attention" ? "Needs attention" : "Routine follow-up",
-                reportLanguage
-              )}
+              {localAnalysis?.noData
+                ? translateReportText("No results found", reportLanguage)
+                : <>
+                    {localAnalysis?.scanOnly ? SCAN_TEXT[reportLanguage === "es" ? "es" : "en"].scoreLabel : `${reportView.score}/100`} ·{" "}
+                    {translateReportText(
+                      reportView.riskLevel === "urgent" ? "Urgent review" : reportView.riskLevel === "needs_review" ? "Clinician review" : reportView.riskLevel === "attention" ? "Needs attention" : "Routine follow-up",
+                      reportLanguage
+                    )}
+                  </>}
             </Text>
             {uiText("draftNotice", "") ? <Text style={styles.smallText}>{uiText("draftNotice", "")}</Text> : null}
             {reportView.labValues.length ? <Text style={styles.listTitle}>{uiText("detectedValues", "Detected values")}</Text> : null}

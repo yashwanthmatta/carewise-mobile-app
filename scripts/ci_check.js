@@ -27,6 +27,7 @@ try {
   run("Store submission packet", "npm", ["run", "store:check"]);
   run("App review test plan", "npm", ["run", "review:check"]);
   run("TypeScript", "npm", ["run", "typecheck"]);
+  run("Report cases", "npm", ["run", "report:check"]);
   run("Offline EAS preflight", "npm", ["run", "build:preflight"], {
     env: { CAREWISE_SKIP_BACKEND_CHECK: "1" },
   });

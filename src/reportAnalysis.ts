@@ -1,5 +1,5 @@
 import { SCAN_TEXT, explainScanReport, type ScanExplanation } from "./scanReport";
-import { LAB_TEST_NAMES_ES, readLabPanel, type LabPanelResult } from "./labPanel";
+import { LAB_TEST_NAMES_ES, normalizeReportText, readLabPanel, type LabPanelResult } from "./labPanel";
 // On-device report explanation, shared with the CareWise web app.
 // Generated from carewise-frontend/script.js (analyzeReportTextLocally and the
 // Spanish report translations); keep the two in sync when either changes.
@@ -19,6 +19,8 @@ export type ReportAnalysis = {
   panelResults: LabPanelResult[];
   scan: { en: ScanExplanation; es: ScanExplanation } | null;
   scanOnly: boolean;
+  // No results could be read, so no score is shown.
+  noData: boolean;
 };
 type MarkerValues = {
   ldl: number | null;
@@ -147,6 +149,7 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "No obvious issue in pasted text": "Sin problemas evidentes en el texto",
       "Mentioned": "Mencionado",
       "Not enough structured data": "No hay suficientes datos estructurados",
+      "No results found": "No se encontraron resultados",
       "Needed": "Necesario",
       "In range discussion": "Dentro del rango, para comentar",
       "Clinician review": "Revisión profesional",
@@ -175,10 +178,20 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Would primary care, a dietitian, pharmacist, or specialist be the right next step?": "¿El siguiente paso adecuado sería mi médico de cabecera, un nutricionista, un farmacéutico o un especialista?",
       "Marked critical by the lab": "Marcado como crítico por el laboratorio",
       "Above the lab's range": "Por encima del rango del laboratorio",
+      "Far above the lab's range": "Muy por encima del rango del laboratorio",
+      "Above the usual range": "Por encima del rango habitual",
+      "Below the usual range": "Por debajo del rango habitual",
+      "Far above the usual range": "Muy por encima del rango habitual",
+      "Far below the usual range": "Muy por debajo del rango habitual",
+      "Far below the lab's range": "Muy por debajo del rango del laboratorio",
+      "Which results are far outside the range, and how soon should I be seen about them?": "¿Qué resultados están muy fuera del rango y qué tan pronto debo consultar por ellos?",
       "Below the lab's range": "Por debajo del rango del laboratorio",
       "Marked abnormal by the lab": "Marcado como anormal por el laboratorio",
       "Within the lab's range": "Dentro del rango del laboratorio",
       "Other tests": "Otras pruebas",
+      "Possible danger level": "Posible nivel de peligro",
+      "No range to compare": "Sin rango para comparar",
+      "Detected (usually negative)": "Detectado (normalmente negativo)",
       "Critical imaging result": "Resultado de imagen crítico",
       "Contact your doctor today": "Comuníquese hoy con su médico",
       "The report says a critical result was communicated to a doctor. If you have not heard from your doctor, contact them today.": "El informe dice que se comunicó un resultado crítico a un médico. Si su médico no le ha contactado, comuníquese hoy.",
@@ -199,7 +212,15 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       [/^Systolic blood pressure appears around (.+)\.$/, "La presión arterial sistólica aparece alrededor de $1."],
       [/^Vitamin D appears around (.+)\.$/, "La vitamina D aparece alrededor de $1."],
       [/^(.+)\. The lab marked this result as critical\. Contact your doctor or the lab today\.$/, "$1. El laboratorio marcó este resultado como crítico. Comuníquese hoy con su médico o con el laboratorio."],
+      [/^(.+); no range printed, compared with a general guide: (.+)\. Ask your doctor about this result soon\.$/, "$1; sin rango impreso, comparado con una guía general: $2. Consulte pronto a su médico sobre este resultado."],
+      [/^(.+); no range printed, compared with a general guide: (.+)\.$/, "$1; sin rango impreso, comparado con una guía general: $2."],
+      [/^(.+); lab range (.+)\. Ask your doctor about this result soon\.$/, "$1; rango del laboratorio $2. Consulte pronto a su médico sobre este resultado."],
       [/^(.+); lab range not printed\.$/, "$1; rango del laboratorio no impreso."],
+      [/^(.+); general guide (.+)\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; guía general $2. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
+      [/^(.+); lab range not printed\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; rango del laboratorio no impreso. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
+      [/^(.+); lab range (.+)\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; rango del laboratorio $2. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
+      [/^CareWise read (\d+) results but found no range to compare one of them with\. Ask your doctor what range applies to you\.$/, "CareWise leyó $1 resultados, pero no encontró un rango para comparar uno de ellos. Pregunte a su médico qué rango le corresponde."],
+      [/^CareWise read (\d+) results but found no range to compare (\d+) of them with\. Ask your doctor what range applies to you\.$/, "CareWise leyó $1 resultados, pero no encontró un rango para comparar $2 de ellos. Pregunte a su médico qué rango le corresponde."],
       [/^(.+); lab range (.+)\.$/, "$1; rango del laboratorio $2."],
       [/^All (\d+) tests read from your report are within the lab's ranges\.$/, "Las $1 pruebas leídas de su informe están dentro de los rangos del laboratorio."],
       [/^This looks like an? (.+) report\. CareWise explains the radiologist's words; it does not read the images\.$/, "Parece un informe de imagen ($1). CareWise explica las palabras del radiólogo; no lee las imágenes."],
@@ -320,7 +341,9 @@ function buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, 
   return values.filter((item): item is LabValue => item !== null);
 }
 
-export function analyzeReportTextLocally(text: string): ReportAnalysis {
+export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
+  // Decimal commas ("1,4"), thousands commas and common misspellings are fixed first.
+  const text = normalizeReportText(rawText);
   const lower = text.toLowerCase();
   const urgentMatches = getNonNegatedEmergencyMatches(lower);
   if (hasHypertensiveCrisis(lower)) urgentMatches.push("blood pressure over 180/120");
@@ -331,8 +354,8 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
   const a1c = readA1cPercent(lower);
   // Skip the "25-hydroxy" / "25-OH" in the test name so it is not read as the value.
   const vitaminD = readReportNumber(lower, [/vitamin d(?:[\s,]*\(?25[\s-]*(?:hydroxy|oh)\)?)?\D{0,24}(\d+(?:\.\d+)?)/i]);
-  const systolic = readReportNumber(lower, [/blood pressure\D{0,60}(\d{2,3})\s*\/\s*\d{2,3}/i]);
-  const diastolic = readReportNumber(lower, [/blood pressure\D{0,60}\d{2,3}\s*\/\s*(\d{2,3})/i]);
+  const systolic = readReportNumber(lower, [/(?:blood pressure|\bbp\b)\D{0,60}(\d{2,3})\s*\/\s*\d{2,3}/i]);
+  const diastolic = readReportNumber(lower, [/(?:blood pressure|\bbp\b)\D{0,60}\d{2,3}\s*\/\s*(\d{2,3})/i]);
   const labValues = buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, vitaminD, systolic, diastolic });
 
   const findings: Finding[] = [];
@@ -410,22 +433,50 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
   // Any other lab rows, compared with the range and flags the lab printed.
   const panelResults = readLabPanel(text);
   let panelPenalty = 0;
+  let anyFar = false;
+  let anyOutside = false;
   panelResults.forEach((item) => {
     const shown = `${item.valueText} ${item.unit}`.trim();
-    if (item.status === "critical") {
+    if (item.danger) {
+      urgentMatches.push(`${item.name} at a possible danger level`);
+      anyOutside = true;
+      anyFar = true;
+      score -= 20;
+      findings.push({
+        label: item.name,
+        level: "Possible danger level",
+        detail: `${shown}; ${item.rangeText ? `${item.generalRange ? "general guide" : "lab range"} ${item.rangeText}` : "lab range not printed"}. Labs often treat this level as urgent. Contact your doctor today, or seek emergency care if you feel very unwell.`,
+      });
+    } else if (item.status === "critical") {
       urgentMatches.push(`${item.name} marked critical by the lab`);
       score -= 20;
       findings.push({ label: item.name, level: "Marked critical by the lab", detail: `${shown}. The lab marked this result as critical. Contact your doctor or the lab today.` });
     } else if (item.status === "above" || item.status === "below" || item.status === "outside") {
-      panelPenalty += 3;
+      anyOutside = true;
+      if (item.far) anyFar = true;
+      panelPenalty += item.far ? 10 : 4;
       findings.push({
         label: item.name,
-        level: item.status === "above" ? "Above the lab's range" : item.status === "below" ? "Below the lab's range" : "Marked abnormal by the lab",
-        detail: `${shown}; lab range ${item.rangeText || "not printed"}.`,
+        // When the lab printed no range, say honestly that a general guide was used.
+        level: item.key.startsWith("urine")
+          ? "Detected (usually negative)"
+          : item.generalRange
+          ? `${item.far ? "Far " : ""}${item.status === "above" ? "above" : "below"} the usual range`.replace(/^./, (c) => c.toUpperCase())
+          : item.far
+            ? item.status === "above" ? "Far above the lab's range" : "Far below the lab's range"
+            : item.status === "above" ? "Above the lab's range" : item.status === "below" ? "Below the lab's range" : "Marked abnormal by the lab",
+        detail: `${shown}; ${item.generalRange ? `no range printed, compared with a general guide: ${item.rangeText}` : `lab range ${item.rangeText || "not printed"}`}.${item.far ? " Ask your doctor about this result soon." : ""}`,
       });
     }
   });
-  score -= Math.min(15, panelPenalty);
+  score -= Math.min(30, panelPenalty);
+  // A result far outside its range is never "routine", however good the rest looks.
+  if (anyFar) {
+    score = Math.min(score, 74);
+    questions.push("Which results are far outside the range, and how soon should I be seen about them?");
+  } else if (anyOutside) {
+    score = Math.min(score, 84);
+  }
   if (panelResults.some((item) => item.status !== "within" && item.status !== "unknown")) {
     questions.push("Which of my results outside the lab's range matter most, and do any need follow-up?");
   }
@@ -443,11 +494,19 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     questions.push(...SCAN_TEXT.en.questions);
   }
 
+  // Results with no range to compare are never presented as normal.
+  const unchecked = panelResults.filter((item) => item.status === "unknown");
   if (panelResults.length && !findings.length) {
-    findings.push({ label: "Other tests", level: "Within the lab's range", detail: `All ${panelResults.length} tests read from your report are within the lab's ranges.` });
+    if (unchecked.length) {
+      score = Math.min(score, 84);
+      findings.push({ label: "Other tests", level: "No range to compare", detail: `CareWise read ${panelResults.length} results but found no range to compare ${unchecked.length === 1 ? "one of them" : `${unchecked.length} of them`} with. Ask your doctor what range applies to you.` });
+    } else {
+      findings.push({ label: "Other tests", level: "Within the lab's range", detail: `All ${panelResults.length} tests read from your report are within the lab's ranges.` });
+    }
   }
 
-  if (!findings.length) {
+  const noData = !findings.length;
+  if (noData) {
     findings.push({
       label: "Readable values",
       level: "Not enough structured data",
@@ -475,7 +534,7 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
   return {
     id: `local-analysis-${Date.now()}`,
     score: Math.max(35, Math.min(96, score)),
-    riskLevel: urgentMatches.length ? "urgent" : score < 70 ? "needs_review" : score < 82 ? "attention" : "routine",
+    riskLevel: urgentMatches.length ? "urgent" : score < 70 || anyFar ? "needs_review" : score < 82 || anyOutside || unchecked.length ? "attention" : "routine",
     findings,
     suggestions: [...new Set(suggestions)].slice(0, 5),
     questions: [...new Set(questions)].slice(0, 5),
@@ -484,6 +543,7 @@ export function analyzeReportTextLocally(text: string): ReportAnalysis {
     panelResults,
     scan,
     scanOnly,
+    noData,
   };
 }
 
@@ -539,7 +599,7 @@ export function buildDoctorBriefText(analysis: ReportAnalysis, person = "Me"): s
     person === "Me"
       ? "Prepared by the patient with CareWise AI from their own report text."
       : `Prepared by a family caregiver for ${person} with CareWise AI from the report text.`,
-    ...(analysis.scanOnly ? [] : [`Health score ${analysis.score}/100 (educational estimate).`]),
+    ...(analysis.scanOnly || analysis.noData ? [] : [`Health score ${analysis.score}/100 (educational estimate).`]),
     "",
     ...(analysis.labValues.length ? ["Values detected in the report:", ...analysis.labValues.map((item) => `- ${item.label}: ${item.value} ${item.unit} (${item.flag})`), ""] : []),
     ...((analysis.panelResults || []).length
