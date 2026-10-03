@@ -14,6 +14,11 @@ export type LabPanelResult = {
   rangeText: string;
   flag: string;
   status: LabPanelStatus;
+  // Far outside the range: past 1.5x the upper limit or under two-thirds of the lower one,
+  // or more than half the range's width beyond it.
+  far: boolean;
+  // True when the lab printed no range and a common general guide was used instead.
+  generalRange: boolean;
 };
 
 type LabTest = { key: string; name: string; es: string; aliases: string[]; what: string; whatEs: string };
@@ -35,7 +40,7 @@ export const LAB_TESTS: LabTest[] = [
   { key: "monocytes", name: "Monocytes", es: "Monocitos", aliases: ["monocytes"], what: "White blood cells that clean up germs and damaged cells.", whatEs: "Glóbulos blancos que limpian gérmenes y células dañadas." },
   { key: "eosinophils", name: "Eosinophils", es: "Eosinófilos", aliases: ["eosinophils", "eos"], what: "White blood cells involved in allergies and parasites.", whatEs: "Glóbulos blancos relacionados con alergias y parásitos." },
   { key: "basophils", name: "Basophils", es: "Basófilos", aliases: ["basophils", "basos"], what: "A rare white blood cell involved in allergic reactions.", whatEs: "Un glóbulo blanco poco común relacionado con reacciones alérgicas." },
-  { key: "glucose", name: "Glucose (blood sugar)", es: "Glucosa (azúcar en sangre)", aliases: ["fasting glucose", "glucose", "blood sugar"], what: "The sugar level in your blood when the sample was taken.", whatEs: "El nivel de azúcar en la sangre cuando se tomó la muestra." },
+  { key: "glucose", name: "Glucose (blood sugar)", es: "Glucosa (azúcar en sangre)", aliases: ["fasting blood sugar", "fasting blood glucose", "fasting sugar", "fasting glucose", "glucose", "blood sugar", "fbs", "random blood sugar", "rbs", "sugar"], what: "The sugar level in your blood when the sample was taken.", whatEs: "El nivel de azúcar en la sangre cuando se tomó la muestra." },
   { key: "bun", name: "BUN (urea nitrogen)", es: "BUN (nitrógeno ureico)", aliases: ["blood urea nitrogen", "urea nitrogen", "bun", "urea"], what: "A waste product the kidneys remove; used to check kidney function.", whatEs: "Un desecho que eliminan los riñones; ayuda a revisar su función." },
   { key: "creatinine", name: "Creatinine", es: "Creatinina", aliases: ["creatinine"], what: "A muscle waste product the kidneys remove; used to check kidney function.", whatEs: "Un desecho de los músculos que eliminan los riñones; ayuda a revisar su función." },
   { key: "egfr", name: "eGFR (kidney filtering)", es: "TFGe (filtración renal)", aliases: ["estimated gfr", "egfr", "gfr"], what: "An estimate of how well your kidneys filter blood.", whatEs: "Una estimación de qué tan bien filtran la sangre los riñones." },
@@ -68,7 +73,7 @@ export const LAB_TESTS: LabTest[] = [
   { key: "psa", name: "PSA (prostate)", es: "PSA (próstata)", aliases: ["prostate specific antigen", "psa"], what: "A protein made by the prostate.", whatEs: "Una proteína producida por la próstata." }
 ];
 
-const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|g\/dl|g\/l|mg\/l|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|pg\/ml|fl|pg|%)/i;
+const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|g\/dl|g\/l|mg\/l|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|pg\/ml|fl|pg|%)/i;
 const RANGE_PATTERN = /(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)|(<=?|>=?|≤|≥)\s*(\d+(?:\.\d+)?)/;
 const FLAG_PATTERN = /(?:^|[\s(])(HH|LL|H|L|High|Low|HIGH|LOW|Critical|CRITICAL|CRIT|Panic|PANIC|Abnormal|ABNORMAL)(?=[\s*)]|$)/;
 const COMPILED = LAB_TESTS.map((test) => ({ test, patterns: test.aliases.map((alias) => new RegExp(`\\b${alias}\\b`, "i")) }));
@@ -80,16 +85,46 @@ function statusFrom(value: number, flag: string, low: number | null, high: numbe
   if (upper === "L" || upper === "LOW") return "below";
   if (upper === "ABNORMAL") return "outside";
   if (low !== null && high !== null) return value < low ? "below" : value > high ? "above" : "within";
-  if (bound.startsWith("<") || bound === "≤") return high !== null && value >= high && !bound.includes("=") ? "above" : "within";
-  if (bound.startsWith(">") || bound === "≥") return low !== null && value <= low && !bound.includes("=") ? "below" : "within";
+  // "<200" puts 200 itself out of range; "<=200" or "≤200" keeps it in.
+  if (bound.startsWith("<") || bound === "≤") return high !== null && (bound.includes("=") || bound === "≤" ? value > high : value >= high) ? "above" : "within";
+  if (bound.startsWith(">") || bound === "≥") return low !== null && (bound.includes("=") || bound === "≥" ? value < low : value <= low) ? "below" : "within";
   return "unknown";
+}
+
+function farFrom(status: LabPanelStatus, value: number, low: number | null, high: number | null): boolean {
+  if (status !== "above" && status !== "below") return false;
+  const width = low !== null && high !== null && high > low ? high - low : 0;
+  if (status === "above" && high) return value >= high * 1.5 || (width > 0 && value - high > 0.5 * width);
+  if (status === "below" && low) return value <= low * 0.67 || (width > 0 && low - value > 0.5 * width);
+  return false;
+}
+
+// Common reference points used only when the lab printed no range, so typed results
+// like "fasting sugar 130" or "hdl 35" are still compared. Shown as a general guide.
+function generalRangeFor(key: string, line: string, value: number, unit: string): { low: number | null; high: number | null; bound: string; text: string } | null {
+  const mmol = /mmol/i.test(unit) || (!unit && value < 25);
+  if (key === "glucose" && /fasting|\bfbs\b/i.test(line)) {
+    return mmol ? { low: 3.9, high: 5.5, bound: "", text: "3.9-5.5 (general guide, fasting)" } : { low: 70, high: 99, bound: "", text: "70-99 (general guide, fasting)" };
+  }
+  if (key === "hdl") {
+    return mmol ? { low: 1.0, high: null, bound: ">=", text: "1.0 or higher (general guide)" } : { low: 40, high: null, bound: ">=", text: "40 or higher (general guide)" };
+  }
+  return null;
+}
+
+// Typed notes often list several results on one line ("ldl 160, hdl 35, sugar 130").
+// Split those into parts; lab rows (which print a range) and "Cholesterol, Total 226" stay whole.
+function splitTypedLine(line: string): string[] {
+  const numbers = line.match(/\d+(?:\.\d+)?/g) || [];
+  if (numbers.length < 3 || /\d\s*(?:-|–|to)\s*\d/.test(line)) return [line];
+  return line.split(/\s*(?:[,;]|\band\b)\s*(?=[a-z])/i);
 }
 
 // One result per test; each line is matched to the test named earliest on it.
 export function readLabPanel(text: string): LabPanelResult[] {
   const results: LabPanelResult[] = [];
   const seen = new Set<string>();
-  String(text || "").split(/\r?\n/).forEach((line) => {
+  String(text || "").split(/\r?\n/).flatMap(splitTypedLine).forEach((line) => {
     let best: { test: LabTest; index: number; length: number } | null = null;
     COMPILED.forEach(({ test, patterns }) => {
       if (seen.has(test.key)) return;
@@ -116,7 +151,10 @@ export function readLabPanel(text: string): LabPanelResult[] {
     const range = after.match(RANGE_PATTERN);
     const low = range ? (range[1] !== undefined ? Number(range[1]) : range[3].startsWith(">") || range[3] === "≥" ? Number(range[4]) : null) : null;
     const high = range ? (range[2] !== undefined ? Number(range[2]) : range[3].startsWith("<") || range[3] === "≤" ? Number(range[4]) : null) : null;
-    const rangeText = range ? range[0].replace(/\s+/g, " ").trim() : "";
+    const general = range || flag ? null : generalRangeFor(test.key, line, value, unit);
+    const lowUsed = general ? general.low : low;
+    const highUsed = general ? general.high : high;
+    const status = statusFrom(value, flag, lowUsed, highUsed, general ? general.bound : range?.[3] ?? "");
     seen.add(test.key);
     results.push({
       key: test.key,
@@ -124,9 +162,11 @@ export function readLabPanel(text: string): LabPanelResult[] {
       value,
       valueText: `${valueMatch[1]}${valueMatch[2]}`,
       unit,
-      rangeText,
+      rangeText: general ? general.text : range ? range[0].replace(/\s+/g, " ").trim() : "",
       flag,
-      status: statusFrom(value, flag, low, high, range?.[3] ?? "")
+      status,
+      far: farFrom(status, value, lowUsed, highUsed),
+      generalRange: Boolean(general)
     });
   });
   return results;
