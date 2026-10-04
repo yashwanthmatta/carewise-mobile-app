@@ -38,19 +38,22 @@ import { buildHistoryBriefText, getRecordFor, normalizeRecordPerson } from "./sr
 import { buildPersonalPlan } from "./src/personalPlan";
 import { LAB_PANEL_TEXT, labTestInfo } from "./src/labPanel";
 import { SCAN_TEXT } from "./src/scanReport";
+import { EarlyAccessForm, FeedbackCard } from "./src/FeedbackCard";
+import { trackUsage } from "./src/productSignals";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
 const REFRESH_TOKEN_KEY = "carewise.refreshToken";
 const MIN_PASSWORD_LENGTH = 12;
 
-type Screen = "dashboard" | "reports" | "record" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
+type Screen = "dashboard" | "account" | "reports" | "record" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
 
+// Most-used first: explain a report, keep the family record, then the account.
 const screens: { key: Screen; label: string }[] = [
-  { key: "dashboard", label: "Home" },
   { key: "reports", label: "Reports" },
   { key: "record", label: "Record" },
   { key: "labs", label: "Labs" },
+  { key: "account", label: "Account" },
   { key: "recommendations", label: "Care" },
   { key: "doctors", label: "Doctors" },
   { key: "insurance", label: "Insurance" },
@@ -85,14 +88,18 @@ function getCheckoutUrl(value: unknown) {
   return "";
 }
 
+// Plan codes stay stable on the server; these are the names and prices people see.
+const PLAN_LABELS = { basic: "Free", plus: "Plus $7/mo", premium: "Family $12/mo" } as const;
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("dashboard");
+  const [screen, setScreen] = useState<Screen>("reports");
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [verificationToken, setVerificationToken] = useState("");
-  const [status, setStatus] = useState("Sign in or create an account to sync with CareWise.");
+  const [status, setStatus] = useState("Try the sample report, or type your results and tap Explain on this phone.");
   const [token, setToken] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
   const [session, setSession] = useState<SessionOut | null>(null);
@@ -541,12 +548,15 @@ export default function App() {
     const file = result.assets[0];
     setSelectedReportFile(file);
     setReportName(file.name);
-    setStatus(`${file.name} selected. Add readable text if the file is an image/PDF that may need OCR help.`);
+    setStatus(file.mimeType?.startsWith("image/")
+      ? `${file.name} selected. To read a photo of a report on your phone, open carewise-frontend.onrender.com in your browser, or type the numbers here.`
+      : `${file.name} selected. Add readable text if the file is a scanned PDF.`);
   }
 
   function useSampleReport() {
     setReportName("sample-blood-work.txt");
     setReportText(SAMPLE_REPORT_TEXT);
+    trackUsage(API_BASE_URL, "sample_opened");
     setStatus("Sample report added. Tap Explain on this phone.");
   }
 
@@ -555,7 +565,9 @@ export default function App() {
       setStatus("Paste report text or use the sample report first.");
       return;
     }
-    setLocalAnalysis(analyzeReportTextLocally(reportText));
+    const analysis = analyzeReportTextLocally(reportText);
+    setLocalAnalysis(analysis);
+    if (!analysis.noData) trackUsage(API_BASE_URL, "report_explained");
     loadHealthRecord().then((items) =>
       setPlanReactions(getRecordFor(items, normalizeRecordPerson(reportPerson)).filter((item) => item.type === "reaction").map((item) => item.name))
     );
@@ -564,6 +576,7 @@ export default function App() {
 
   async function shareDoctorBrief() {
     if (!localAnalysis) return;
+    trackUsage(API_BASE_URL, "doctor_brief_opened");
     const person = reportPerson.trim() && reportPerson.trim().toLowerCase() !== "me" ? reportPerson.trim() : "Me";
     try {
       const history = buildHistoryBriefText(await loadHealthRecord(), person);
@@ -584,32 +597,8 @@ export default function App() {
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.brand}>CareWise AI</Text>
-          <Text style={styles.subtitle}>Mobile care navigation starter</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email address" accessibilityLabel="Email address" autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" accessibilityLabel="Password" secureTextEntry />
-          <Text style={styles.smallText}>Use at least {MIN_PASSWORD_LENGTH} characters. Do not reuse passwords from email, banking, or medical portals.</Text>
-          <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" accessibilityLabel="Password reset token" autoCapitalize="none" />
-          <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" accessibilityLabel="New password" secureTextEntry />
-          <TextInput style={styles.input} value={verificationToken} onChangeText={setVerificationToken} placeholder="Email verification token" accessibilityLabel="Email verification token" autoCapitalize="none" />
-          <View style={styles.buttonRow}>
-            <ActionButton label="Sign up" onPress={signup} disabled={busy} />
-            <ActionButton label="Login" onPress={login} disabled={busy} />
-            <ActionButton label="Refresh" onPress={refreshSession} disabled={!refreshToken || busy} />
-            <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
-            <ActionButton label="Request reset" onPress={requestPasswordReset} disabled={busy} />
-            <ActionButton label="Confirm reset" onPress={confirmPasswordReset} disabled={busy || !resetToken || !newPassword} />
-            <ActionButton label="Verify email" onPress={requestEmailVerification} disabled={!token || busy} />
-            <ActionButton label="Confirm email" onPress={confirmEmailVerification} disabled={busy || !verificationToken} />
-          </View>
-          <Text style={styles.status}>{status}</Text>
-          {session ? (
-            <Text style={styles.smallText}>Signed in: {session.email} · {session.email_verified ? "verified" : "not verified"}</Text>
-          ) : null}
+          <Text style={styles.brand}>CareWise</Text>
+          <Text style={styles.subtitle}>Understand your health reports in simple English.</Text>
         </View>
 
         <View style={styles.tabs}>
@@ -627,20 +616,66 @@ export default function App() {
           ))}
         </View>
 
-        {screen === "dashboard" ? (
+        {status ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
+
+        {screen === "account" ? (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Dashboard</Text>
-            <Text style={styles.bodyText}>Start with consent and a backend patient profile. High-risk or confusing results must be reviewed by a licensed clinician.</Text>
-            <View style={styles.buttonRow}>
-              <ActionButton label="Record consent" onPress={recordConsent} disabled={!token || busy} />
-              <ActionButton label="Sync profile" onPress={syncProfile} disabled={!token || busy} />
-            </View>
+            <Text style={styles.sectionTitle}>Account</Text>
+            <Text style={styles.bodyText}>An account is optional. Reports are explained on this phone without one; sign in to sync history across devices.</Text>
+            {session ? (
+              <>
+                <Text style={styles.bodyText}>Signed in: {session.email} · {session.email_verified ? "verified" : "not verified"}</Text>
+                <View style={styles.buttonRow}>
+                  <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
+                  <ActionButton label="Refresh" onPress={refreshSession} disabled={!refreshToken || busy} />
+                </View>
+                {!session.email_verified ? (
+                  <View style={styles.list}>
+                    <Text style={styles.listTitle}>Verify your email</Text>
+                    <ActionButton label="Verify email" onPress={requestEmailVerification} disabled={!token || busy} />
+                    <TextInput style={styles.input} value={verificationToken} onChangeText={setVerificationToken} placeholder="Email verification token" accessibilityLabel="Email verification token" autoCapitalize="none" />
+                    <ActionButton label="Confirm email" onPress={confirmEmailVerification} disabled={busy || !verificationToken} />
+                  </View>
+                ) : null}
+                <View style={styles.list}>
+                  <Text style={styles.listTitle}>Sync with CareWise</Text>
+                  <Text style={styles.smallText}>Record consent and create your profile before saving reports and labs to the cloud.</Text>
+                  <View style={styles.buttonRow}>
+                    <ActionButton label="Record consent" onPress={recordConsent} disabled={!token || busy} />
+                    <ActionButton label="Sync profile" onPress={syncProfile} disabled={!token || busy} />
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email address" accessibilityLabel="Email address" autoCapitalize="none" keyboardType="email-address" />
+                <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" accessibilityLabel="Password" secureTextEntry />
+                <Text style={styles.smallText}>Use at least {MIN_PASSWORD_LENGTH} characters. Do not reuse passwords from email, banking, or medical portals.</Text>
+                <View style={styles.buttonRow}>
+                  <ActionButton label="Sign up" onPress={signup} disabled={busy} />
+                  <ActionButton label="Login" onPress={login} disabled={busy} />
+                </View>
+                <Pressable onPress={() => setShowPasswordReset((value) => !value)} accessibilityRole="button" accessibilityLabel="Forgot password?">
+                  <Text style={styles.linkText}>{showPasswordReset ? "Hide password reset" : "Forgot password?"}</Text>
+                </Pressable>
+                {showPasswordReset ? (
+                  <View style={styles.list}>
+                    <ActionButton label="Request reset" onPress={requestPasswordReset} disabled={busy} />
+                    <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" accessibilityLabel="Password reset token" autoCapitalize="none" />
+                    <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" accessibilityLabel="New password" secureTextEntry />
+                    <ActionButton label="Confirm reset" onPress={confirmPasswordReset} disabled={busy || !resetToken || !newPassword} />
+                  </View>
+                ) : null}
+              </>
+            )}
           </View>
         ) : null}
 
+
         {screen === "reports" ? (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Report Upload</Text>
+            <Text style={styles.sectionTitle}>Explain a report</Text>
+            <Text style={styles.smallText}>Type or paste the results, or try the sample. Explained on this phone; nothing is uploaded unless you choose to save it.</Text>
             <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name" accessibilityLabel="Report name" />
             <TextInput
               style={[styles.input, styles.textArea]}
@@ -678,7 +713,10 @@ export default function App() {
               {(Object.keys(REPORT_LANGUAGES) as ReportLanguage[]).map((code) => (
                 <Pressable
                   key={code}
-                  onPress={() => setReportLanguage(code)}
+                  onPress={() => {
+                    if (code === "es" && reportLanguage !== "es") trackUsage(API_BASE_URL, "spanish_used");
+                    setReportLanguage(code);
+                  }}
                   style={[styles.planPill, reportLanguage === code && styles.activePlanPill]}
                   accessibilityRole="button"
                   accessibilityLabel={`Show report in ${REPORT_LANGUAGES[code]}`}
@@ -806,6 +844,7 @@ export default function App() {
             <View style={styles.buttonRow}>
               <ActionButton label={uiText("doctorBrief", "Doctor brief")} onPress={shareDoctorBrief} />
             </View>
+            {localAnalysis && !localAnalysis.noData ? <FeedbackCard key={localAnalysis.id} baseUrl={API_BASE_URL} language={reportLanguage === "es" ? "es" : "en"} /> : null}
             <Text style={styles.smallText}>
               {uiText("safetyText", "This is not a diagnosis or treatment plan. A licensed professional should interpret your original report with your full history.")}
             </Text>
@@ -889,7 +928,7 @@ export default function App() {
         {screen === "subscriptions" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Plans</Text>
-            <Text style={styles.bodyText}>Start a backend checkout request for the selected plan. Payments stay outside CareWise until the configured payment provider is ready.</Text>
+            <Text style={styles.bodyText}>CareWise is free to start. Plus adds personal plans, reminders and trends; Family covers up to 5 people. Starting prices, to be tested with our first users.</Text>
             <View style={styles.buttonRow}>
               {(["basic", "plus", "premium"] as const).map((code) => (
                 <Pressable
@@ -897,15 +936,20 @@ export default function App() {
                   onPress={() => setPlanCode(code)}
                   style={[styles.planPill, planCode === code && styles.activePlanPill]}
                   accessibilityRole="button"
-                  accessibilityLabel={`${code} plan`}
+                  accessibilityLabel={`${PLAN_LABELS[code]} plan`}
                   accessibilityState={{ selected: planCode === code }}
                 >
-                  <Text style={[styles.tabText, planCode === code && styles.activeTabText]}>{code}</Text>
+                  <Text style={[styles.tabText, planCode === code && styles.activeTabText]}>{PLAN_LABELS[code]}</Text>
                 </Pressable>
               ))}
             </View>
-            <ActionButton label="Start checkout" onPress={startSubscriptionCheckout} disabled={!token || busy} />
+            {planCode === "basic" ? (
+              <Text style={styles.smallText}>The Free plan needs no payment. Everything on the Upload, History and Record screens is included.</Text>
+            ) : (
+              <ActionButton label="Start checkout" onPress={startSubscriptionCheckout} disabled={!token || busy} />
+            )}
             {subscriptionResult ? <Text style={styles.resultBox}>{subscriptionResult}</Text> : <Text style={styles.smallText}>Use test payments only until legal, privacy, and billing reviews are complete.</Text>}
+            <EarlyAccessForm baseUrl={API_BASE_URL} language={reportLanguage === "es" ? "es" : "en"} />
           </View>
         ) : null}
         {screen === "legal" ? (
@@ -971,6 +1015,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: "#053f3c", fontSize: 18, fontWeight: "900" },
   bodyText: { color: "#60716d", fontSize: 14, lineHeight: 20 },
   smallText: { color: "#60716d", fontSize: 12, fontWeight: "700" },
+  linkText: { color: "#0f766e", fontSize: 14, fontWeight: "800", paddingVertical: 8 },
   status: { color: "#08766e", fontSize: 13, fontWeight: "800" },
   input: { minHeight: 46, borderRadius: 8, borderWidth: 1, borderColor: "#cbdcd5", padding: 12, backgroundColor: "#fbfffd" },
   textArea: { minHeight: 130, textAlignVertical: "top" },

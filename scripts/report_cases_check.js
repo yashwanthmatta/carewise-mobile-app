@@ -55,6 +55,11 @@ const cases = [
   ["patient ID is not a result", "Collected: 03/10/2026 10:45\nPatient ID: 448812  Age: 67\nPt ID 448812\nLDL Cholesterol 95 mg/dL (<100)", (a) => [
     !panel(a, "pt"), a.riskLevel === "routine",
   ]],
+  ["Indian platelets in lakhs", "Platelet Count : 1.8 lakhs/cumm [1.5 - 4.5]\nHaemoglobin : 9.6 gm/dl [12.0 - 15.0]", (a) => [
+    panel(a, "platelets")?.status === "within", panel(a, "platelets")?.danger === false, a.riskLevel !== "urgent",
+    panel(a, "hemoglobin")?.unit === "gm/dl", panel(a, "hemoglobin")?.status === "below",
+  ]],
+  ["dangerously low platelets in lakhs", "Platelet Count 0.15 lakhs/cumm 1.5-4.5", (a) => [a.riskLevel === "urgent"]],
   ["result with no range is not called normal", "Ferritin 20", (a) => [a.riskLevel === "attention", a.findings.some((f) => f.level === "No range to compare")]],
 ];
 
