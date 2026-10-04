@@ -84,7 +84,7 @@ export const LAB_TESTS: LabTest[] = [
   { key: "psa", name: "PSA (prostate)", es: "PSA (próstata)", aliases: ["prostate specific antigen", "psa"], what: "A protein made by the prostate.", whatEs: "Una proteína producida por la próstata." }
 ];
 
-const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|g\/dl|g\/l|mg\/l|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|ng\/l|pg\/ml|mm\/hr?|seconds|sec|fl|pg|%)/i;
+const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|gm\/dl|g\/dl|g\/l|mg\/l|lakhs?\s?\/\s?(?:cu\.?\s?mm|[uµμ]l)|lakhs?|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|ng\/l|pg\/ml|mm\/hr?|seconds|sec|fl|pg|%)/i;
 const RANGE_PATTERN = /(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)|(<=?|>=?|≤|≥)\s*(\d+(?:\.\d+)?)/;
 const FLAG_PATTERN = /(?:^|[\s(])(HH|LL|H|L|High|Low|HIGH|LOW|Critical|CRITICAL|CRIT|Panic|PANIC|Abnormal|ABNORMAL)(?=[\s*)]|$)/;
 const COMPILED = LAB_TESTS.map((test) => ({ test, patterns: test.aliases.map((alias) => new RegExp(`\\b${alias}\\b`, "i")) }));
@@ -130,7 +130,7 @@ function generalRangeFor(key: string, line: string, value: number, unit: string)
     case "potassium": return guide(3.5, 5.1, "3.5-5.1");
     case "sodium": return guide(135, 145, "135-145");
     case "calcium": return value > 5 ? guide(8.5, 10.2, "8.5-10.2") : guide(2.1, 2.6, "2.1-2.6");
-    case "platelets": return value > 2000 ? guide(150000, 450000, "150,000-450,000") : guide(150, 450, "150-450");
+    case "platelets": return /lakh/i.test(unit) ? guide(1.5, 4.5, "1.5-4.5 lakh") : value > 2000 ? guide(150000, 450000, "150,000-450,000") : guide(150, 450, "150-450");
     case "wbc": return value > 300 ? guide(4000, 11000, "4,000-11,000") : guide(4, 11, "4-11");
     case "tsh": return guide(0.4, 4.0, "0.4-4.0");
     default: return null;
@@ -139,7 +139,13 @@ function generalRangeFor(key: string, line: string, value: number, unit: string)
 
 // Levels many hospital labs phone through as critical values. Deliberately
 // conservative: only clearly dangerous numbers, in the units the result uses.
-function dangerFrom(key: string, value: number, unit: string, status: LabPanelStatus): boolean {
+// Platelet counts are printed per µL, in thousands, or (in India) in lakhs; bring them to thousands.
+function plateletsInThousands(value: number, unit: string, high: number | null): number {
+  if (/lakh/i.test(unit) || (high !== null && high < 50)) return value * 100;
+  return value > 2000 ? value / 1000 : value;
+}
+
+function dangerFrom(key: string, value: number, unit: string, status: LabPanelStatus, high: number | null = null): boolean {
   const mmol = /mmol/i.test(unit);
   switch (key) {
     case "glucose": return mmol || (!unit && value < 25) ? value < 3.0 || value > 22.2 : value < 54 || value > 400;
@@ -147,7 +153,7 @@ function dangerFrom(key: string, value: number, unit: string, status: LabPanelSt
     case "sodium": return value < 120 || value > 160;
     case "calcium": return value > 5 ? value < 6.5 || value > 13 : value < 1.63 || value > 3.25;
     case "hemoglobin": return value > 25 ? value < 70 : value < 7;
-    case "platelets": return value > 2000 ? value < 20000 : value < 20;
+    case "platelets": return plateletsInThousands(value, unit, high) < 20;
     case "inr": return value >= 5;
     // A raised troponin can mean heart injury: never something to wait on.
     case "troponin": return status === "above";
@@ -238,7 +244,7 @@ export function readLabPanel(text: string): LabPanelResult[] {
       status,
       far: farFrom(status, value, lowUsed, highUsed),
       generalRange: Boolean(general),
-      danger: dangerFrom(test.key, value, unit, status)
+      danger: dangerFrom(test.key, value, unit, status, highUsed)
     });
   });
   return results;
