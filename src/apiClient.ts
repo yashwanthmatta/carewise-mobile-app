@@ -4,6 +4,14 @@ export type LoginResponse = {
   token_type: "bearer";
 };
 
+export type SubscriptionMeOut = {
+  plan_code: string;
+  plan_name: string;
+  status: string;
+  payments_enabled: boolean;
+  can_manage_billing: boolean;
+};
+
 export type SessionOut = {
   id: string;
   email: string;
@@ -314,6 +322,14 @@ export class CareWiseApiClient {
       method: "POST",
       body: JSON.stringify({ plan_code: planCode }),
     });
+  }
+
+  getMySubscription(): Promise<SubscriptionMeOut> {
+    return this.request<SubscriptionMeOut>("/subscriptions/me");
+  }
+
+  openBillingPortal(): Promise<{ portal_url: string }> {
+    return this.request<{ portal_url: string }>("/subscriptions/portal", { method: "POST", body: "{}" });
   }
 
   registerNotificationDevice(deviceToken: string, channel = "push") {
