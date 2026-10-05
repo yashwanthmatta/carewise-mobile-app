@@ -1087,6 +1087,7 @@ export default function App() {
         baseUrl={API_BASE_URL}
         language={reportLanguage === "es" ? "es" : "en"}
         reportSummary={localAnalysis && !localAnalysis.noData ? buildDoctorBriefText(localAnalysis, reportPerson.trim() || "Me") : ""}
+        analysis={localAnalysis}
       />
     </SafeAreaView>
   );
