@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { builtInHelpAnswer } from "./helpAnswers";
+import type { ReportAnalysis } from "./reportAnalysis";
 
 type Turn = { role: "user" | "assistant"; content: string };
 type Language = "en" | "es";
@@ -19,7 +21,6 @@ const TEXT = {
     chips: ["What does my result mean?", "How do I add a report?", "What should I ask my doctor?", "How do plans work?"],
     emergency: "This sounds urgent. Please call 911 or your local emergency number now, or go to the nearest emergency room. Do not wait for an app.",
     busy: "The helper is busy right now. Please try again in a minute.",
-    unknown: "I don't have an answer for that one. Try asking another way, or use the \"Was this helpful?\" box to reach the CareWise team.",
   },
   es: {
     open: "¿Ayuda?",
@@ -35,43 +36,20 @@ const TEXT = {
     chips: ["¿Qué significa mi resultado?", "¿Cómo agrego un informe?", "¿Qué le pregunto a mi médico?", "¿Cómo funcionan los planes?"],
     emergency: "Esto suena urgente. Llama al 911 o al número de emergencias local ahora, o ve a la sala de emergencias más cercana. No esperes a una app.",
     busy: "El asistente está ocupado. Inténtalo de nuevo en un minuto.",
-    unknown: "No tengo una respuesta para eso. Prueba con otra pregunta, o usa el cuadro \"¿Le resultó útil?\" para escribir al equipo.",
   },
 };
 
 export const EMERGENCY_PATTERN = /(chest pain|can'?t breathe|cannot breathe|trouble breathing|short of breath|stroke|face droop|slurred speech|passed out|unconscious|fainted|seizure|severe bleeding|bleeding (a lot|heavily)|overdose|suicid|kill myself|end my life|self[- ]harm|dolor (de|en el) pecho|no puedo respirar|derrame|desmay|convulsi|sangrado (fuerte|abundante)|quitarme la vida)/i;
 
-// Built-in answers for when the online helper is off or unreachable.
-const OFFLINE_ANSWERS: Record<Language, [RegExp, string][]> = {
-  en: [
-    [/upload|add.*report|photo|pdf|paste|how.*start/i, "Open the Reports tab, paste the report text or pick a file, choose whose report it is, then tap Explain. It is explained on this phone."],
-    [/plan|price|pay|cost|cancel|subscri|plus|family/i, "Free covers explaining reports, the doctor brief and your health record. Plus is $7 a month for personal plans, reminders and trends. Family is $12 a month for up to 5 people. See Plans under More; you can cancel any time."],
-    [/brief|doctor|ask|question|visit/i, "After a report is explained you will see questions to ask your doctor. \"Doctor brief\" shares a one-page summary for the visit."],
-    [/account|sign|log ?in|password|save/i, "Open the Account tab to create a free account with your email and keep your reports."],
-    [/privacy|delete|data|safe|secure/i, "Reports are explained on this phone. Saved report text is encrypted, and you can request deletion under Legal."],
-    [/mean|result|high|low|normal|range|test|value/i, "Your result lists each test in plain words and marks what needs attention first. Your doctor is the right person to say what it means for you."],
-  ],
-  es: [
-    [/agreg|subir|informe|foto|pdf|pegar/i, "Abre la pestaña Reports, pega el texto del informe o elige un archivo, indica de quién es y toca Explain."],
-    [/plan|precio|pag|costo|cancel|suscri/i, "Gratis incluye explicar informes, el resumen para el médico y tu historial. Plus cuesta $7 al mes y Familia $12 al mes para hasta 5 personas."],
-    [/médico|medico|pregunt|cita|resumen/i, "Después de explicar un informe verás preguntas para tu médico. \"Doctor brief\" comparte un resumen de una página."],
-    [/significa|resultado|alto|bajo|normal|rango|prueba/i, "Tu resultado explica cada prueba con palabras simples y marca primero lo que necesita atención. Tu médico es quien puede decir qué significa para ti."],
-  ],
-};
-
-export function offlineHelpAnswer(question: string, language: Language): string {
-  const match = OFFLINE_ANSWERS[language].find(([pattern]) => pattern.test(question));
-  return match ? match[1] : TEXT[language].unknown;
-}
-
 // Floating help button with a chat sheet. Nothing typed here is stored.
-export function HelpChat({ baseUrl, language, reportSummary }: { baseUrl: string; language: Language; reportSummary: string }) {
+export function HelpChat({ baseUrl, language, reportSummary, analysis }: { baseUrl: string; language: Language; reportSummary: string; analysis: ReportAnalysis | null }) {
   const t = TEXT[language];
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [waiting, setWaiting] = useState(false);
   const [share, setShare] = useState(false);
+  const [showTopics, setShowTopics] = useState(false);
   const scroller = useRef<ScrollView>(null);
 
   async function ask(question: string) {
@@ -80,12 +58,18 @@ export function HelpChat({ baseUrl, language, reportSummary }: { baseUrl: string
     const next: Turn[] = [...turns, { role: "user", content: clean }];
     setTurns(next);
     setDraft("");
+    setShowTopics(false);
     if (EMERGENCY_PATTERN.test(clean)) {
       setTurns([...next, { role: "assistant", content: t.emergency }]);
       return;
     }
     setWaiting(true);
     let reply = "";
+    const builtIn = () => {
+      const answer = builtInHelpAnswer(clean, language, analysis);
+      setShowTopics(answer.showTopics);
+      return answer.reply;
+    };
     try {
       const response = await fetch(`${baseUrl}/assistant/chat`, {
         method: "POST",
@@ -98,10 +82,10 @@ export function HelpChat({ baseUrl, language, reportSummary }: { baseUrl: string
         }),
       });
       if (response.status === 429) reply = t.busy;
-      else if (!response.ok) reply = offlineHelpAnswer(clean, language);
-      else reply = String((await response.json()).reply || "") || offlineHelpAnswer(clean, language);
+      else if (!response.ok) reply = builtIn();
+      else reply = String((await response.json()).reply || "") || builtIn();
     } catch {
-      reply = offlineHelpAnswer(clean, language);
+      reply = builtIn();
     }
     setTurns([...next, { role: "assistant", content: reply }]);
     setWaiting(false);
@@ -133,7 +117,7 @@ export function HelpChat({ baseUrl, language, reportSummary }: { baseUrl: string
                 </Text>
               ))}
               {waiting ? <Text style={[styles.bubble, styles.assistant, styles.pending]}>{t.thinking}</Text> : null}
-              {!turns.length ? (
+              {!turns.length || showTopics ? (
                 <View style={styles.chips}>
                   {t.chips.map((chip) => (
                     <Pressable key={chip} style={styles.chip} onPress={() => ask(chip)} accessibilityRole="button">
