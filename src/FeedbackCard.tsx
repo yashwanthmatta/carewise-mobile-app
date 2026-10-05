@@ -174,19 +174,19 @@ export function EarlyAccessForm({ baseUrl, language }: { baseUrl: string; langua
 }
 
 const styles = StyleSheet.create({
-  box: { gap: 10, borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f4f8f6", padding: 12, marginTop: 10 },
+  box: { gap: 10, borderRadius: 8, borderWidth: 1, borderColor: "#e2dcd2", backgroundColor: "#fbf9f5", padding: 12, marginTop: 10 },
   title: { color: "#14302c", fontSize: 15, fontWeight: "800" },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   stack: { gap: 8 },
-  choice: { borderRadius: 8, borderWidth: 1, borderColor: "#cbdcd5", backgroundColor: "#ffffff", paddingVertical: 9, paddingHorizontal: 14, minHeight: 44, justifyContent: "center" },
-  choiceSelected: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
+  choice: { borderRadius: 8, borderWidth: 1, borderColor: "#e2dcd2", backgroundColor: "#ffffff", paddingVertical: 9, paddingHorizontal: 14, minHeight: 44, justifyContent: "center" },
+  choiceSelected: { backgroundColor: "#111314", borderColor: "#111314" },
   choiceText: { color: "#14302c", fontWeight: "700" },
   choiceTextSelected: { color: "#ffffff" },
-  input: { minHeight: 46, borderRadius: 8, borderWidth: 1, borderColor: "#cbdcd5", padding: 12, backgroundColor: "#fbfffd" },
+  input: { minHeight: 46, borderRadius: 8, borderWidth: 1, borderColor: "#e2dcd2", padding: 12, backgroundColor: "#fbfffd" },
   small: { color: "#3e5450", fontSize: 13 },
   consent: { flexDirection: "row", alignItems: "center", gap: 10 },
   flex: { flex: 1 },
-  button: { borderRadius: 8, backgroundColor: "#0b3b36", paddingVertical: 12, alignItems: "center", minHeight: 44, justifyContent: "center" },
+  button: { borderRadius: 999, backgroundColor: "#111314", paddingVertical: 12, alignItems: "center", minHeight: 44, justifyContent: "center" },
   buttonText: { color: "#ffffff", fontWeight: "800" },
   disabled: { opacity: 0.6 },
 });

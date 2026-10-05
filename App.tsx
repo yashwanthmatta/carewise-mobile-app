@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Linking,
@@ -91,9 +91,51 @@ function getCheckoutUrl(value: unknown) {
 // Plan codes stay stable on the server; these are the names and prices people see.
 const PLAN_LABELS = { basic: "Free", plus: "Plus $7/mo", premium: "Family $12/mo" } as const;
 
+// The four everyday tabs; the rest sit behind "More".
+const PRIMARY_SCREENS: Screen[] = ["reports", "record", "labs", "account"];
+
+// One plain next step under the score, matched to how urgent the results are.
+const NEXT_STEP = {
+  en: {
+    urgent: "Contact your doctor today. If you feel very unwell, seek emergency care.",
+    needs_review: "Ask your doctor about these results soon.",
+    attention: "Bring these results up at your next visit.",
+    routine: "Nothing urgent stands out. Keep this for your next checkup.",
+  },
+  es: {
+    urgent: "Comuníquese hoy con su médico. Si se siente muy mal, busque atención de emergencia.",
+    needs_review: "Pregunte pronto a su médico sobre estos resultados.",
+    attention: "Comente estos resultados en su próxima consulta.",
+    routine: "No se ve nada urgente. Guárdelo para su próximo chequeo.",
+  },
+} as const;
+
+const ALL_TESTS = {
+  en: (count: number, outside: number) => `${count} test${count === 1 ? "" : "s"}${outside ? ` · ${outside} outside the range` : " · all within range"}`,
+  es: (count: number, outside: number) => `${count} prueba${count === 1 ? "" : "s"}${outside ? ` · ${outside} fuera del rango` : " · todas dentro del rango"}`,
+};
+
+// Long parts of a result (every test, the plan, tips) open on demand so the answer comes first.
+function Expandable({ title, detail, children }: { title: string; detail?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={styles.expandable}>
+      <Pressable onPress={() => setOpen((value) => !value)} style={styles.expandableHeader} accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ expanded: open }}>
+        <View style={styles.flex}>
+          <Text style={styles.listTitle}>{title}</Text>
+          {detail ? <Text style={styles.smallText}>{detail}</Text> : null}
+        </View>
+        <Text style={styles.chevron}>{open ? "−" : "+"}</Text>
+      </Pressable>
+      {open ? <View style={styles.expandableBody}>{children}</View> : null}
+    </View>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("reports");
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [showMoreTabs, setShowMoreTabs] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
@@ -602,7 +644,7 @@ export default function App() {
         </View>
 
         <View style={styles.tabs}>
-          {screens.map((item) => (
+          {screens.filter((item) => showMoreTabs || PRIMARY_SCREENS.includes(item.key) || item.key === screen).map((item) => (
             <Pressable
               key={item.key}
               onPress={() => setScreen(item.key)}
@@ -614,6 +656,9 @@ export default function App() {
               <Text style={[styles.tabText, screen === item.key && styles.activeTabText]}>{item.label}</Text>
             </Pressable>
           ))}
+          <Pressable onPress={() => setShowMoreTabs((value) => !value)} style={styles.tab} accessibilityRole="button" accessibilityLabel={showMoreTabs ? "Fewer tabs" : "More tabs"} accessibilityState={{ expanded: showMoreTabs }}>
+            <Text style={styles.tabText}>{showMoreTabs ? "Less" : "More"}</Text>
+          </Pressable>
         </View>
 
         {status ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
@@ -676,24 +721,35 @@ export default function App() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Explain a report</Text>
             <Text style={styles.smallText}>Type or paste the results, or try the sample. Explained on this phone; nothing is uploaded unless you choose to save it.</Text>
-            <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name" accessibilityLabel="Report name" />
             <TextInput
               style={[styles.input, styles.textArea]}
               value={reportText}
               onChangeText={setReportText}
-              placeholder="Paste readable lab/report text"
+              placeholder="For example: Hemoglobin 11.2, TSH 6.8, fasting sugar 130, LDL 160"
               accessibilityLabel="Readable report text"
               multiline
             />
-            <TextInput style={styles.input} value={reportPerson} onChangeText={setReportPerson} placeholder="Whose report is this? Me, Mom, Dad..." accessibilityLabel="Whose report is this" />
+            <Text style={styles.listTitle}>Whose report?</Text>
             <View style={styles.buttonRow}>
-              <ActionButton label="Try sample report" onPress={useSampleReport} disabled={busy} />
-              <ActionButton label="Explain on this phone" onPress={explainReportOnDevice} disabled={busy} />
+              {["Me", "Mum", "Dad"].map((name) => {
+                const selected = (reportPerson.trim() || "Me").toLowerCase() === name.toLowerCase();
+                return (
+                  <Pressable key={name} onPress={() => setReportPerson(name === "Me" ? "" : name)} style={[styles.planPill, selected && styles.activePlanPill]} accessibilityRole="button" accessibilityLabel={`Report for ${name}`} accessibilityState={{ selected }}>
+                    <Text style={[styles.tabText, selected && styles.activeTabText]}>{name}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
+            <TextInput style={styles.input} value={["mum", "dad"].includes(reportPerson.trim().toLowerCase()) ? "" : reportPerson} onChangeText={setReportPerson} placeholder="Someone else" accessibilityLabel="Whose report is this" />
+            <Pressable onPress={explainReportOnDevice} disabled={busy} style={[styles.button, styles.bigButton, busy && styles.disabledButton]} accessibilityRole="button" accessibilityLabel="Explain on this phone" accessibilityState={{ disabled: busy }}>
+              <Text style={styles.buttonText}>Explain on this phone</Text>
+            </Pressable>
             <View style={styles.buttonRow}>
-              <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} />
-              <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={!token || busy} />
+              <ActionButton label="Try sample report" onPress={useSampleReport} disabled={busy} variant="secondary" />
+              <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} variant="secondary" />
+              {token ? <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={busy} variant="secondary" /> : null}
             </View>
+            <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name (optional)" accessibilityLabel="Report name" />
             {selectedReportFile ? (
               <View style={styles.fileBadge}>
                 <Text style={styles.listTitle}>{selectedReportFile.name}</Text>
@@ -706,10 +762,33 @@ export default function App() {
           </View>
         ) : null}
 
-        {screen === "reports" && reportView ? (
+        {screen === "reports" && reportView ? (() => {
+          const lang = reportLanguage === "es" ? "es" : "en";
+          const labText = LAB_PANEL_TEXT[lang];
+          const panel = localAnalysis?.panelResults || [];
+          const outside = panel.filter((item) => item.status !== "within" && item.status !== "unknown").length;
+          const risk = reportView.riskLevel;
+          return (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>{uiText("title", "Plain-English report summary")}</Text>
+            <Text style={styles.eyebrow}>{uiText("eyebrow", "CareWise explanation")}</Text>
+            <View style={styles.verdict}>
+              <Text style={styles.verdictScore}>
+                {localAnalysis?.noData ? "—" : localAnalysis?.scanOnly ? SCAN_TEXT[lang].scoreLabel : String(reportView.score)}
+                {localAnalysis?.noData || localAnalysis?.scanOnly ? null : <Text style={styles.verdictOutOf}> /100</Text>}
+              </Text>
+              <Text style={styles.verdictLabel}>
+                {localAnalysis?.noData
+                  ? translateReportText("No results found", reportLanguage)
+                  : translateReportText(risk === "urgent" ? "Urgent review" : risk === "needs_review" ? "Clinician review" : risk === "attention" ? "Needs attention" : "Routine follow-up", reportLanguage)}
+              </Text>
+            </View>
+            {localAnalysis && !localAnalysis.noData ? (
+              <Text style={[styles.nextStep, risk === "urgent" ? styles.nextUrgent : risk === "needs_review" ? styles.nextReview : risk === "attention" ? styles.nextAttention : styles.nextRoutine]}>
+                {NEXT_STEP[lang][risk]}
+              </Text>
+            ) : null}
             <View style={styles.buttonRow}>
+              <ActionButton label={uiText("doctorBrief", "Doctor brief")} onPress={shareDoctorBrief} />
               {(Object.keys(REPORT_LANGUAGES) as ReportLanguage[]).map((code) => (
                 <Pressable
                   key={code}
@@ -722,43 +801,38 @@ export default function App() {
                   accessibilityLabel={`Show report in ${REPORT_LANGUAGES[code]}`}
                   accessibilityState={{ selected: reportLanguage === code }}
                 >
-                  <Text style={styles.tabText}>{REPORT_LANGUAGES[code]}</Text>
+                  <Text style={[styles.tabText, reportLanguage === code && styles.activeTabText]}>{REPORT_LANGUAGES[code]}</Text>
                 </Pressable>
               ))}
             </View>
-            <Text style={styles.listTitle}>
-              {localAnalysis?.noData
-                ? translateReportText("No results found", reportLanguage)
-                : <>
-                    {localAnalysis?.scanOnly ? SCAN_TEXT[reportLanguage === "es" ? "es" : "en"].scoreLabel : `${reportView.score}/100`} ·{" "}
-                    {translateReportText(
-                      reportView.riskLevel === "urgent" ? "Urgent review" : reportView.riskLevel === "needs_review" ? "Clinician review" : reportView.riskLevel === "attention" ? "Needs attention" : "Routine follow-up",
-                      reportLanguage
-                    )}
-                  </>}
-            </Text>
             {uiText("draftNotice", "") ? <Text style={styles.smallText}>{uiText("draftNotice", "")}</Text> : null}
-            {reportView.labValues.length ? <Text style={styles.listTitle}>{uiText("detectedValues", "Detected values")}</Text> : null}
-            {reportView.labValues.map((item) => (
-              <View key={item.label} style={styles.listItem}>
-                <Text style={styles.listTitle}>{item.label}: {item.value} {item.unit}</Text>
-                <Text style={styles.smallText}>{item.flag}</Text>
+            <Text style={styles.listTitle}>{uiText("questions", "Questions to ask your doctor")}</Text>
+            {reportView.questions.map((item, index) => (
+              <View key={item} style={styles.questionRow}>
+                <Text style={styles.questionNumber}>{index + 1}</Text>
+                <Text style={[styles.bodyText, styles.flex]}>{item}</Text>
               </View>
             ))}
             <Text style={styles.listTitle}>{uiText("keyFindings", "Key findings")}</Text>
             {reportView.findings.map((item) => (
-              <Text key={`${item.label}-${item.detail}`} style={styles.bodyText}>• {item.label}: {item.level}. {item.detail}</Text>
+              <View key={`${item.label}-${item.detail}`} style={styles.listItem}>
+                <Text style={styles.findingTitle}>{item.label}</Text>
+                <Text style={styles.bodyText}>{item.level}. {item.detail}</Text>
+              </View>
             ))}
-            <Text style={styles.listTitle}>{uiText("suggestions", "Wellness suggestions")}</Text>
-            {reportView.suggestions.map((item) => (
-              <Text key={item} style={styles.bodyText}>• {item}</Text>
-            ))}
-            <Text style={styles.listTitle}>{uiText("questions", "Questions to ask your doctor")}</Text>
-            {reportView.questions.map((item, index) => (
-              <Text key={item} style={styles.bodyText}>{index + 1}. {item}</Text>
-            ))}
+            {reportView.labValues.length ? <Text style={styles.listTitle}>{uiText("detectedValues", "Detected values")}</Text> : null}
+            {reportView.labValues.length ? (
+              <View style={styles.valueGrid}>
+                {reportView.labValues.map((item) => (
+                  <View key={item.label} style={styles.valueTile}>
+                    <Text style={styles.smallText}>{item.label}</Text>
+                    <Text style={styles.valueNumber}>{item.value} <Text style={styles.smallText}>{item.unit}</Text></Text>
+                    <Text style={styles.smallText}>{item.flag}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
             {localAnalysis?.scan ? (() => {
-              const lang = reportLanguage === "es" ? "es" : "en";
               const scan = localAnalysis.scan[lang];
               const t = SCAN_TEXT[lang];
               return (
@@ -797,12 +871,11 @@ export default function App() {
                 </View>
               );
             })() : null}
-            {localAnalysis?.panelResults?.length ? (
-              <View style={styles.planBox}>
-                <Text style={styles.sectionTitle}>{LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"].title}</Text>
-                <Text style={styles.smallText}>{LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"].note}</Text>
-                {localAnalysis.panelResults.map((item) => {
-                  const t = LAB_PANEL_TEXT[reportLanguage === "es" ? "es" : "en"];
+            {panel.length ? (
+              <Expandable title={labText.title} detail={ALL_TESTS[lang](panel.length, outside)}>
+                <Text style={styles.smallText}>{labText.note}</Text>
+                {panel.map((item) => {
+                  const t = labText;
                   const info = labTestInfo(item.key);
                   const flagged = item.status !== "within" && item.status !== "unknown";
                   return (
@@ -817,11 +890,10 @@ export default function App() {
                     </View>
                   );
                 })}
-              </View>
+              </Expandable>
             ) : null}
             {personalPlan ? (
-              <View style={styles.planBox}>
-                <Text style={styles.sectionTitle}>{personalPlan.title}</Text>
+              <Expandable title={personalPlan.title}>
                 {personalPlan.sections.map((section) => (
                   <View key={section.key} style={[styles.planCard, section.key === "safety" && styles.planSafety, personalPlan.urgent && section.key === "move" && styles.planUrgent]}>
                     <Text style={styles.listTitle}>{section.title}</Text>
@@ -839,17 +911,20 @@ export default function App() {
                     })}
                   </View>
                 ))}
-              </View>
+              </Expandable>
             ) : null}
-            <View style={styles.buttonRow}>
-              <ActionButton label={uiText("doctorBrief", "Doctor brief")} onPress={shareDoctorBrief} />
-            </View>
-            {localAnalysis && !localAnalysis.noData ? <FeedbackCard key={localAnalysis.id} baseUrl={API_BASE_URL} language={reportLanguage === "es" ? "es" : "en"} /> : null}
+            <Expandable title={uiText("suggestions", "Wellness suggestions")}>
+              {reportView.suggestions.map((item) => (
+                <Text key={item} style={styles.bodyText}>• {item}</Text>
+              ))}
+            </Expandable>
+            {localAnalysis && !localAnalysis.noData ? <FeedbackCard key={localAnalysis.id} baseUrl={API_BASE_URL} language={lang} /> : null}
             <Text style={styles.smallText}>
               {uiText("safetyText", "This is not a diagnosis or treatment plan. A licensed professional should interpret your original report with your full history.")}
             </Text>
           </View>
-        ) : null}
+          );
+        })() : null}
 
         {screen === "record" ? <HealthRecordScreen extraPeople={reportPerson.trim() ? [reportPerson] : []} /> : null}
 
@@ -990,56 +1065,90 @@ export default function App() {
   );
 }
 
-function ActionButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+// One primary (black) action per screen; "secondary" buttons are outlined.
+function ActionButton({ label, onPress, disabled = false, variant = "primary" }: { label: string; onPress: () => void; disabled?: boolean; variant?: "primary" | "secondary" }) {
+  const secondary = variant === "secondary";
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={[styles.button, disabled && styles.disabledButton]}
+      style={[styles.button, secondary && styles.secondaryButton, disabled && (secondary ? styles.disabledSecondary : styles.disabledButton)]}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
     >
-      <Text style={styles.buttonText}>{label}</Text>
+      <Text style={[styles.buttonText, secondary && styles.secondaryButtonText]}>{label}</Text>
     </Pressable>
   );
 }
 
+// Same look as the website: warm paper, white rounded cards, black pill buttons.
+const INK = "#111314";
+const SOFT = "#5d605f";
+const LINE = "#e2dcd2";
+const PAPER = "#f7f4ef";
+const TEAL = "#0f766e";
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f6fbf9" },
-  container: { padding: 18, gap: 14 },
-  header: { paddingVertical: 12 },
-  brand: { color: "#053f3c", fontSize: 36, fontWeight: "900" },
-  subtitle: { color: "#60716d", fontSize: 15, fontWeight: "700" },
-  card: { gap: 10, borderRadius: 10, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#fff", padding: 16 },
-  sectionTitle: { color: "#053f3c", fontSize: 18, fontWeight: "900" },
-  bodyText: { color: "#60716d", fontSize: 14, lineHeight: 20 },
-  smallText: { color: "#60716d", fontSize: 12, fontWeight: "700" },
-  linkText: { color: "#0f766e", fontSize: 14, fontWeight: "800", paddingVertical: 8 },
-  status: { color: "#08766e", fontSize: 13, fontWeight: "800" },
-  input: { minHeight: 46, borderRadius: 8, borderWidth: 1, borderColor: "#cbdcd5", padding: 12, backgroundColor: "#fbfffd" },
-  textArea: { minHeight: 130, textAlignVertical: "top" },
+  safeArea: { flex: 1, backgroundColor: PAPER },
+  container: { padding: 16, gap: 14, paddingBottom: 40 },
+  header: { paddingTop: 10, paddingBottom: 4, gap: 4 },
+  brand: { color: INK, fontSize: 34, fontWeight: "800", letterSpacing: -1 },
+  subtitle: { color: SOFT, fontSize: 16, lineHeight: 22 },
+  card: { gap: 12, borderRadius: 24, borderWidth: 1, borderColor: LINE, backgroundColor: "#fff", padding: 18 },
+  eyebrow: { color: SOFT, fontSize: 11, fontWeight: "700", letterSpacing: 1.4, textTransform: "uppercase" },
+  sectionTitle: { color: INK, fontSize: 24, fontWeight: "800", letterSpacing: -0.6 },
+  bodyText: { color: "#3f4342", fontSize: 15, lineHeight: 22 },
+  smallText: { color: SOFT, fontSize: 13, lineHeight: 18 },
+  linkText: { color: TEAL, fontSize: 15, fontWeight: "700", paddingVertical: 8, textDecorationLine: "underline" },
+  status: { color: TEAL, fontSize: 14, fontWeight: "600", lineHeight: 20 },
+  input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: LINE, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: "#fffdf9", color: INK, fontSize: 15 },
+  textArea: { minHeight: 120, textAlignVertical: "top" },
   textAreaSmall: { minHeight: 88, textAlignVertical: "top" },
-  buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  button: { minHeight: 42, justifyContent: "center", borderRadius: 8, backgroundColor: "#08766e", paddingHorizontal: 14, paddingVertical: 8 },
-  disabledButton: { backgroundColor: "#9bb8b2" },
-  buttonText: { color: "#fff", fontWeight: "900" },
-  tabs: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  tab: { borderRadius: 999, borderWidth: 1, borderColor: "#cbdcd5", backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 8 },
-  activeTab: { borderColor: "#08766e", backgroundColor: "#e8fff8" },
-  tabText: { color: "#60716d", fontWeight: "800" },
-  activeTabText: { color: "#053f3c" },
-  planPill: { borderRadius: 999, borderWidth: 1, borderColor: "#cbdcd5", backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 10 },
-  activePlanPill: { borderColor: "#08766e", backgroundColor: "#e8fff8" },
+  buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
+  button: { minHeight: 46, justifyContent: "center", borderRadius: 999, backgroundColor: INK, paddingHorizontal: 20, paddingVertical: 10 },
+  disabledButton: { backgroundColor: "#b9b4ac" },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  secondaryButton: { backgroundColor: "#fff", borderWidth: 1, borderColor: LINE },
+  secondaryButtonText: { color: INK },
+  disabledSecondary: { opacity: 0.45 },
+  bigButton: { alignSelf: "stretch", alignItems: "center", minHeight: 52 },
+  tabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 4, borderRadius: 24, borderWidth: 1, borderColor: LINE, backgroundColor: "rgba(255,255,255,0.6)" },
+  tab: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
+  activeTab: { backgroundColor: INK },
+  tabText: { color: SOFT, fontWeight: "700", fontSize: 14 },
+  activeTabText: { color: "#fff" },
+  planPill: { minHeight: 44, justifyContent: "center", borderRadius: 999, borderWidth: 1, borderColor: LINE, backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 10 },
+  activePlanPill: { borderColor: INK, backgroundColor: INK },
   list: { gap: 8 },
-  divider: { height: 1, backgroundColor: "#dbe8e4", marginVertical: 4 },
-  fileBadge: { borderRadius: 8, borderWidth: 1, borderColor: "#b8e2db", backgroundColor: "#e8fff8", padding: 10 },
-  listItem: { borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
-  resultBox: { color: "#244944", fontSize: 12, lineHeight: 18, borderRadius: 8, borderWidth: 1, borderColor: "#dbe8e4", backgroundColor: "#f8fffc", padding: 10 },
-  listTitle: { color: "#053f3c", fontSize: 15, fontWeight: "900" },
+  divider: { height: 1, backgroundColor: LINE, marginVertical: 4 },
+  fileBadge: { borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
+  listItem: { gap: 4, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
+  resultBox: { color: "#3f4342", fontSize: 13, lineHeight: 19, borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
+  listTitle: { color: INK, fontSize: 16, fontWeight: "700", letterSpacing: -0.2 },
+  findingTitle: { color: TEAL, fontSize: 15, fontWeight: "700" },
   planBox: { gap: 10, marginTop: 6 },
-  planCard: { gap: 6, borderRadius: 12, borderWidth: 1, borderColor: "#dbe8e4", borderTopWidth: 4, borderTopColor: "#08766e", padding: 12, backgroundColor: "#fff" },
+  planCard: { gap: 6, borderRadius: 16, borderWidth: 1, borderColor: LINE, borderTopWidth: 3, borderTopColor: TEAL, padding: 12, backgroundColor: "#fff" },
   planSafety: { borderTopColor: "#c2552d", backgroundColor: "#fdf8f5" },
   planUrgent: { borderTopColor: "#b91c1c", backgroundColor: "#fdf2f2" },
-  labFlagText: { color: "#9a3b17" }
+  labFlagText: { color: "#9a3412" },
+  flex: { flex: 1 },
+  verdict: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", paddingHorizontal: 16, paddingVertical: 12 },
+  verdictScore: { color: INK, fontSize: 44, fontWeight: "800", letterSpacing: -1.5 },
+  verdictOutOf: { color: SOFT, fontSize: 15, fontWeight: "600", letterSpacing: 0 },
+  verdictLabel: { color: INK, fontSize: 15, fontWeight: "700", flexShrink: 1, textAlign: "right" },
+  nextStep: { borderRadius: 16, borderWidth: 1, padding: 14, fontSize: 16, lineHeight: 22, fontWeight: "700" },
+  nextUrgent: { backgroundColor: "#fef2f2", borderColor: "#fecaca", color: "#991b1b" },
+  nextReview: { backgroundColor: "#fff1e6", borderColor: "#fed7aa", color: "#9a3412" },
+  nextAttention: { backgroundColor: "#fefce8", borderColor: "#fde68a", color: "#854d0e" },
+  nextRoutine: { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0", color: "#065f46" },
+  questionRow: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  questionNumber: { width: 26, height: 26, borderRadius: 13, overflow: "hidden", backgroundColor: INK, color: "#fff", textAlign: "center", lineHeight: 26, fontWeight: "700", fontSize: 13 },
+  valueGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  valueTile: { flexGrow: 1, flexBasis: "45%", gap: 2, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#fff", padding: 12 },
+  valueNumber: { color: INK, fontSize: 20, fontWeight: "800", letterSpacing: -0.4 },
+  expandable: { borderRadius: 18, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", overflow: "hidden" },
+  expandableHeader: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 56 },
+  expandableBody: { gap: 10, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "#fff" },
+  chevron: { color: INK, fontSize: 22, fontWeight: "600", width: 24, textAlign: "center" }
 });
