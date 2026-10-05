@@ -40,6 +40,7 @@ import { LAB_PANEL_TEXT, labTestInfo } from "./src/labPanel";
 import { SCAN_TEXT } from "./src/scanReport";
 import { EarlyAccessForm, FeedbackCard } from "./src/FeedbackCard";
 import { trackUsage } from "./src/productSignals";
+import { HelpChat } from "./src/HelpChat";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
@@ -174,6 +175,8 @@ export default function App() {
   const [insuranceMatchResult, setInsuranceMatchResult] = useState("");
   const [planCode, setPlanCode] = useState<"basic" | "plus" | "premium">("basic");
   const [subscriptionResult, setSubscriptionResult] = useState("");
+  const [currentPlanLabel, setCurrentPlanLabel] = useState("Free");
+  const [canManageBilling, setCanManageBilling] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const api = useMemo(() => new CareWiseApiClient(API_BASE_URL, token), [token]);
@@ -567,6 +570,23 @@ export default function App() {
       );
       setInsuranceMatchResult(formatApiResult(result));
       setStatus("Insurance guidance loaded. Confirm benefits, exclusions, and costs with the insurer before enrolling.");
+    });
+  }
+
+  useEffect(() => {
+    if (screen !== "subscriptions" || !token) return;
+    api.getMySubscription()
+      .then((plan) => {
+        setCurrentPlanLabel(`${plan.plan_name}${plan.status === "past_due" ? " (payment due)" : ""}`);
+        setCanManageBilling(Boolean(plan.can_manage_billing));
+      })
+      .catch(() => undefined);
+  }, [screen, token]);
+
+  function openBillingPortal() {
+    run("Opening billing page", async () => {
+      const result = await api.openBillingPortal();
+      if (result.portal_url.startsWith("https://billing.stripe.com/")) await Linking.openURL(result.portal_url);
     });
   }
 
@@ -1003,7 +1023,8 @@ export default function App() {
         {screen === "subscriptions" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Plans</Text>
-            <Text style={styles.bodyText}>CareWise is free to start. Plus adds personal plans, reminders and trends; Family covers up to 5 people. Starting prices, to be tested with our first users.</Text>
+            <Text style={styles.bodyText}>CareWise is free to start. Plus ($7 a month) adds personal plans, reminders and trends; Family ($12 a month) covers up to 5 people. Billed monthly through Stripe; cancel any time.</Text>
+            {token ? <Text style={styles.smallText}>Your plan: {currentPlanLabel}</Text> : <Text style={styles.smallText}>Sign in on the Account tab to choose a paid plan.</Text>}
             <View style={styles.buttonRow}>
               {(["basic", "plus", "premium"] as const).map((code) => (
                 <Pressable
@@ -1023,7 +1044,8 @@ export default function App() {
             ) : (
               <ActionButton label="Start checkout" onPress={startSubscriptionCheckout} disabled={!token || busy} />
             )}
-            {subscriptionResult ? <Text style={styles.resultBox}>{subscriptionResult}</Text> : <Text style={styles.smallText}>Use test payments only until legal, privacy, and billing reviews are complete.</Text>}
+            {canManageBilling ? <ActionButton label="Manage or cancel plan" onPress={openBillingPortal} variant="secondary" disabled={busy} /> : null}
+            {subscriptionResult ? <Text style={styles.resultBox}>{subscriptionResult}</Text> : <Text style={styles.smallText}>Payments are handled by Stripe. CareWise never sees your card number.</Text>}
             <EarlyAccessForm baseUrl={API_BASE_URL} language={reportLanguage === "es" ? "es" : "en"} />
           </View>
         ) : null}
@@ -1061,6 +1083,11 @@ export default function App() {
           </View>
         ) : null}
       </ScrollView>
+      <HelpChat
+        baseUrl={API_BASE_URL}
+        language={reportLanguage === "es" ? "es" : "en"}
+        reportSummary={localAnalysis && !localAnalysis.noData ? buildDoctorBriefText(localAnalysis, reportPerson.trim() || "Me") : ""}
+      />
     </SafeAreaView>
   );
 }
@@ -1091,7 +1118,7 @@ const TEAL = "#0f766e";
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: PAPER },
-  container: { padding: 16, gap: 14, paddingBottom: 40 },
+  container: { padding: 16, gap: 14, paddingBottom: 96 },
   header: { paddingTop: 10, paddingBottom: 4, gap: 4 },
   brand: { color: INK, fontSize: 34, fontWeight: "800", letterSpacing: -1 },
   subtitle: { color: SOFT, fontSize: 16, lineHeight: 22 },
