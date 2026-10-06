@@ -324,6 +324,13 @@ export class CareWiseApiClient {
     });
   }
 
+  createDoctorShare(snapshot: Record<string, unknown>, days = 7, label = ""): Promise<{ id: string; token: string; expires_at: string }> {
+    return this.request<{ id: string; token: string; expires_at: string }>("/shares", {
+      method: "POST",
+      body: JSON.stringify({ snapshot, days, label }),
+    });
+  }
+
   getMySubscription(): Promise<SubscriptionMeOut> {
     return this.request<SubscriptionMeOut>("/subscriptions/me");
   }
