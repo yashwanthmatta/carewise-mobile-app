@@ -41,6 +41,7 @@ import { SCAN_TEXT } from "./src/scanReport";
 import { EarlyAccessForm, FeedbackCard } from "./src/FeedbackCard";
 import { trackUsage } from "./src/productSignals";
 import { HelpChat } from "./src/HelpChat";
+import { buildShareSnapshot, shareViewerLink } from "./src/doctorShare";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
@@ -649,6 +650,27 @@ export default function App() {
     }
   }
 
+  // Private read-only link for the doctor; needs an account so the link can be turned off.
+  async function shareWithDoctor() {
+    if (!localAnalysis || localAnalysis.noData) return;
+    if (!token) {
+      setStatus("Sign in on the Account tab to share with your doctor. Then explain the report again and tap Share with my doctor.");
+      return;
+    }
+    const person = reportPerson.trim() && reportPerson.trim().toLowerCase() !== "me" ? reportPerson.trim() : "Me";
+    try {
+      const share = await api.createDoctorShare(buildShareSnapshot(localAnalysis, person, await loadHealthRecord()), 7);
+      const until = new Date(share.expires_at).toLocaleDateString();
+      await Share.share({
+        title: "CareWise summary for my doctor",
+        message: `A read-only summary of my lab results from CareWise (works until ${until}): ${shareViewerLink(share.token)}`,
+      });
+      setStatus(`Doctor link made. It works until ${until}; turn it off any time on the website under Profile, Doctor links.`);
+    } catch {
+      setStatus("The doctor link could not be made. Check your connection and try again.");
+    }
+  }
+
   const reportView = localAnalysis ? translateReportAnalysis(localAnalysis, reportLanguage) : null;
   const personalPlan = localAnalysis && !localAnalysis.scanOnly && !localAnalysis.noData ? buildPersonalPlan(localAnalysis, reportLanguage === "es" ? "es" : "en", planReactions) : null;
   const reportUi = reportUiText(reportLanguage);
@@ -809,6 +831,7 @@ export default function App() {
             ) : null}
             <View style={styles.buttonRow}>
               <ActionButton label={uiText("doctorBrief", "Doctor brief")} onPress={shareDoctorBrief} />
+              <ActionButton label={reportLanguage === "es" ? "Compartir con mi médico" : "Share with my doctor"} onPress={shareWithDoctor} variant="secondary" />
               {(Object.keys(REPORT_LANGUAGES) as ReportLanguage[]).map((code) => (
                 <Pressable
                   key={code}
