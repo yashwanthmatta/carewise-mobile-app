@@ -88,7 +88,7 @@ if (easVersion.status !== 0) {
   console.log(`EAS CLI found: ${easVersion.stdout.trim() || easVersion.stderr.trim()}`);
 }
 
-console.log("CareWise EAS build preflight passed.");
+console.log("FollowThrough Health EAS build preflight passed.");
 console.log("Next commands:");
 console.log("  npm run eas:login");
 console.log("  npm run build:android:preview");

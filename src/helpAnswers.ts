@@ -3,7 +3,7 @@ import { translateReportAnalysis, type ReportAnalysis } from "./reportAnalysis";
 import { buildPersonalPlan, type PlanSection } from "./personalPlan";
 
 // Built-in help answers, used when the online helper is off or unreachable. They come
-// from CareWise's own test explanations, the person's latest result and app how-tos.
+// from FollowThrough Health's own test explanations, the person's latest result and app how-tos.
 // Keep in step with help.js on the website.
 type Language = "en" | "es";
 
@@ -41,23 +41,23 @@ const STATUS_WORDS: Record<Language, Record<string, string>> = {
 const TOPICS: Record<Language, [RegExp, string][]> = {
   en: [
     [/^(hi|hello|hey|good (morning|afternoon|evening))\b/i, "Hello! I can explain a test on your report, tell you what to do next, or help with adding a report, the doctor brief, your account and plans. What would you like to know?"],
-    [/thank|thanks|great|perfect|ok(ay)?\b|got it/i, "You're welcome. Ask me anything else about your report or CareWise."],
-    [/who are you|what are you|what can you do|^help$|how does (this|it|the app|carewise) work|what is carewise|how (do i|to) use/i, "I'm the CareWise helper. CareWise explains lab and scan reports in plain words, shows what needs attention first, gives you questions for the doctor and a doctor brief, and keeps a health record for you or a family member. Try \"What does my result mean?\" or a test name, like \"What is eGFR?\""],
+    [/thank|thanks|great|perfect|ok(ay)?\b|got it/i, "You're welcome. Ask me anything else about your report or FollowThrough Health."],
+    [/who are you|what are you|what can you do|^help$|how does (this|it|the app|carewise) work|what is carewise|how (do i|to) use/i, "I'm the FollowThrough Health helper. FollowThrough Health explains lab and scan reports in plain words, shows what needs attention first, gives you questions for the doctor and a doctor brief, and keeps a health record for you or a family member. Try \"What does my result mean?\" or a test name, like \"What is eGFR?\""],
     [/upload|photo|picture|pdf|add .*report|new report|how.*start|paste/i, "Open the Reports tab, paste the report text or pick a file, choose whose report it is, then tap Explain. It is explained on this phone."],
     [/plan|price|pay|cost|cancel|subscri|\bplus\b|family plan|stripe|card|refund|billing|free/i, "Free covers explaining reports, the doctor brief and your health record. Plus is $7 a month for personal plans, reminders and trends. Family is $12 a month for up to 5 people. See Plans under More; you can cancel any time with \"Manage or cancel plan\"."],
     [/brief|print|share with (my )?doctor|appointment|visit/i, "Under your result, tap \"Doctor brief\" to share a one-page summary of the values, what needs attention and your questions."],
     [/ask (my |the )?doctor|questions? (for|to ask)/i, "Good questions to start with: Which result matters most for me? Does anything need a repeat test, and when? Is any of this linked to how I have been feeling?"],
-    [/mom|mum|dad|father|mother|parent|family member|caregiver|someone else/i, "Type whose report it is (Me, Mom, Dad or another name) before you tap Explain. CareWise keeps each person's reports and record apart."],
+    [/mom|mum|dad|father|mother|parent|family member|caregiver|someone else/i, "Type whose report it is (Me, Mom, Dad or another name) before you tap Explain. FollowThrough Health keeps each person's reports and record apart."],
     [/record|allerg|condition|timeline/i, "Open the Record tab to keep conditions, allergies, visits and what did not suit you. It is saved on this phone."],
     [/account|sign ?up|log ?in|password|save|sync|email/i, "Open the Account tab to create a free account with your email and keep your reports."],
     [/privacy|delete|data|safe|secure|who can see/i, "Reports are explained on this phone. Saved report text is encrypted, and you can request deletion under Legal."],
-    [/\b(mri|ct|x-?ray|ultrasound|scan|mammogram|radiolog)/i, "For a scan, paste the written report from the radiologist. CareWise explains the words in it; it does not look at the images themselves."],
+    [/\b(mri|ct|x-?ray|ultrasound|scan|mammogram|radiolog)/i, "For a scan, paste the written report from the radiologist. FollowThrough Health explains the words in it; it does not look at the images themselves."],
     [/medicine|medication|drug|pill|dose|supplement|treat|cure|prescri|\b(can|should) i take\b|aspirin|ibuprofen|tylenol|acetaminophen|statin|metformin|insulin|antibiotic/i, "I can't suggest medicines, supplements or doses. Please ask your doctor or pharmacist, and write the question down so you remember it at the visit."],
   ],
   es: [
     [/^(hola|buenas|buenos días)/i, "¡Hola! Puedo explicar una prueba de tu informe, decirte qué hacer después o ayudarte con el resumen para el médico, tu cuenta y los planes."],
-    [/gracias|perfecto|vale|de acuerdo/i, "De nada. Pregúntame lo que quieras sobre tu informe o CareWise."],
-    [/quién eres|qué puedes hacer|ayuda|cómo funciona|qué es carewise/i, "Soy el asistente de CareWise. CareWise explica informes con palabras simples, muestra primero lo que necesita atención y te da preguntas para el médico. Prueba con \"¿Qué significa mi resultado?\" o el nombre de una prueba."],
+    [/gracias|perfecto|vale|de acuerdo/i, "De nada. Pregúntame lo que quieras sobre tu informe o FollowThrough Health."],
+    [/quién eres|qué puedes hacer|ayuda|cómo funciona|qué es carewise/i, "Soy el asistente de FollowThrough Health. FollowThrough Health explica informes con palabras simples, muestra primero lo que necesita atención y te da preguntas para el médico. Prueba con \"¿Qué significa mi resultado?\" o el nombre de una prueba."],
     [/subir|foto|pdf|agregar|nuevo informe|empez|pegar/i, "Abre la pestaña Reports, pega el texto del informe o elige un archivo, indica de quién es y toca Explain."],
     [/plan|precio|pag|costo|cancel|suscri|tarjeta|gratis/i, "Gratis incluye explicar informes, el resumen para el médico y tu historial. Plus cuesta $7 al mes y Familia $12 al mes para hasta 5 personas."],
     [/resumen|cita|consulta/i, "Debajo de tu resultado toca \"Doctor brief\" para compartir un resumen de una página."],
@@ -83,7 +83,7 @@ function resultAnswer(analysis: ReportAnalysis | null, es: boolean): string {
   const view = es ? translateReportAnalysis(analysis, "es") : analysis;
   const lines: string[] = [];
   lines.push(analysis.scanOnly
-    ? (es ? "Es un informe de imagen. CareWise explica las palabras del radiólogo; no mira las imágenes." : "This is a scan report. CareWise explains the radiologist's words; it does not look at the images.")
+    ? (es ? "Es un informe de imagen. FollowThrough Health explica las palabras del radiólogo; no mira las imágenes." : "This is a scan report. FollowThrough Health explains the radiologist's words; it does not look at the images.")
     : (es ? `Puntuación de salud: ${analysis.score}/100 (estimación educativa).` : `Health score: ${analysis.score}/100 (an educational estimate).`));
   const flagged = view.findings.filter((item) => !/better range|within|mejor rango|dentro/i.test(item.level)).slice(0, 3);
   if (flagged.length) lines.push((es ? "Lo que necesita atención: " : "What needs attention: ") + flagged.map((item) => `${item.label} (${item.level.toLowerCase()})`).join("; ") + ".");

@@ -14,7 +14,7 @@ async function post<T>(baseUrl: string, path: string, body: unknown): Promise<T>
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    const error = new Error(`CareWise answered ${response.status}`) as Error & { status?: number };
+    const error = new Error(`FollowThrough Health answered ${response.status}`) as Error & { status?: number };
     error.status = response.status;
     throw error;
   }

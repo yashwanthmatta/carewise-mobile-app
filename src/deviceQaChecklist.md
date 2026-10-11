@@ -1,11 +1,11 @@
-# CareWise Real Device QA Checklist
+# FollowThrough Health Real Device QA Checklist
 
 Run this on at least one iPhone and one Android device before public release.
 
 ## Install And First Launch
 
 - Install the latest preview build from EAS, TestFlight, or Android internal testing.
-- Confirm the CareWise icon and splash screen appear correctly.
+- Confirm the FollowThrough Health icon and splash screen appear correctly.
 - Confirm the app opens without a blank screen or crash.
 - Confirm the backend status message is understandable if the network is slow.
 - Turn on airplane mode and confirm account/report actions show a friendly connection message.

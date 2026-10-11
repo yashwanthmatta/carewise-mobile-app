@@ -32,7 +32,7 @@ try {
   run("Offline EAS preflight", "npm", ["run", "build:preflight"], {
     env: { CAREWISE_SKIP_BACKEND_CHECK: "1" },
   });
-  console.log("\nCareWise mobile CI check passed.");
+  console.log("\nFollowThrough Health mobile CI check passed.");
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exit(1);

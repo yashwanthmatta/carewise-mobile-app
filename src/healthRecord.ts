@@ -1,5 +1,5 @@
 // Lifetime health record. Same entry shape, rules and backup format as the
-// CareWise website, so a backup made on one opens on the other.
+// FollowThrough Health website, so a backup made on one opens on the other.
 
 export type HealthRecordType = "condition" | "medicine" | "reaction" | "habit" | "procedure";
 
@@ -137,7 +137,7 @@ export function withSampleHistory(items: HealthRecordItem[], person: string, now
 }
 
 export function serializeRecordBackup(items: HealthRecordItem[], now = new Date()): string {
-  return JSON.stringify({ app: "CareWise", kind: "health-record", version: 1, exportedAt: now.toISOString(), items }, null, 2);
+  return JSON.stringify({ app: "FollowThrough Health", kind: "health-record", version: 1, exportedAt: now.toISOString(), items }, null, 2);
 }
 
 // Merges a backup (from the phone or the website) into the record, skipping entries already present.

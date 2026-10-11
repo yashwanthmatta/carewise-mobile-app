@@ -37,7 +37,7 @@ const storeListing = readText("src/storeListingDraft.md");
 const storeSubmissionPacket = readText("src/storeSubmissionPacket.json");
 const appReviewTestPlan = readText("src/appReviewTestPlan.md");
 
-assert(app.name === "CareWise", "Expo app name must be CareWise");
+assert(app.name === "FollowThrough Health", "Expo app name must be FollowThrough Health");
 assert(app.slug === "carewise", "Expo slug must be carewise");
 assert(app.ios?.bundleIdentifier === "com.carewise.app", "iOS bundle identifier is missing");
 assert(app.android?.package === "com.carewise.app", "Android package is missing");
@@ -138,14 +138,14 @@ assert(!apiClient.includes("OPENAI_API_KEY"), "Mobile app must not include OpenA
 assert(safetyRules.toLowerCase().includes("not a diagnosis"), "Safety rules must include non-diagnostic wording");
 assert(privacyChecklist.includes("Google Play Data Safety"), "Privacy checklist must mention Google Play Data Safety");
 assert(storePrivacyAnswers.includes("Do not sell health data"), "Store privacy answers must prohibit selling health data");
-assert(storePrivacyAnswers.includes("CareWise AI is not a medical diagnosis"), "Store privacy answers must include non-diagnostic positioning");
+assert(storePrivacyAnswers.includes("FollowThrough Health is not a medical diagnosis"), "Store privacy answers must include non-diagnostic positioning");
 assert(finalLaunchStage.includes("must not claim to diagnose"), "Final launch stage must include safe positioning");
 assert(releaseChecklist.includes("Do Not Submit If"), "Release checklist must include submission blockers");
 assert(deviceQaChecklist.includes("Do not submit the app"), "Device QA checklist must include release blockers");
-assert(storeListing.includes("CareWise AI is not a medical diagnosis tool"), "Store listing must include medical disclaimer");
+assert(storeListing.includes("FollowThrough Health is not a medical diagnosis tool"), "Store listing must include medical disclaimer");
 assert(storeSubmissionPacket.includes('"screenshotChecklist"'), "Store submission packet must include screenshot checklist");
 assert(storeSubmissionPacket.includes("Do not submit before legal review"), "Store submission packet must include legal submission blockers");
 assert(appReviewTestPlan.includes("Synthetic Report Text"), "App review test plan must include synthetic report text");
 assert(appReviewTestPlan.includes("Do not commit reviewer passwords"), "App review test plan must prohibit committed reviewer passwords");
 
-console.log("CareWise mobile release check passed.");
+console.log("FollowThrough Health mobile release check passed.");

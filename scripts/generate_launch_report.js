@@ -43,7 +43,7 @@ const requiredScripts = [
   "submit:ios:production",
 ];
 
-const report = `# CareWise Mobile Launch Readiness Report
+const report = `# FollowThrough Health Mobile Launch Readiness Report
 
 Generated from the local mobile project configuration.
 
@@ -61,7 +61,7 @@ Generated from the local mobile project configuration.
 ## Automated Gates
 
 ${requiredScripts.map((script) => checkbox(Boolean(packageJson.scripts?.[script]), `\`${script}\` script exists`)).join("\n")}
-${checkbox(storeListing.includes("CareWise AI is not a medical diagnosis tool"), "Store listing includes non-diagnostic wording")}
+${checkbox(storeListing.includes("FollowThrough Health is not a medical diagnosis tool"), "Store listing includes non-diagnostic wording")}
 ${checkbox(reviewPlan.includes("This is not real patient data"), "Reviewer test plan uses synthetic data")}
 ${checkbox(releaseChecklist.includes("Do Not Submit If"), "Release checklist includes submission blockers")}
 
@@ -113,4 +113,4 @@ npm run submit:ios:production
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, report);
-console.log(`CareWise launch readiness report written to ${path.relative(root, outputPath)}.`);
+console.log(`FollowThrough Health launch readiness report written to ${path.relative(root, outputPath)}.`);

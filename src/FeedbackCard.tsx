@@ -18,10 +18,10 @@ const TEXT = {
     more: "Thank you. What would make it better? (optional)",
     placeholder: "Please leave out names and medical details.",
     send: "Send",
-    sent: "Thank you for helping us improve CareWise.",
-    offline: "Thank you. CareWise could not be reached just now, so nothing was sent.",
+    sent: "Thank you for helping us improve FollowThrough Health.",
+    offline: "Thank you. FollowThrough Health could not be reached just now, so nothing was sent.",
     earlyTitle: "Want new features first?",
-    earlyBody: "Join early access. We are building CareWise with families who look after a parent's health.",
+    earlyBody: "Join early access. We are building FollowThrough Health with families who look after a parent's health.",
   },
   es: {
     question: "¿Le resultó útil esta explicación?",
@@ -30,10 +30,10 @@ const TEXT = {
     more: "Gracias. ¿Qué la mejoraría? (opcional)",
     placeholder: "Por favor, no incluya nombres ni datos médicos.",
     send: "Enviar",
-    sent: "Gracias por ayudarnos a mejorar CareWise.",
-    offline: "Gracias. No se pudo conectar con CareWise en este momento, así que no se envió nada.",
+    sent: "Gracias por ayudarnos a mejorar FollowThrough Health.",
+    offline: "Gracias. No se pudo conectar con FollowThrough Health en este momento, así que no se envió nada.",
     earlyTitle: "¿Quiere probar las novedades primero?",
-    earlyBody: "Únase al acceso anticipado. Estamos creando CareWise con familias que cuidan la salud de un padre o una madre.",
+    earlyBody: "Únase al acceso anticipado. Estamos creando FollowThrough Health con familias que cuidan la salud de un padre o una madre.",
   },
 };
 
@@ -142,7 +142,7 @@ export function EarlyAccessForm({ baseUrl, language }: { baseUrl: string; langua
     } catch (error) {
       setMessage((error as { status?: number }).status === 429
         ? "Too many tries from this connection. Please try again in 15 minutes."
-        : "CareWise could not be reached just now. The server may be waking up; please try again in a minute.");
+        : "FollowThrough Health could not be reached just now. The server may be waking up; please try again in a minute.");
     } finally {
       setBusy(false);
     }
@@ -163,7 +163,7 @@ export function EarlyAccessForm({ baseUrl, language }: { baseUrl: string; langua
       <TextInput style={styles.input} value={note} onChangeText={setNote} onFocus={markOpened} placeholder="What is hardest about lab reports in your family? (optional)" maxLength={500} multiline accessibilityLabel="Optional note" />
       <View style={styles.consent}>
         <Switch value={consent} onValueChange={setConsent} accessibilityLabel="Agree to be emailed about early access" />
-        <Text style={[styles.small, styles.flex]}>CareWise can email me about early access. I can ask to be removed at any time.</Text>
+        <Text style={[styles.small, styles.flex]}>FollowThrough Health can email me about early access. I can ask to be removed at any time.</Text>
       </View>
       <Pressable onPress={submit} disabled={busy} style={[styles.button, busy && styles.disabled]} accessibilityRole="button" accessibilityLabel="Join early access" accessibilityState={{ disabled: busy }}>
         <Text style={styles.buttonText}>Join early access</Text>

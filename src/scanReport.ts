@@ -149,7 +149,7 @@ export function explainScanReport(text: string, language: ScanLanguage = "en"): 
 export const SCAN_TEXT = {
   en: {
     title: "Your scan report explained",
-    notice: "CareWise explains the words in the radiologist's report. It does not look at the images, and it does not change what the radiologist concluded.",
+    notice: "FollowThrough Health explains the words in the radiologist's report. It does not look at the images, and it does not change what the radiologist concluded.",
     impression: "The radiologist's summary (Impression)",
     noImpression: "No 'Impression' section was found. Read the whole report with your doctor.",
     terms: "Words in your report",
@@ -159,7 +159,7 @@ export const SCAN_TEXT = {
     scoreLabel: "Scan",
     finding: "Imaging report",
     findingLevel: "Explained below",
-    findingDetail: (modality: string) => `This looks like a${/^[AEIOU]/.test(modality) ? "n" : ""} ${modality || "imaging"} report. CareWise explains the radiologist's words; it does not read the images.`,
+    findingDetail: (modality: string) => `This looks like a${/^[AEIOU]/.test(modality) ? "n" : ""} ${modality || "imaging"} report. FollowThrough Health explains the radiologist's words; it does not read the images.`,
     questions: [
       "What does the Impression mean for me in everyday terms?",
       "Does anything in this report need a follow-up scan or another test, and when?",
@@ -168,7 +168,7 @@ export const SCAN_TEXT = {
   },
   es: {
     title: "Su informe de imagen explicado",
-    notice: "CareWise explica las palabras del informe del radiólogo. No mira las imágenes ni cambia lo que concluyó el radiólogo.",
+    notice: "FollowThrough Health explica las palabras del informe del radiólogo. No mira las imágenes ni cambia lo que concluyó el radiólogo.",
     impression: "El resumen del radiólogo (Impresión)",
     noImpression: "No se encontró la sección 'Impresión'. Revise el informe completo con su médico.",
     terms: "Palabras de su informe",
@@ -178,7 +178,7 @@ export const SCAN_TEXT = {
     scoreLabel: "Imagen",
     finding: "Informe de imagen",
     findingLevel: "Explicado abajo",
-    findingDetail: (modality: string) => `Parece un informe de ${modality || "imagen"}. CareWise explica las palabras del radiólogo; no lee las imágenes.`,
+    findingDetail: (modality: string) => `Parece un informe de ${modality || "imagen"}. FollowThrough Health explica las palabras del radiólogo; no lee las imágenes.`,
     questions: [
       "¿Qué significa la Impresión para mí en palabras sencillas?",
       "¿Algo de este informe necesita otro estudio o prueba de control, y cuándo?",

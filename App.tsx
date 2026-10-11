@@ -166,7 +166,7 @@ export default function App() {
   const [labFlag, setLabFlag] = useState("not_sure");
   const [labNotes, setLabNotes] = useState("");
   const [privacySummary, setPrivacySummary] = useState<PrivacyExportSummaryOut | null>(null);
-  const [deletionReason, setDeletionReason] = useState("Please delete my CareWise account data.");
+  const [deletionReason, setDeletionReason] = useState("Please delete my FollowThrough Health account data.");
   const [dietStyle, setDietStyle] = useState("balanced");
   const [careGoals, setCareGoals] = useState("Understand my report, improve daily habits, prepare doctor questions");
   const [carePlanResult, setCarePlanResult] = useState("");
@@ -501,7 +501,7 @@ export default function App() {
         unit: labUnit.trim(),
         observed_on: new Date().toISOString().slice(0, 10),
         flag: labFlag,
-        notes: labNotes.trim() || "Saved from CareWise mobile. Verify against the original report.",
+        notes: labNotes.trim() || "Saved from FollowThrough Health mobile. Verify against the original report.",
         source: "mobile"
       });
       setLabTrends((items) => [trend, ...items.filter((item) => item.id !== trend.id)].slice(0, 50));
@@ -541,7 +541,7 @@ export default function App() {
     }
     Alert.alert(
       "Request data deletion?",
-      "CareWise will record a deletion request for your account. This does not replace emergency, medical, or billing support.",
+      "FollowThrough Health will record a deletion request for your account. This does not replace emergency, medical, or billing support.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -632,7 +632,7 @@ export default function App() {
       setSubscriptionResult(formatApiResult(result));
       if (checkoutUrl) {
         await Linking.openURL(checkoutUrl);
-        setStatus("Checkout opened. Payment processing is handled outside CareWise by the configured provider.");
+        setStatus("Checkout opened. Payment processing is handled outside FollowThrough Health by the configured provider.");
         return;
       }
       setStatus("Plan request completed. Checkout is not configured yet for this environment.");
@@ -678,7 +678,7 @@ export default function App() {
     try {
       const history = buildHistoryBriefText(await loadHealthRecord(), person);
       const brief = buildDoctorBriefText(localAnalysis, person);
-      await Share.share({ title: "CareWise doctor brief", message: history ? `${brief}\n\n${history}` : brief });
+      await Share.share({ title: "FollowThrough Health doctor brief", message: history ? `${brief}\n\n${history}` : brief });
     } catch {
       setStatus("Could not open the share sheet.");
     }
@@ -696,8 +696,8 @@ export default function App() {
       const share = await api.createDoctorShare(buildShareSnapshot(localAnalysis, person, await loadHealthRecord()), 7);
       const until = new Date(share.expires_at).toLocaleDateString();
       await Share.share({
-        title: "CareWise summary for my doctor",
-        message: `A read-only summary of my lab results from CareWise (works until ${until}): ${shareViewerLink(share.token)}`,
+        title: "FollowThrough Health summary for my doctor",
+        message: `A read-only summary of my lab results from FollowThrough Health (works until ${until}): ${shareViewerLink(share.token)}`,
       });
       setStatus(`Doctor link made. It works until ${until}; turn it off any time on the website under Profile, Doctor links.`);
     } catch {
@@ -715,7 +715,7 @@ export default function App() {
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.brand}>CareWise</Text>
+          <Text style={styles.brand}>FollowThrough Health</Text>
           <Text style={styles.subtitle}>Understand your health reports in simple English.</Text>
         </View>
 
@@ -759,7 +759,7 @@ export default function App() {
                   </View>
                 ) : null}
                 <View style={styles.list}>
-                  <Text style={styles.listTitle}>Sync with CareWise</Text>
+                  <Text style={styles.listTitle}>Sync with FollowThrough Health</Text>
                   <Text style={styles.smallText}>Record consent and create your profile before saving reports and labs to the cloud.</Text>
                   <View style={styles.buttonRow}>
                     <ActionButton label="Record consent" onPress={recordConsent} disabled={!token || busy} />
@@ -853,7 +853,7 @@ export default function App() {
           const risk = reportView.riskLevel;
           return (
           <View style={styles.card}>
-            <Text style={styles.eyebrow}>{uiText("eyebrow", "CareWise explanation")}</Text>
+            <Text style={styles.eyebrow}>{uiText("eyebrow", "FollowThrough Health explanation")}</Text>
             <View style={styles.verdict}>
               <Text style={styles.verdictScore}>
                 {localAnalysis?.noData ? "—" : localAnalysis?.scanOnly ? SCAN_TEXT[lang].scoreLabel : String(reportView.score)}
@@ -1016,7 +1016,7 @@ export default function App() {
         {screen === "labs" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Lab Trends</Text>
-            <Text style={styles.bodyText}>Save key values for visit preparation. CareWise does not diagnose; a licensed clinician should interpret your original report and reference range.</Text>
+            <Text style={styles.bodyText}>Save key values for visit preparation. FollowThrough Health does not diagnose; a licensed clinician should interpret your original report and reference range.</Text>
             <TextInput style={styles.input} value={labTestName} onChangeText={setLabTestName} placeholder="Test name, example LDL cholesterol" accessibilityLabel="Lab test name" />
             <TextInput style={styles.input} value={labValue} onChangeText={setLabValue} placeholder="Value, example 142" accessibilityLabel="Lab value" keyboardType="decimal-pad" />
             <TextInput style={styles.input} value={labUnit} onChangeText={setLabUnit} placeholder="Unit, example mg/dL" accessibilityLabel="Lab unit" />
@@ -1067,7 +1067,7 @@ export default function App() {
         {screen === "doctors" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Doctor Search</Text>
-            <Text style={styles.bodyText}>Search by location and specialty. CareWise can suggest what type of clinician to discuss findings with, but provider details must be verified directly.</Text>
+            <Text style={styles.bodyText}>Search by location and specialty. FollowThrough Health can suggest what type of clinician to discuss findings with, but provider details must be verified directly.</Text>
             <TextInput style={styles.input} value={doctorLocation} onChangeText={setDoctorLocation} placeholder="Location, example Austin, TX" accessibilityLabel="Doctor search location" />
             <TextInput style={styles.input} value={doctorSpecialty} onChangeText={setDoctorSpecialty} placeholder="Specialty, example cardiology" accessibilityLabel="Doctor search specialty" />
             <ActionButton label="Search doctors" onPress={searchDoctorList} disabled={!token || busy} />
@@ -1077,7 +1077,7 @@ export default function App() {
         {screen === "insurance" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Insurance Guidance</Text>
-            <Text style={styles.bodyText}>Compare educational coverage fit. CareWise does not guarantee eligibility, coverage, claim approval, or exact out-of-pocket costs.</Text>
+            <Text style={styles.bodyText}>Compare educational coverage fit. FollowThrough Health does not guarantee eligibility, coverage, claim approval, or exact out-of-pocket costs.</Text>
             <TextInput style={styles.input} value={insuranceRegion} onChangeText={setInsuranceRegion} placeholder="Region, example US or Texas" accessibilityLabel="Insurance region" />
             <TextInput style={styles.input} value={insuranceConditions} onChangeText={setInsuranceConditions} placeholder="Health context, example high LDL" accessibilityLabel="Insurance health context" />
             <TextInput style={styles.input} value={insuranceBudget} onChangeText={setInsuranceBudget} placeholder="Budget level: low, medium, high" accessibilityLabel="Insurance budget level" autoCapitalize="none" />
@@ -1088,7 +1088,7 @@ export default function App() {
         {screen === "subscriptions" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Plans</Text>
-            <Text style={styles.bodyText}>CareWise is free to start. Plus ($7 a month) adds personal plans, reminders and trends; Family ($12 a month) covers up to 5 people. Billed monthly through Stripe; cancel any time.</Text>
+            <Text style={styles.bodyText}>FollowThrough Health is free to start. Plus ($7 a month) adds personal plans, reminders and trends; Family ($12 a month) covers up to 5 people. Billed monthly through Stripe; cancel any time.</Text>
             {token ? <Text style={styles.smallText}>Your plan: {currentPlanLabel}</Text> : <Text style={styles.smallText}>Sign in on the Account tab to choose a paid plan.</Text>}
             <View style={styles.buttonRow}>
               {(["basic", "plus", "premium"] as const).map((code) => (
@@ -1110,14 +1110,14 @@ export default function App() {
               <ActionButton label="Start checkout" onPress={startSubscriptionCheckout} disabled={!token || busy} />
             )}
             {canManageBilling ? <ActionButton label="Manage or cancel plan" onPress={openBillingPortal} variant="secondary" disabled={busy} /> : null}
-            {subscriptionResult ? <Text style={styles.resultBox}>{subscriptionResult}</Text> : <Text style={styles.smallText}>Payments are handled by Stripe. CareWise never sees your card number.</Text>}
+            {subscriptionResult ? <Text style={styles.resultBox}>{subscriptionResult}</Text> : <Text style={styles.smallText}>Payments are handled by Stripe. FollowThrough Health never sees your card number.</Text>}
             <EarlyAccessForm baseUrl={API_BASE_URL} language={reportLanguage === "es" ? "es" : "en"} />
           </View>
         ) : null}
         {screen === "legal" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Legal</Text>
-            <Text style={styles.bodyText}>Review policies, check what CareWise has stored for your account, or request deletion. CareWise AI is not a medical diagnosis tool.</Text>
+            <Text style={styles.bodyText}>Review policies, check what FollowThrough Health has stored for your account, or request deletion. FollowThrough Health is not a medical diagnosis tool.</Text>
             <ActionButton label="Privacy Policy" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/privacy.html")} />
             <ActionButton label="Terms" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/terms.html")} />
             <ActionButton label="Medical Disclaimer" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/disclaimer.html")} />
