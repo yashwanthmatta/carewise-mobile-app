@@ -1,10 +1,10 @@
-# CareWise Store Privacy Answers Draft
+# FollowThrough Health Store Privacy Answers Draft
 
 This draft is for Apple App Privacy and Google Play Data Safety preparation. Review it with legal counsel and update it to match the final production data flows before submission.
 
 ## App Purpose
 
-CareWise AI helps users upload health reports, understand them in simple language, save lab trend notes, and prepare questions for licensed healthcare professionals. CareWise AI is not a medical diagnosis, prescription, cure, emergency, or insurance-coverage guarantee tool.
+FollowThrough Health helps users upload health reports, understand them in simple language, save lab trend notes, and prepare questions for licensed healthcare professionals. FollowThrough Health is not a medical diagnosis, prescription, cure, emergency, or insurance-coverage guarantee tool.
 
 ## Data Collected
 

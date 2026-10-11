@@ -1,6 +1,6 @@
 import { SCAN_TEXT, explainScanReport, type ScanExplanation } from "./scanReport";
 import { LAB_TEST_NAMES_ES, normalizeReportText, readLabPanel, type LabPanelResult } from "./labPanel";
-// On-device report explanation, shared with the CareWise web app.
+// On-device report explanation, shared with the FollowThrough Health web app.
 // Generated from carewise-frontend/script.js (analyzeReportTextLocally and the
 // Spanish report translations); keep the two in sync when either changes.
 
@@ -107,9 +107,9 @@ const emergencyTerms: string[] = [
 const REPORT_TRANSLATIONS: Record<string, Translation> = {
   es: {
     ui: {
-      eyebrow: "Explicación de CareWise",
+      eyebrow: "Explicación de FollowThrough Health",
       title: "Resumen del informe en lenguaje sencillo",
-      found: (count) => `CareWise encontró ${count} punto${count === 1 ? "" : "s"} para comentar en el texto del informe.`,
+      found: (count) => `FollowThrough Health encontró ${count} punto${count === 1 ? "" : "s"} para comentar en el texto del informe.`,
       detectedValues: "Valores detectados",
       keyFindings: "Hallazgos principales",
       suggestions: "Sugerencias de bienestar",
@@ -156,8 +156,8 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Urgent review": "Revisión urgente",
       "Routine follow-up": "Seguimiento de rutina",
       "The report text includes symptoms that should not wait for routine AI guidance.": "El texto del informe incluye síntomas que no deben esperar a una orientación de rutina.",
-      "Vitamin D appears in the report text, but CareWise could not confidently read the value.": "La vitamina D aparece en el informe, pero CareWise no pudo leer el valor con seguridad.",
-      "CareWise needs typed or pasted lab values to explain specific results.": "CareWise necesita los valores del laboratorio escritos o pegados para explicar resultados específicos.",
+      "Vitamin D appears in the report text, but FollowThrough Health could not confidently read the value.": "La vitamina D aparece en el informe, pero FollowThrough Health no pudo leer el valor con seguridad.",
+      "FollowThrough Health needs typed or pasted lab values to explain specific results.": "FollowThrough Health necesita los valores del laboratorio escritos o pegados para explicar resultados específicos.",
       "If these symptoms are happening now, seek emergency care or call local emergency services.": "Si estos síntomas están ocurriendo ahora, busque atención de emergencia o llame a los servicios de emergencia locales.",
       "Discuss heart-risk context, diet pattern, exercise, family history, and follow-up timing with a clinician.": "Hable con un profesional de salud sobre su riesgo cardíaco, su alimentación, el ejercicio, sus antecedentes familiares y cuándo hacer seguimiento.",
       "Ask whether fasting status, alcohol, refined carbs, medicines, or thyroid/metabolic factors could affect triglycerides.": "Pregunte si el ayuno, el alcohol, los carbohidratos refinados, los medicamentos o factores tiroideos o metabólicos podrían afectar sus triglicéridos.",
@@ -219,11 +219,11 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       [/^(.+); general guide (.+)\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; guía general $2. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
       [/^(.+); lab range not printed\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; rango del laboratorio no impreso. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
       [/^(.+); lab range (.+)\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; rango del laboratorio $2. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
-      [/^CareWise read (\d+) results but found no range to compare one of them with\. Ask your doctor what range applies to you\.$/, "CareWise leyó $1 resultados, pero no encontró un rango para comparar uno de ellos. Pregunte a su médico qué rango le corresponde."],
-      [/^CareWise read (\d+) results but found no range to compare (\d+) of them with\. Ask your doctor what range applies to you\.$/, "CareWise leyó $1 resultados, pero no encontró un rango para comparar $2 de ellos. Pregunte a su médico qué rango le corresponde."],
+      [/^FollowThrough Health read (\d+) results but found no range to compare one of them with\. Ask your doctor what range applies to you\.$/, "FollowThrough Health leyó $1 resultados, pero no encontró un rango para comparar uno de ellos. Pregunte a su médico qué rango le corresponde."],
+      [/^FollowThrough Health read (\d+) results but found no range to compare (\d+) of them with\. Ask your doctor what range applies to you\.$/, "FollowThrough Health leyó $1 resultados, pero no encontró un rango para comparar $2 de ellos. Pregunte a su médico qué rango le corresponde."],
       [/^(.+); lab range (.+)\.$/, "$1; rango del laboratorio $2."],
       [/^All (\d+) tests read from your report are within the lab's ranges\.$/, "Las $1 pruebas leídas de su informe están dentro de los rangos del laboratorio."],
-      [/^This looks like an? (.+) report\. CareWise explains the radiologist's words; it does not read the images\.$/, "Parece un informe de imagen ($1). CareWise explica las palabras del radiólogo; no lee las imágenes."],
+      [/^This looks like an? (.+) report\. FollowThrough Health explains the radiologist's words; it does not read the images\.$/, "Parece un informe de imagen ($1). FollowThrough Health explica las palabras del radiólogo; no lee las imágenes."],
     ],
   },
 };
@@ -489,7 +489,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
       findings.push({ label: "Vitamin D", level: "No obvious issue in pasted text", detail: `Vitamin D appears around ${vitaminD}.` });
     }
   } else if (lower.includes("vitamin d")) {
-    findings.push({ label: "Vitamin D", level: "Mentioned", detail: "Vitamin D appears in the report text, but CareWise could not confidently read the value." });
+    findings.push({ label: "Vitamin D", level: "Mentioned", detail: "Vitamin D appears in the report text, but FollowThrough Health could not confidently read the value." });
   }
 
   // Any other lab rows, compared with the range and flags the lab printed.
@@ -561,7 +561,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   if (panelResults.length && !findings.length) {
     if (unchecked.length) {
       score = Math.min(score, 84);
-      findings.push({ label: "Other tests", level: "No range to compare", detail: `CareWise read ${panelResults.length} results but found no range to compare ${unchecked.length === 1 ? "one of them" : `${unchecked.length} of them`} with. Ask your doctor what range applies to you.` });
+      findings.push({ label: "Other tests", level: "No range to compare", detail: `FollowThrough Health read ${panelResults.length} results but found no range to compare ${unchecked.length === 1 ? "one of them" : `${unchecked.length} of them`} with. Ask your doctor what range applies to you.` });
     } else {
       findings.push({ label: "Other tests", level: "Within the lab's range", detail: `All ${panelResults.length} tests read from your report are within the lab's ranges.` });
     }
@@ -572,7 +572,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     findings.push({
       label: "Readable values",
       level: "Not enough structured data",
-      detail: "CareWise needs typed or pasted lab values to explain specific results.",
+      detail: "FollowThrough Health needs typed or pasted lab values to explain specific results.",
     });
     suggestions.push("Paste key lab rows, values, units, and reference flags from the report.");
     score = 72;
@@ -642,7 +642,7 @@ export function reportUiText(language: ReportLanguage): Record<string, string | 
 }
 
 export const SAMPLE_REPORT_TEXT = [
-  "Sample lab text for CareWise demo:",
+  "Sample lab text for FollowThrough Health demo:",
   "Total cholesterol 226 mg/dL.",
   "LDL cholesterol 148 mg/dL.",
   "HDL cholesterol 44 mg/dL.",
@@ -659,8 +659,8 @@ export function buildDoctorBriefText(analysis: ReportAnalysis, person = "Me"): s
     person === "Me" ? "Patient lab summary for clinician review" : `Lab summary for clinician review: ${person}`,
     new Date().toLocaleDateString(),
     person === "Me"
-      ? "Prepared by the patient with CareWise AI from their own report text."
-      : `Prepared by a family caregiver for ${person} with CareWise AI from the report text.`,
+      ? "Prepared by the patient with FollowThrough Health from their own report text."
+      : `Prepared by a family caregiver for ${person} with FollowThrough Health from the report text.`,
     ...(analysis.scanOnly || analysis.noData ? [] : [`Health score ${analysis.score}/100 (educational estimate).`]),
     "",
     ...(analysis.labValues.length ? ["Values detected in the report:", ...analysis.labValues.map((item) => `- ${item.label}: ${item.value} ${item.unit} (${item.flag})`), ""] : []),

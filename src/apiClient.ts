@@ -197,9 +197,9 @@ export class CareWiseApiClient {
       });
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw new Error("CareWise is taking too long to respond. Check your connection and try again.");
+        throw new Error("FollowThrough Health is taking too long to respond. Check your connection and try again.");
       }
-      throw new Error("CareWise could not connect. Check your internet connection and try again.");
+      throw new Error("FollowThrough Health could not connect. Check your internet connection and try again.");
     } finally {
       clearTimeout(timeout);
     }
@@ -212,9 +212,9 @@ export class CareWiseApiClient {
         throw new Error("That file is too large. Try a smaller report or paste readable text.");
       }
       if (response.status >= 500) {
-        throw new Error("CareWise is temporarily unavailable. Please try again soon.");
+        throw new Error("FollowThrough Health is temporarily unavailable. Please try again soon.");
       }
-      throw new Error(`CareWise could not complete this request. Status ${response.status}.`);
+      throw new Error(`FollowThrough Health could not complete this request. Status ${response.status}.`);
     }
 
     return response.json() as Promise<T>;

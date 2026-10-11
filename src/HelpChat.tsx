@@ -9,9 +9,9 @@ type Language = "en" | "es";
 const TEXT = {
   en: {
     open: "Need help?",
-    title: "CareWise helper",
-    sub: "Ask about your report or how to use CareWise.",
-    hello: "Hi, I'm the CareWise helper. Ask me what a test on your report means, how to use the app, or about plans.",
+    title: "FollowThrough Health helper",
+    sub: "Ask about your report or how to use FollowThrough Health.",
+    hello: "Hi, I'm the FollowThrough Health helper. Ask me what a test on your report means, how to use the app, or about plans.",
     placeholder: "Type a question",
     send: "Send",
     close: "Close",
@@ -24,9 +24,9 @@ const TEXT = {
   },
   es: {
     open: "¿Ayuda?",
-    title: "Asistente de CareWise",
-    sub: "Pregunta sobre tu informe o cómo usar CareWise.",
-    hello: "Hola, soy el asistente de CareWise. Pregúntame qué significa una prueba de tu informe, cómo usar la app o sobre los planes.",
+    title: "Asistente de FollowThrough Health",
+    sub: "Pregunta sobre tu informe o cómo usar FollowThrough Health.",
+    hello: "Hola, soy el asistente de FollowThrough Health. Pregúntame qué significa una prueba de tu informe, cómo usar la app o sobre los planes.",
     placeholder: "Escribe una pregunta",
     send: "Enviar",
     close: "Cerrar",
@@ -93,7 +93,7 @@ export function HelpChat({ baseUrl, language, reportSummary, analysis }: { baseU
 
   return (
     <>
-      <Pressable style={styles.launcher} onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel="Open CareWise help">
+      <Pressable style={styles.launcher} onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel="Open FollowThrough Health help">
         <Text style={styles.launcherMark}>?</Text>
         <Text style={styles.launcherText}>{t.open}</Text>
       </Pressable>

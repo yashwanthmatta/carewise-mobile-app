@@ -1,8 +1,8 @@
-# CareWise AI Store Listing Draft
+# FollowThrough Health Store Listing Draft
 
 ## App Name
 
-CareWise AI
+FollowThrough Health
 
 ## Subtitle
 
@@ -14,9 +14,9 @@ Upload a health report, review simple explanations, save lab trends, and prepare
 
 ## Full Description
 
-CareWise AI helps you make sense of health reports without replacing professional care. Upload a PDF, image, or text report and CareWise organizes key information into simple language, wellness suggestions, lab trend notes, and questions to discuss with a licensed clinician.
+FollowThrough Health helps you make sense of health reports without replacing professional care. Upload a PDF, image, or text report and FollowThrough Health organizes key information into simple language, wellness suggestions, lab trend notes, and questions to discuss with a licensed clinician.
 
-CareWise can help with:
+FollowThrough Health can help with:
 
 - Uploading health reports from your phone.
 - Simple-language report summaries.
@@ -24,7 +24,7 @@ CareWise can help with:
 - Saved lab trends for future visits.
 - Consent, privacy, and data deletion controls.
 
-CareWise AI is not a medical diagnosis tool. It does not prescribe medication, provide emergency care, or replace a licensed doctor, pharmacist, dietitian, or other healthcare professional. For urgent symptoms, call emergency services or seek immediate medical care.
+FollowThrough Health is not a medical diagnosis tool. It does not prescribe medication, provide emergency care, or replace a licensed doctor, pharmacist, dietitian, or other healthcare professional. For urgent symptoms, call emergency services or seek immediate medical care.
 
 ## Keywords
 

@@ -41,7 +41,7 @@ async function main() {
   assert(features.report_uploads === true, "/features must enable report uploads.");
   assert(features.durable_storage === true, "/features must report durable storage.");
 
-  console.log(`CareWise backend connectivity check passed for ${apiBaseUrl}.`);
+  console.log(`FollowThrough Health backend connectivity check passed for ${apiBaseUrl}.`);
 }
 
 main().catch((error) => {

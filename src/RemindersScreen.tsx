@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import type { CareWiseApiClient, ReminderOut } from "./apiClient";
 
-// Medicine reminders, the same ones as on the website (saved to the account). CareWise
+// Medicine reminders, the same ones as on the website (saved to the account). FollowThrough Health
 // can phone the person at each time; the call never says what the medicine is.
 
 const DAYS: [string, string][] = [["mon", "Mon"], ["tue", "Tue"], ["wed", "Wed"], ["thu", "Thu"], ["fri", "Fri"], ["sat", "Sat"], ["sun", "Sun"]];
@@ -102,7 +102,7 @@ export default function RemindersScreen({ api, signedIn }: { api: CareWiseApiCli
       setLabel("");
       setPhone("");
       setConsent(false);
-      setStatus(call ? `Reminder saved. CareWise will first call ${person.trim() || "them"} to ask them to press 1 and agree.` : "Reminder saved.");
+      setStatus(call ? `Reminder saved. FollowThrough Health will first call ${person.trim() || "them"} to ask them to press 1 and agree.` : "Reminder saved.");
       await load();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "The reminder could not be saved.");
@@ -140,7 +140,7 @@ export default function RemindersScreen({ api, signedIn }: { api: CareWiseApiCli
     <View style={styles.card}>
       <Text style={styles.eyebrow}>Reminders</Text>
       <Text style={styles.title}>Medicine reminders</Text>
-      <Text style={styles.body}>Set medicine times for yourself or a parent. CareWise can phone them at each time and ask them to press 1 once it's taken, and email you if a reminder isn't confirmed.</Text>
+      <Text style={styles.body}>Set medicine times for yourself or a parent. FollowThrough Health can phone them at each time and ask them to press 1 once it's taken, and email you if a reminder isn't confirmed.</Text>
       {!signedIn ? (
         <Text style={styles.note}>Sign in on the Account tab to set reminders. They are saved to your account so calls go out even when the app is closed.</Text>
       ) : (
@@ -150,7 +150,7 @@ export default function RemindersScreen({ api, signedIn }: { api: CareWiseApiCli
             <View style={styles.form}>
               <TextInput style={styles.input} value={person} onChangeText={setPerson} maxLength={40} placeholder="Who is it for? Me, Mom, Dad" accessibilityLabel="Who is it for" />
               <TextInput style={styles.input} value={label} onChangeText={setLabel} maxLength={60} placeholder="Reminder name, e.g. Morning tablets" accessibilityLabel="Reminder name" />
-              <Text style={styles.small}>Shown only in CareWise. The phone call never says what the medicine is.</Text>
+              <Text style={styles.small}>Shown only in FollowThrough Health. The phone call never says what the medicine is.</Text>
               <TextInput style={styles.input} value={times} onChangeText={setTimes} maxLength={30} placeholder="Times, e.g. 08:00, 20:00" accessibilityLabel="Reminder times" keyboardType="numbers-and-punctuation" />
               <View style={styles.row}>
                 {DAYS.map(([value, name]) => {

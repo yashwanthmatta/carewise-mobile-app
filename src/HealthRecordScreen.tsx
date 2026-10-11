@@ -42,7 +42,7 @@ export default function HealthRecordScreen({ extraPeople = [] }: { extraPeople?:
   const [end, setEnd] = useState("");
   const [ongoing, setOngoing] = useState(true);
   const [notes, setNotes] = useState("");
-  const [status, setStatus] = useState("CareWise keeps what you enter. It does not check medicine interactions or give medical advice.");
+  const [status, setStatus] = useState("FollowThrough Health keeps what you enter. It does not check medicine interactions or give medical advice.");
 
   useEffect(() => {
     loadHealthRecord().then((stored) => {
@@ -87,7 +87,7 @@ export default function HealthRecordScreen({ extraPeople = [] }: { extraPeople?:
 
   async function shareBackup() {
     try {
-      await Share.share({ title: "CareWise health record backup", message: serializeRecordBackup(items) });
+      await Share.share({ title: "FollowThrough Health health record backup", message: serializeRecordBackup(items) });
       setStatus("Backup shared. Keep it somewhere safe; it contains your health history.");
     } catch {
       setStatus("Could not open the share sheet.");
@@ -101,7 +101,7 @@ export default function HealthRecordScreen({ extraPeople = [] }: { extraPeople?:
       const text = await (await fetch(picked.assets[0].uri)).text();
       const merged = mergeRecordBackup(items, text);
       if (!merged) {
-        setStatus("That file is not a CareWise health record backup.");
+        setStatus("That file is not a FollowThrough Health health record backup.");
         return;
       }
       await persist(merged.items);
@@ -210,7 +210,7 @@ export default function HealthRecordScreen({ extraPeople = [] }: { extraPeople?:
         <Button label="Share backup" onPress={shareBackup} disabled={!items.length} secondary />
         <Button label="Restore backup" onPress={restoreBackup} disabled={!loaded} secondary />
       </View>
-      <Text style={styles.small}>Backups work between this app and the CareWise website.</Text>
+      <Text style={styles.small}>Backups work between this app and the FollowThrough Health website.</Text>
     </View>
   );
 }

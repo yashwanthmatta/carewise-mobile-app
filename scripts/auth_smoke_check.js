@@ -94,7 +94,7 @@ async function main() {
   });
   assert(cleanup.status === "deleted", "Smoke account cleanup must delete the temporary account.");
 
-  console.log(`CareWise auth smoke check passed and cleaned up ${email} for ${apiBaseUrl}.`);
+  console.log(`FollowThrough Health auth smoke check passed and cleaned up ${email} for ${apiBaseUrl}.`);
 }
 
 main().catch((error) => {

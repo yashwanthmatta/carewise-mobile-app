@@ -1,4 +1,4 @@
-# CareWise App Review Test Plan
+# FollowThrough Health App Review Test Plan
 
 Use this for Apple App Review, Google Play review, TestFlight, and Android internal testing.
 
@@ -12,7 +12,7 @@ Use this for Apple App Review, Google Play review, TestFlight, and Android inter
 
 ## Safe Test Scenario
 
-1. Open CareWise AI.
+1. Open FollowThrough Health.
 2. Sign up with a reviewer test email.
 3. Record consent.
 4. Sync the patient profile.
@@ -42,4 +42,4 @@ No chest pain, no shortness of breath, no emergency symptoms reported.
 
 ## Reviewer Notes Template
 
-CareWise AI is an educational health-report explanation app. It is not a medical diagnosis tool and does not provide emergency care. Reviewers may create a fresh account in the app using synthetic data, or use the temporary reviewer account entered in the store-review notes. Please do not upload real protected health information during review.
+FollowThrough Health is an educational health-report explanation app. It is not a medical diagnosis tool and does not provide emergency care. Reviewers may create a fresh account in the app using synthetic data, or use the temporary reviewer account entered in the store-review notes. Please do not upload real protected health information during review.

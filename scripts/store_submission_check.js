@@ -27,8 +27,8 @@ const listing = readText("src/storeListingDraft.md");
 const privacyAnswers = readText("src/storePrivacyAnswersDraft.md");
 const releaseChecklist = readText("src/releaseChecklist.md");
 
-assert(packet.appName === "CareWise AI", "Store packet appName must be CareWise AI");
-assert(app.name === "CareWise", "Expo app name must remain CareWise");
+assert(packet.appName === "FollowThrough Health", "Store packet appName must be FollowThrough Health");
+assert(app.name === "FollowThrough Health", "Expo app name must remain FollowThrough Health");
 assert(packet.bundleId === app.ios?.bundleIdentifier, "Store packet bundleId must match app.json iOS bundleIdentifier");
 assert(packet.androidPackage === app.android?.package, "Store packet androidPackage must match app.json Android package");
 assert(packet.category?.apple === "Health & Fitness", "Apple category must be Health & Fitness");
@@ -52,11 +52,11 @@ assert(Array.isArray(packet.submissionBlockers) && packet.submissionBlockers.len
 assert(packet.submissionBlockers.some((item) => item.toLowerCase().includes("legal review")), "Submission blockers must require legal review");
 assert(packet.submissionBlockers.some((item) => item.toLowerCase().includes("clinician review")), "Submission blockers must require clinician review");
 
-assert(listing.includes("CareWise AI is not a medical diagnosis tool"), "Store listing must keep non-diagnostic wording");
+assert(listing.includes("FollowThrough Health is not a medical diagnosis tool"), "Store listing must keep non-diagnostic wording");
 assert(listing.includes(packet.support.privacyPolicyUrl), "Store listing must include privacy policy URL");
 assert(listing.includes(packet.support.dataDeletionUrl), "Store listing must include data deletion URL");
 assert(privacyAnswers.includes("Do not sell health data"), "Privacy answers must prohibit selling health data");
 assert(releaseChecklist.includes("Apple App Privacy"), "Release checklist must mention Apple App Privacy");
 assert(releaseChecklist.includes("Google Play Data Safety"), "Release checklist must mention Google Play Data Safety");
 
-console.log("CareWise store submission packet check passed.");
+console.log("FollowThrough Health store submission packet check passed.");

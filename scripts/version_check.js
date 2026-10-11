@@ -32,4 +32,4 @@ assert(app.android.package === "com.carewise.app", "Android package name must st
 assert(eas.cli?.appVersionSource === "remote", "EAS appVersionSource should be remote for managed store builds.");
 assert(eas.build?.production?.autoIncrement === true, "Production EAS builds must auto-increment store build numbers.");
 
-console.log(`CareWise version check passed: ${app.version} / iOS build ${app.ios.buildNumber} / Android code ${app.android.versionCode}.`);
+console.log(`FollowThrough Health version check passed: ${app.version} / iOS build ${app.ios.buildNumber} / Android code ${app.android.versionCode}.`);

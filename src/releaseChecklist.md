@@ -1,4 +1,4 @@
-# CareWise Mobile Release Checklist
+# FollowThrough Health Mobile Release Checklist
 
 Use this before TestFlight, Android internal testing, and public store submission.
 

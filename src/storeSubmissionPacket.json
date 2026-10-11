@@ -1,5 +1,5 @@
 {
-  "appName": "CareWise AI",
+  "appName": "FollowThrough Health",
   "bundleId": "com.carewise.app",
   "androidPackage": "com.carewise.app",
   "category": {
@@ -19,15 +19,15 @@
     "dataDeletionUrl": "https://carewise-frontend.onrender.com/legal/data-deletion.html"
   },
   "reviewNotes": [
-    "CareWise AI explains uploaded health reports in simple language for education and visit preparation.",
-    "CareWise AI is not a medical diagnosis tool and does not provide emergency care.",
+    "FollowThrough Health explains uploaded health reports in simple language for education and visit preparation.",
+    "FollowThrough Health is not a medical diagnosis tool and does not provide emergency care.",
     "Users can request data deletion in the mobile Legal screen and through the public data deletion page.",
     "Test accounts used for review should not include real protected health information."
   ],
   "screenshotChecklist": [
     {
       "name": "Home",
-      "mustShow": "Simple CareWise AI purpose and non-diagnostic positioning"
+      "mustShow": "Simple FollowThrough Health purpose and non-diagnostic positioning"
     },
     {
       "name": "Report upload",

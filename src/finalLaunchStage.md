@@ -1,4 +1,4 @@
-# CareWise AI Final Launch Stage
+# FollowThrough Health Final Launch Stage
 
 This is the final-stage path from working MVP to real iOS and Android launch.
 
@@ -23,4 +23,4 @@ This is the final-stage path from working MVP to real iOS and Android launch.
 
 ## Safe Product Positioning
 
-CareWise AI helps users understand uploaded health reports in simple language and prepare questions for licensed professionals. It must not claim to diagnose, cure, prescribe, or replace professional care.
+FollowThrough Health helps users understand uploaded health reports in simple language and prepare questions for licensed professionals. It must not claim to diagnose, cure, prescribe, or replace professional care.
