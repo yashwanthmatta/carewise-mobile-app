@@ -34,6 +34,7 @@ import {
   type ReportLanguage
 } from "./src/reportAnalysis";
 import HealthRecordScreen, { loadHealthRecord } from "./src/HealthRecordScreen";
+import RemindersScreen from "./src/RemindersScreen";
 import { buildHistoryBriefText, getRecordFor, normalizeRecordPerson } from "./src/healthRecord";
 import { buildPersonalPlan } from "./src/personalPlan";
 import { LAB_PANEL_TEXT, labTestInfo } from "./src/labPanel";
@@ -143,6 +144,8 @@ export default function App() {
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [verificationToken, setVerificationToken] = useState("");
+  const [twoFactorChallenge, setTwoFactorChallenge] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
   const [status, setStatus] = useState("Try the sample report, or type your results and tap Explain on this phone.");
   const [token, setToken] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
@@ -284,7 +287,30 @@ export default function App() {
         return;
       }
       const response = await api.login(normalizedEmail, password);
+      if (response.two_factor_required && response.challenge) {
+        setTwoFactorChallenge(response.challenge);
+        setStatus("Enter the 6-digit code from your authenticator app to finish signing in.");
+        return;
+      }
       await saveTokenPair(response);
+    });
+  }
+
+  function verifyTwoFactor() {
+    run("Checking code", async () => {
+      const code = twoFactorCode.trim();
+      if (code.length < 6) {
+        setStatus("Enter the 6-digit code from your authenticator app, or a backup code.");
+        return;
+      }
+      try {
+        const response = await api.loginTwoFactor(twoFactorChallenge, code);
+        setTwoFactorChallenge("");
+        setTwoFactorCode("");
+        await saveTokenPair(response);
+      } catch {
+        setStatus("That code didn't work. Check it, or log in again if it has been more than 5 minutes.");
+      }
     });
   }
 
@@ -333,6 +359,14 @@ export default function App() {
         return;
       }
       const response = await api.confirmPasswordReset(resetToken.trim(), newPassword);
+      if (response.two_factor_required && response.challenge) {
+        setTwoFactorChallenge(response.challenge);
+        setPassword(newPassword);
+        setNewPassword("");
+        setResetToken("");
+        setStatus("Password changed. Enter the 6-digit code from your authenticator app to finish signing in.");
+        return;
+      }
       await saveTokenPair(response);
       setPassword(newPassword);
       setNewPassword("");
@@ -742,6 +776,13 @@ export default function App() {
                   <ActionButton label="Sign up" onPress={signup} disabled={busy} />
                   <ActionButton label="Login" onPress={login} disabled={busy} />
                 </View>
+                {twoFactorChallenge ? (
+                  <View style={styles.list}>
+                    <Text style={styles.listTitle}>Two-step sign-in</Text>
+                    <TextInput style={styles.input} value={twoFactorCode} onChangeText={setTwoFactorCode} placeholder="6-digit code or backup code" accessibilityLabel="Authenticator code" autoCapitalize="none" keyboardType="default" textContentType="oneTimeCode" autoComplete="one-time-code" />
+                    <ActionButton label="Verify and sign in" onPress={verifyTwoFactor} disabled={busy} />
+                  </View>
+                ) : null}
                 <Pressable onPress={() => setShowPasswordReset((value) => !value)} accessibilityRole="button" accessibilityLabel="Forgot password?">
                   <Text style={styles.linkText}>{showPasswordReset ? "Hide password reset" : "Forgot password?"}</Text>
                 </Pressable>
@@ -970,6 +1011,7 @@ export default function App() {
         })() : null}
 
         {screen === "record" ? <HealthRecordScreen extraPeople={reportPerson.trim() ? [reportPerson] : []} /> : null}
+        {screen === "record" ? <RemindersScreen api={api} signedIn={Boolean(token)} /> : null}
 
         {screen === "labs" ? (
           <View style={styles.card}>

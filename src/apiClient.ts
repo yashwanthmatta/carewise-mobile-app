@@ -2,6 +2,41 @@ export type LoginResponse = {
   access_token: string;
   refresh_token: string;
   token_type: "bearer";
+  // Two-step sign-in: no tokens yet, only a short-lived challenge for the code step.
+  two_factor_required?: boolean;
+  challenge?: string;
+};
+
+export type ReminderDose = { time: string; status: string };
+
+export type ReminderOut = {
+  id: string;
+  person: string;
+  label: string;
+  times: string[];
+  days: string[];
+  timezone: string;
+  language: string;
+  call: boolean;
+  phone_last4: string;
+  caller_name: string;
+  call_status: string;
+  alert_on_miss: boolean;
+  today: ReminderDose[];
+};
+
+export type ReminderInput = {
+  person: string;
+  label: string;
+  times: string[];
+  days: string[];
+  timezone: string;
+  language: string;
+  call: boolean;
+  phone: string;
+  caller_name: string;
+  consent_confirmed: boolean;
+  alert_on_miss: boolean;
 };
 
 export type SubscriptionMeOut = {
@@ -183,6 +218,29 @@ export class CareWiseApiClient {
     }
 
     return response.json() as Promise<T>;
+  }
+
+  loginTwoFactor(challenge: string, code: string) {
+    return this.request<LoginResponse>("/auth/login/two-factor", {
+      method: "POST",
+      body: JSON.stringify({ challenge, code }),
+    });
+  }
+
+  listReminders() {
+    return this.request<ReminderOut[]>("/reminders");
+  }
+
+  createReminder(input: ReminderInput) {
+    return this.request<ReminderOut>("/reminders", { method: "POST", body: JSON.stringify(input) });
+  }
+
+  markReminderTaken(id: string) {
+    return this.request<ReminderOut>(`/reminders/${encodeURIComponent(id)}/taken`, { method: "POST", body: "{}" });
+  }
+
+  deleteReminder(id: string) {
+    return this.request<{ status: string }>(`/reminders/${encodeURIComponent(id)}`, { method: "DELETE" });
   }
 
   login(email: string, password: string) {
