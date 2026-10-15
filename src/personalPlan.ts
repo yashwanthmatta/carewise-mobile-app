@@ -7,7 +7,7 @@ export type PlanLanguage = "en" | "es";
 export type PlanItem = { text: string; why?: string; source?: string };
 export type PlanSection = { key: "food" | "move" | "track" | "safety"; title: string; items: PlanItem[] };
 export type PersonalPlan = { title: string; urgent: boolean; sections: PlanSection[]; whyLabel: string; sourceLabel: string };
-type PlanValue = { label: string; value: number | string };
+type PlanValue = { label: string; value: number | string; unit?: string };
 type PlanInput = { labValues?: PlanValue[]; riskLevel?: string };
 
 const PLAN_TEXT = {
@@ -109,7 +109,9 @@ const SOURCES = {
 
 function planNumber(values: PlanValue[], label: string): number | null {
   const found = values.find((item) => item.label === label);
-  const value = found ? Number(found.value) : NaN;
+  let value = found ? Number(found.value) : NaN;
+  // Plan rules use ng/mL for vitamin D; convert nmol/L results.
+  if (label === "Vitamin D" && /nmol/i.test(found?.unit || "")) value = Math.round((value / 2.496) * 10) / 10;
   return Number.isFinite(value) ? value : null;
 }
 
