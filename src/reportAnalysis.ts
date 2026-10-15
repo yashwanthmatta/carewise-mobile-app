@@ -28,6 +28,8 @@ type MarkerValues = {
   triglycerides: number | null;
   a1c: number | null;
   vitaminD: number | null;
+  vitaminDUnit?: string;
+  vitaminDNg?: number | null;
   systolic: number | null;
   diastolic: number | null;
 };
@@ -359,7 +361,7 @@ function readA1cPercent(text: string): number | null {
   return measure.value;
 }
 
-function buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, vitaminD, systolic, diastolic }: MarkerValues, outside: OutsideMap = {}): LabValue[] {
+function buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, vitaminD, vitaminDUnit = "ng/mL", vitaminDNg = vitaminD, systolic, diastolic }: MarkerValues, outside: OutsideMap = {}): LabValue[] {
   const useLabRange = (item: LabValue | null, key: keyof OutsideMap): LabValue | null => {
     const side = outside[key];
     if (item && side && item.flag === "In range discussion") item.flag = OUTSIDE_LAB_RANGE[side];
@@ -370,7 +372,7 @@ function buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, 
     useLabRange(totalCholesterol !== null ? { label: "Total cholesterol", value: totalCholesterol, unit: "mg/dL", flag: totalCholesterol >= 200 ? "Above common target" : "In range discussion" } : null, "totalCholesterol"),
     useLabRange(triglycerides !== null ? { label: "Triglycerides", value: triglycerides, unit: "mg/dL", flag: triglycerides >= 150 ? "Needs attention" : "In range discussion" } : null, "triglycerides"),
     useLabRange(a1c !== null ? { label: "A1C", value: a1c, unit: "%", flag: a1c >= 6.5 ? "Clinician review" : a1c >= 5.7 ? "Needs attention" : "In range discussion" } : null, "a1c"),
-    useLabRange(vitaminD !== null ? { label: "Vitamin D", value: vitaminD, unit: "ng/mL", flag: vitaminD < 30 ? "Needs attention" : "In range discussion" } : null, "vitaminD"),
+    useLabRange(vitaminD !== null ? { label: "Vitamin D", value: vitaminD, unit: vitaminDUnit, flag: (vitaminDNg ?? vitaminD) < 30 ? "Needs attention" : "In range discussion" } : null, "vitaminD"),
     systolic !== null ? { label: "Blood pressure", value: `${systolic}/${diastolic || "?"}`, unit: "mmHg", flag: systolic >= 180 ? "Urgent if confirmed" : systolic >= 130 ? "Needs tracking" : "In range discussion" } : null,
   ];
   return values.filter((item): item is LabValue => item !== null);
@@ -392,6 +394,9 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   const systolic = readReportNumber(lower, [/(?:blood pressure|\bbp\b)\D{0,60}(\d{2,3})\s*\/\s*\d{2,3}/i]);
   const diastolic = readReportNumber(lower, [/(?:blood pressure|\bbp\b)\D{0,60}\d{2,3}\s*\/\s*(\d{2,3})/i]);
   const vitaminDMatch = lower.match(/vitamin d(?:[\s,]*\(?25[\s-]*(?:hydroxy|oh)\)?)?\D{0,24}\d+(?:\.\d+)?([^\n]{0,60})/i);
+  // European and UK labs report vitamin D in nmol/L; the common 30 ng/mL cut-off is about 75 nmol/L.
+  const vitaminDUnit = vitaminDMatch && /^\s*nmol\s*\/\s*l/i.test(vitaminDMatch[1]) ? "nmol/L" : "ng/mL";
+  const vitaminDNg = vitaminD === null ? null : vitaminDUnit === "nmol/L" ? Math.round((vitaminD / 2.496) * 10) / 10 : vitaminD;
   const outside: OutsideMap = {
     ldl: printedRangeStatus(lower, String.raw`\bldl(?: cholesterol)?`),
     totalCholesterol: printedRangeStatus(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`),
@@ -399,7 +404,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     a1c: printedRangeStatus(lower, String.raw`(?:hemoglobin\s*)?a1c`, 40),
     vitaminD: vitaminDMatch && vitaminD !== null ? compareWithPrintedRange(vitaminD, vitaminDMatch[1]) : null,
   };
-  const labValues = buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, vitaminD, systolic, diastolic }, outside);
+  const labValues = buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, vitaminD, vitaminDUnit, vitaminDNg, systolic, diastolic }, outside);
   const labRangeDetail = (key: keyof OutsideMap): string => {
     const side = outside[key];
     return side && labValues.some((value) => value.flag === OUTSIDE_LAB_RANGE[side]) ? ` That is ${side} the range printed on the report.` : "";
@@ -477,16 +482,16 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     suggestions.push("Track home blood pressure with time, position, cuff size, and symptoms before your visit.");
   }
 
-  if (vitaminD !== null) {
-    if (vitaminD < 30) {
+  if (vitaminD !== null && vitaminDNg !== null) {
+    if (vitaminDNg < 30) {
       score -= 4;
-      findings.push({ label: "Vitamin D", level: "Needs attention", detail: `Vitamin D appears around ${vitaminD}.` });
+      findings.push({ label: "Vitamin D", level: "Needs attention", detail: `Vitamin D appears around ${vitaminD} ${vitaminDUnit}.` });
       questions.push("Should I repeat Vitamin D testing or discuss supplementation dose and duration?");
     } else if (outside.vitaminD) {
       score -= 2;
-      findings.push({ label: "Vitamin D", level: OUTSIDE_LAB_RANGE[outside.vitaminD], detail: `Vitamin D appears around ${vitaminD}.${labRangeDetail("vitaminD")}` });
+      findings.push({ label: "Vitamin D", level: OUTSIDE_LAB_RANGE[outside.vitaminD], detail: `Vitamin D appears around ${vitaminD} ${vitaminDUnit}.${labRangeDetail("vitaminD")}` });
     } else {
-      findings.push({ label: "Vitamin D", level: "No obvious issue in pasted text", detail: `Vitamin D appears around ${vitaminD}.` });
+      findings.push({ label: "Vitamin D", level: "No obvious issue in pasted text", detail: `Vitamin D appears around ${vitaminD} ${vitaminDUnit}.` });
     }
   } else if (lower.includes("vitamin d")) {
     findings.push({ label: "Vitamin D", level: "Mentioned", detail: "Vitamin D appears in the report text, but FollowThrough Health could not confidently read the value." });
@@ -590,7 +595,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   const riskAreas = {
     heart: (ldl ?? 0) >= 160 || (systolic ?? 0) >= 140 ? "Medium Risk" : (ldl ?? 0) >= 130 || (totalCholesterol ?? 0) >= 200 || (triglycerides ?? 0) >= 150 || (systolic ?? 0) >= 130 ? "Needs Attention" : "Low Risk",
     diabetes: (a1c ?? 0) >= 6.5 ? "Needs Review" : (a1c ?? 0) >= 5.7 ? "Needs Attention" : "Low Risk",
-    vitamins: vitaminD !== null && vitaminD < 30 ? "Needs Attention" : lower.includes("vitamin d") ? "Review Value" : "No clear issue",
+    vitamins: vitaminDNg !== null && vitaminDNg < 30 ? "Needs Attention" : lower.includes("vitamin d") ? "Review Value" : "No clear issue",
   };
 
   return {
