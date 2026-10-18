@@ -193,7 +193,9 @@ function splitTypedLine(line: string): string[] {
 // Some reports print two tests side by side ("Sodium 139 136-145   Potassium 5.6 H 3.5-5.1").
 // Split before a later test name when a number sits between it and the previous one and
 // the later name is followed by its own number, so "LDL cholesterol 148" stays whole.
-const COMPILED_GLOBAL = COMPILED.flatMap(({ patterns }) => patterns.map((pattern) => new RegExp(pattern.source, "gi")));
+// Tests read by their own rules (lipids, A1C, vitamin D) still mark where a side-by-side row splits.
+const SPLIT_ONLY_NAMES = [String.raw`\b(?:hemoglobin\s*a1c|hba1c|a1c)\b`, String.raw`\bldl\b`, String.raw`\b(?:total cholesterol|cholesterol,?\s*total)\b`, String.raw`\btriglycerides\b`, String.raw`\bvitamin d\b`];
+const COMPILED_GLOBAL = [...COMPILED.flatMap(({ patterns }) => patterns.map((pattern) => pattern.source)), ...SPLIT_ONLY_NAMES].map((source) => new RegExp(source, "gi"));
 // Names inside brackets are notes ("eGFR 44 (creatinine-based)"), never a second test.
 function depthBefore(line: string, index: number): number {
   return (line.slice(0, index).match(/\(/g) || []).length - (line.slice(0, index).match(/\)/g) || []).length;
