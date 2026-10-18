@@ -190,10 +190,35 @@ function splitTypedLine(line: string): string[] {
 }
 
 // One result per test; each line is matched to the test named earliest on it.
+// Some reports print two tests side by side ("Sodium 139 136-145   Potassium 5.6 H 3.5-5.1").
+// Split before a later test name when a number sits between it and the previous one and
+// the later name is followed by its own number, so "LDL cholesterol 148" stays whole.
+const COMPILED_GLOBAL = COMPILED.flatMap(({ patterns }) => patterns.map((pattern) => new RegExp(pattern.source, "gi")));
+// Names inside brackets are notes ("eGFR 44 (creatinine-based)"), never a second test.
+function depthBefore(line: string, index: number): number {
+  return (line.slice(0, index).match(/\(/g) || []).length - (line.slice(0, index).match(/\)/g) || []).length;
+}
+function splitSideBySide(line: string): string[] {
+  const names = COMPILED_GLOBAL.flatMap((pattern) => [...line.matchAll(pattern)].map((match) => ({ index: match.index ?? 0, end: (match.index ?? 0) + match[0].length })));
+  if (names.length < 2) return [line];
+  names.sort((a, b) => a.index - b.index || b.end - a.end);
+  const cuts: number[] = [];
+  let previousEnd = names[0].end;
+  names.slice(1).forEach((name) => {
+    if (name.index < previousEnd) return;
+    if (/\d/.test(line.slice(previousEnd, name.index)) && /^[^\d\n<>()]{0,25}\d/.test(line.slice(name.end)) && !/\bref/i.test(line.slice(name.end, name.end + 25)) && depthBefore(line, name.index) === 0) {
+      cuts.push(name.index);
+      previousEnd = name.end;
+    }
+  });
+  if (!cuts.length) return [line];
+  return [0, ...cuts].map((start, i) => line.slice(start, cuts[i] ?? line.length));
+}
+
 export function readLabPanel(text: string): LabPanelResult[] {
   const results: LabPanelResult[] = [];
   const seen = new Set<string>();
-  normalizeReportText(text).split(/\r?\n/).flatMap(splitTypedLine).forEach((line) => {
+  normalizeReportText(text).split(/\r?\n/).flatMap(splitTypedLine).flatMap(splitSideBySide).forEach((line) => {
     let best: { test: LabTest; index: number; length: number } | null = null;
     COMPILED.forEach(({ test, patterns }) => {
       if (seen.has(test.key)) return;
