@@ -98,7 +98,10 @@ export const VIEW_TEXT = {
     attentionTitle: "Results to talk about",
     whatIs: "What is it?", whatMeans: "What does this mean?", askDoctor: "Ask your doctor", yourResult: "Your result",
     labRange: "Lab's range", noRangePrinted: "Not printed on your report", generalGuide: "Common guide (no range on your report)",
-    labels: { high: "High", low: "Low", in: "In range", none: "No range printed", critical: "Critical", abnormal: "Flagged by the lab", goalAbove: "In range, above a common goal", goalBelow: "In range, below a common goal", pre: "High — prediabetes range", diabetes: "High — diabetes range" },
+    labels: { check: "Check this number", high: "High", low: "Low", in: "In range", none: "No range printed", critical: "Critical", abnormal: "Flagged by the lab", goalAbove: "In range, above a common goal", goalBelow: "In range, below a common goal", pre: "High — prediabetes range", diabetes: "High — diabetes range" },
+    photoNote: "These numbers were read from a photo, which can misread a decimal point. Check each one against your report before relying on this summary.",
+    checkMeaning: "This number may have been misread from the photo, for example a missing decimal point. Compare it with your report and confirm it in the box above the result.",
+    checkFirst: (n: number) => `${n === 1 ? "One number" : `${n} numbers`} from your photo may be misread. Please confirm ${n === 1 ? "it" : "them"} against the report first.`,
     goalMeaning: "It is inside your lab's range, but many guidelines suggest a different goal for some people, depending on your other health risks. Your lab's range is not the same as your personal goal.",
     criticalMeaning: "Your lab marked this result as critical. Call your doctor today, or get urgent care if you feel unwell.",
     abnormalMeaning: "Your lab flagged this result as outside its usual values.",
@@ -137,7 +140,10 @@ export const VIEW_TEXT = {
     attentionTitle: "Resultados para hablar con su médico",
     whatIs: "¿Qué es?", whatMeans: "¿Qué significa?", askDoctor: "Pregunte a su médico", yourResult: "Su resultado",
     labRange: "Rango del laboratorio", noRangePrinted: "No aparece en su informe", generalGuide: "Guía común (su informe no trae rango)",
-    labels: { high: "Alto", low: "Bajo", in: "En rango", none: "Sin rango impreso", critical: "Crítico", abnormal: "Marcado por el laboratorio", goalAbove: "En rango, por encima de una meta común", goalBelow: "En rango, por debajo de una meta común", pre: "Alto — rango de prediabetes", diabetes: "Alto — rango de diabetes" },
+    labels: { check: "Revise este número", high: "Alto", low: "Bajo", in: "En rango", none: "Sin rango impreso", critical: "Crítico", abnormal: "Marcado por el laboratorio", goalAbove: "En rango, por encima de una meta común", goalBelow: "En rango, por debajo de una meta común", pre: "Alto — rango de prediabetes", diabetes: "Alto — rango de diabetes" },
+    photoNote: "Estos números se leyeron de una foto, que puede confundir el punto decimal. Compare cada uno con su informe antes de confiar en este resumen.",
+    checkMeaning: "Es posible que este número se haya leído mal en la foto, por ejemplo sin el punto decimal. Compárelo con su informe y confírmelo en el recuadro de arriba.",
+    checkFirst: (n: number) => `${n === 1 ? "Un número" : `${n} números`} de su foto ${n === 1 ? "podría estar mal leído" : "podrían estar mal leídos"}. Confírme${n === 1 ? "lo" : "los"} primero con el informe.`,
     goalMeaning: "Está dentro del rango de su laboratorio, pero muchas guías sugieren otra meta para algunas personas, según sus otros riesgos de salud. El rango del laboratorio no es lo mismo que su meta personal.",
     criticalMeaning: "Su laboratorio marcó este resultado como crítico. Llame hoy a su médico o busque atención urgente si se siente mal.",
     abnormalMeaning: "Su laboratorio marcó este resultado como fuera de sus valores habituales.",
@@ -177,11 +183,12 @@ export function describeTestRow(row: TestRow, language: "en" | "es", a1cPercent:
   const dir = row.status === "above" || row.status === "target_above" ? "high" : row.status === "below" || row.status === "target_below" ? "low" : "";
   let label = row.status === "above" ? t.labels.high : row.status === "below" ? t.labels.low : row.status === "within" ? t.labels.in : row.status === "critical" ? t.labels.critical : row.status === "outside" ? t.labels.abnormal : row.status === "target_above" ? t.labels.goalAbove : row.status === "target_below" ? t.labels.goalBelow : t.labels.none;
   if (row.key === "a1c" && row.status === "above" && a1cPercent !== null) label = a1cPercent >= 6.5 ? t.labels.diabetes : a1cPercent >= 5.7 ? t.labels.pre : label;
+  if (row.status === "check") label = t.labels.check;
   const goal = row.status === "target_above" || row.status === "target_below";
-  const meaning = row.status === "critical" ? t.criticalMeaning : row.status === "outside" ? t.abnormalMeaning : goal ? t.goalMeaning
+  const meaning = row.status === "check" ? t.checkMeaning : row.status === "critical" ? t.criticalMeaning : row.status === "outside" ? t.abnormalMeaning : goal ? t.goalMeaning
     : dir === "high" ? (es ? guide.highEs : guide.high) || t.genericHigh : dir === "low" ? (es ? guide.lowEs : guide.low) || t.genericLow : "";
   const plainName = name.replace(/\s*\(.*\)$/, "");
-  const ask = goal ? t.goalAsk(plainName) : dir === "high" || row.status === "critical" ? (es ? guide.askHighEs : guide.askHigh) || t.genericAsk(plainName)
+  const ask = row.status === "check" ? "" : goal ? t.goalAsk(plainName) : dir === "high" || row.status === "critical" ? (es ? guide.askHighEs : guide.askHigh) || t.genericAsk(plainName)
     : dir === "low" ? (es ? guide.askLowEs : guide.askLow) || t.genericAsk(plainName) : row.status === "outside" ? t.genericAsk(plainName) : "";
   const value = (row.rule ? String(row.valueText) : `${row.valueText} ${row.unit || ""}`.trim()).replace("(about ", es ? "(unos " : "(about ");
   return {
@@ -189,22 +196,23 @@ export function describeTestRow(row: TestRow, language: "en" | "es", a1cPercent:
     unit: row.rule ? "" : row.unit || "", unitHint: unitHint(row.rule ? "" : row.unit, language),
     range: row.rangeText || "", rangeLabel: (row as TestRow & { generalRange?: boolean }).generalRange ? t.generalGuide : t.labRange,
     status: row.status, attention: row.status !== "within" && row.status !== "unknown",
-    tone: row.status === "critical" ? "critical" : goal ? "goal" : row.status === "within" ? "in" : row.status === "unknown" ? "none" : "out",
+    tone: row.status === "check" ? "check" : row.status === "critical" ? "critical" : goal ? "goal" : row.status === "within" ? "in" : row.status === "unknown" ? "none" : "out",
   };
 }
 
 // Everything the result screen shows, built from the analysis rows only.
-export function buildReportView(analysis: ReportAnalysis, language: string = "en", plan: PersonalPlan | null = null) {
+export function buildReportView(analysis: ReportAnalysis, language: string = "en", plan: PersonalPlan | null = null, unsure: string[] = [], fromPhoto = false) {
   const es = language === "es";
   const t = VIEW_TEXT[es ? "es" : "en"];
   const rows = allTestRows(analysis);
   const a1cValue = (analysis.labValues || []).find((item) => item.label === "A1C");
   const a1cPercent = a1cValue ? Number(a1cValue.value) : null;
-  const tests = rows.map((row) => describeTestRow(row, es ? "es" : "en", Number.isFinite(a1cPercent) ? a1cPercent : null));
+  // A number read from a photo that may be misread is shown as "check this number" until confirmed.
+  const tests = rows.map((row) => describeTestRow(unsure.includes(row.key) ? { ...row, status: "check" } : row, es ? "es" : "en", Number.isFinite(a1cPercent) ? a1cPercent : null));
   const bpValue = (analysis.labValues || []).find((item) => item.label === "Blood pressure");
   const [sys, dia] = String(bpValue?.value || "").split("/").map(Number);
   const bpHigh = Number.isFinite(sys) && (sys >= 130 || dia >= 80);
-  const order: Record<string, number> = { critical: 0, out: 1, goal: 2 };
+  const order: Record<string, number> = { check: 0, critical: 1, out: 2, goal: 3 };
   const cards = tests.filter((item) => item.attention && item.tone !== "none").sort((a, b) => order[a.tone] - order[b.tone]);
   if (bpHigh) cards.push({ key: "bp", name: t.bpName, plainName: t.bpName, what: t.bpWhat, label: t.labels.high, meaning: t.bpMeaning, ask: t.bpAsk, value: `${bpValue?.value} mmHg`, unit: "", unitHint: "", range: t.bpRange, rangeLabel: t.bpRangeLabel, status: "above", attention: true, tone: "out" });
 
@@ -213,7 +221,7 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
   const goals = tests.filter((item) => item.tone === "goal");
   const critical = tests.filter((item) => item.tone === "critical");
   const urgent = analysis.riskLevel === "urgent" || critical.length > 0;
-  const groupNames = [...new Set(cards.filter((item) => item.tone !== "goal").map((item) => GROUP_OF[item.key] || item.key))]
+  const groupNames = [...new Set(cards.filter((item) => item.tone !== "goal" && item.tone !== "check").map((item) => GROUP_OF[item.key] || item.key))]
     .map((group) => TEST_GROUPS[group]?.[es ? "es" : "en"] || cards.find((item) => item.key === group)?.plainName || group);
   const groupText = listWords(groupNames, es ? "es" : "en");
   const criticalNames = listWords(critical.map((item) => item.plainName), es ? "es" : "en");
@@ -237,6 +245,9 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
     if (outside + noRange < tests.length) body.push(t.others);
   }
   if (noRange && noRange < tests.length) body.push(t.noRange(noRange));
+  const toCheck = tests.filter((item) => item.tone === "check").length;
+  if (toCheck) body.unshift(t.checkFirst(toCheck));
+  if (fromPhoto && tests.length) body.push(t.photoNote);
 
   // Three steps first; the rest of the plan is available under "More ideas".
   const kidney = (analysis.panelResults || []).some((item) => (item.key === "potassium" && (item.status === "above" || item.status === "critical")) || (item.key === "creatinine" && (item.status === "above" || item.status === "critical")) || (item.key === "egfr" && (item.status === "below" || item.status === "critical")));
