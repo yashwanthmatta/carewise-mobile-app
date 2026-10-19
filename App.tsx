@@ -558,6 +558,40 @@ export default function App() {
     );
   }
 
+  // App Store rule 5.1.1(v): people can delete their account from inside the app.
+  function deleteAccount() {
+    if (!token) {
+      setStatus("Sign in to delete your account.");
+      return;
+    }
+    Alert.alert(
+      "Delete your account?",
+      "This deletes your account and everything saved with it on FollowThrough Health: saved reports, health record, reminders, doctor links and plan. It cannot be undone. A paid plan is not cancelled by this; cancel it first from Manage plan.",
+      [
+        { text: "Keep my account", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: () => {
+            run("Deleting your account", async () => {
+              await api.deleteAccount();
+              await clearStoredSession();
+              api.setToken(null);
+              setToken("");
+              setRefreshToken("");
+              setSession(null);
+              setPatientId("");
+              setAnalysis(null);
+              setLabTrends([]);
+              setPrivacySummary(null);
+              setStatus("Your account and the data saved with it were deleted. Anything you kept only on this phone stays here until you remove the app.");
+            });
+          }
+        }
+      ]
+    );
+  }
+
   async function ensurePatientProfile() {
     if (patientId) return patientId;
     const profile = await api.saveProfile({
@@ -750,6 +784,7 @@ export default function App() {
                   <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
                   <ActionButton label="Refresh" onPress={refreshSession} disabled={!refreshToken || busy} />
                 </View>
+                <ActionButton label="Delete my account" onPress={deleteAccount} disabled={!token || busy} />
                 {!session.email_verified ? (
                   <View style={styles.list}>
                     <Text style={styles.listTitle}>Verify your email</Text>
@@ -1136,6 +1171,7 @@ export default function App() {
               <ActionButton label="Export summary" onPress={loadPrivacySummary} disabled={!token || busy} />
               <ActionButton label="Request deletion" onPress={requestDataDeletion} disabled={!token || busy} />
             </View>
+            <ActionButton label="Delete my account now" onPress={deleteAccount} disabled={!token || busy} />
             {privacySummary ? (
               <View style={styles.listItem}>
                 <Text style={styles.listTitle}>{privacySummary.account.email}</Text>
