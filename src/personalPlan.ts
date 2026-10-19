@@ -24,10 +24,10 @@ const PLAN_TEXT = {
     heartFish: "Eat fish such as salmon or sardines about twice a week.",
     trigSugar: "Cut back on sugary drinks, sweets and white bread, rice or pasta; choose whole grains instead.",
     trigAlcohol: "Limit alcohol, which can raise triglycerides.",
-    a1cPlate: "Use the plate method: half non-starchy vegetables, a quarter lean protein and a quarter whole grains or starchy food.",
+    a1cPlate: "Use the plate method: half vegetables like broccoli, spinach and carrots, a quarter lean protein and a quarter whole grains or starchy food.",
     a1cDrinks: "Drink water or unsweetened tea or coffee instead of soda and juice.",
     a1cWeight: "If you are overweight, losing 5 to 7% of your body weight can lower your chance of type 2 diabetes.",
-    kidneyPotassium: "Your potassium or kidney result is outside the lab's range. Ask your clinician or a kidney dietitian before eating more fruit, vegetables, beans, lentils, nuts or dairy: many are high in potassium.",
+    kidneyPotassium: "Your potassium or kidney result is outside the lab's range. Ask your doctor or a kidney dietitian before eating more fruit, vegetables, beans, lentils, nuts or dairy: many are high in potassium.",
     bpDash: "Follow a DASH-style eating pattern: plenty of fruit, vegetables, beans, nuts, whole grains and low-fat dairy.",
     bpSalt: "Keep salt (sodium) under 2,300 mg a day; check labels on bread, soups, sauces and restaurant food.",
     vitdFood: "Include vitamin D foods such as fatty fish, eggs, and fortified milk or cereal.",
@@ -36,14 +36,14 @@ const PLAN_TEXT = {
     moveStrength: "Add muscle-strengthening activity, like bodyweight exercises or resistance bands, on 2 days a week.",
     moveStart: "If you are not active now, start with 10 minutes a day and add a few minutes each week.",
     moveMeals: "A short walk after meals can help keep blood sugar steadier.",
-    moveAsk: "Ask your clinician what level of activity is safe for you, especially if you have chest pain, dizziness or heart disease.",
+    moveAsk: "Ask your doctor what level of activity is safe for you, especially if you have chest pain, dizziness or heart disease.",
     urgentMove: "Do not start a new exercise plan now. The report mentions urgent symptoms, a critical lab result or very high blood pressure: get medical care first.",
     trackBp: "Check your blood pressure at home a few times a week and bring the readings to your visit.",
     trackA1c: "Ask your doctor when to repeat your A1C test.",
     trackLipids: "Ask your doctor when to repeat your cholesterol test.",
     trackDiary: "Write down what you eat and how much you move for one week before your next visit.",
-    safetyAsk: "If you take medicines, are pregnant, or have kidney disease, diabetes or an eating disorder, ask your clinician before changing your diet or exercise.",
-    safetyVitd: "Ask your clinician before starting a vitamin D supplement or choosing a dose.",
+    safetyAsk: "If you take medicines, are pregnant, or have kidney disease, diabetes or an eating disorder, ask your doctor before changing your diet or exercise.",
+    safetyVitd: "Ask your doctor before starting a vitamin D supplement or choosing a dose.",
     safetyGeneral: "This plan is general education based on public guidelines, not a prescription.",
     reactions: (names: string) => `Your health record says these did not suit you: ${names}. Check new foods and supplements against it.`,
     whyLdl: (v: number) => `Your LDL is ${v} mg/dL (130 or higher).`,
@@ -67,7 +67,7 @@ const PLAN_TEXT = {
     heartFish: "Coma pescado, como salmón o sardinas, unas dos veces por semana.",
     trigSugar: "Reduzca las bebidas azucaradas, los dulces y el pan, arroz o pasta blancos; elija granos integrales.",
     trigAlcohol: "Limite el alcohol, que puede subir los triglicéridos.",
-    a1cPlate: "Use el método del plato: la mitad verduras sin almidón, un cuarto proteína magra y un cuarto granos integrales o alimentos con almidón.",
+    a1cPlate: "Use el método del plato: la mitad verduras como brócoli, espinaca y zanahoria, un cuarto proteína magra y un cuarto granos integrales o alimentos con almidón.",
     a1cDrinks: "Tome agua, o té o café sin azúcar, en lugar de refrescos y jugos.",
     a1cWeight: "Si tiene sobrepeso, perder del 5 al 7 % de su peso puede reducir la probabilidad de diabetes tipo 2.",
     kidneyPotassium: "Su resultado de potasio o de riñón está fuera del rango del laboratorio. Pregunte a su médico o a un dietista renal antes de comer más fruta, verduras, frijoles, lentejas, nueces o lácteos: muchos tienen mucho potasio.",
@@ -79,14 +79,14 @@ const PLAN_TEXT = {
     moveStrength: "Añada ejercicios para fortalecer los músculos, con su propio peso o bandas elásticas, 2 días a la semana.",
     moveStart: "Si ahora no hace actividad, empiece con 10 minutos al día y añada unos minutos cada semana.",
     moveMeals: "Una caminata corta después de comer puede ayudar a mantener el azúcar en sangre más estable.",
-    moveAsk: "Pregunte a su profesional de salud qué nivel de actividad es seguro para usted, sobre todo si tiene dolor en el pecho, mareos o enfermedad del corazón.",
+    moveAsk: "Pregunte a su médico qué nivel de actividad es seguro para usted, sobre todo si tiene dolor en el pecho, mareos o enfermedad del corazón.",
     urgentMove: "No empiece ahora un nuevo plan de ejercicio. El informe menciona síntomas urgentes, un resultado crítico de laboratorio o presión arterial muy alta: busque atención médica primero.",
     trackBp: "Mida su presión arterial en casa algunas veces por semana y lleve las lecturas a su cita.",
     trackA1c: "Pregunte a su médico cuándo repetir su prueba de A1C.",
     trackLipids: "Pregunte a su médico cuándo repetir su prueba de colesterol.",
     trackDiary: "Anote lo que come y cuánto se mueve durante una semana antes de su próxima cita.",
-    safetyAsk: "Si toma medicamentos, está embarazada o tiene enfermedad renal, diabetes o un trastorno alimentario, consulte a su profesional de salud antes de cambiar su dieta o ejercicio.",
-    safetyVitd: "Consulte a su profesional de salud antes de empezar un suplemento de vitamina D o elegir una dosis.",
+    safetyAsk: "Si toma medicamentos, está embarazada o tiene enfermedad renal, diabetes o un trastorno alimentario, consulte a su médico antes de cambiar su dieta o ejercicio.",
+    safetyVitd: "Consulte a su médico antes de empezar un suplemento de vitamina D o elegir una dosis.",
     safetyGeneral: "Este plan es educación general basada en guías públicas, no una receta médica.",
     reactions: (names: string) => `Su historial dice que esto no le sentó bien: ${names}. Revise los alimentos y suplementos nuevos con esa lista.`,
     whyLdl: (v: number) => `Su LDL es ${v} mg/dL (130 o más).`,
@@ -132,7 +132,7 @@ export function buildPersonalPlan(analysis: PlanInput, language: PlanLanguage = 
   const heart = (ldl !== null && ldl >= 130) || (total !== null && total >= 200);
   const heartWhy = ldl !== null && ldl >= 130 ? t.whyLdl(ldl) : total !== null ? t.whyTotal(total) : "";
 
-  // High potassium or reduced kidney function: potassium-rich foods need a clinician's OK first.
+  // High potassium or reduced kidney function: potassium-rich foods need a doctor's OK first.
   const kidney = (analysis.panelResults || []).some((item) => (item.key === "potassium" && (item.status === "above" || item.status === "critical")) || (item.key === "creatinine" && (item.status === "above" || item.status === "critical")) || (item.key === "egfr" && (item.status === "below" || item.status === "critical")));
   const food: PlanItem[] = kidney ? [{ text: t.kidneyPotassium }] : [];
   if (heart) {
