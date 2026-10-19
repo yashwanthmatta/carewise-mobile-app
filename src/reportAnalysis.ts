@@ -286,7 +286,8 @@ function readReportNumber(text: string, patterns: RegExp[]): number | null {
 
 // Skips a lab footnote code like the "01" in "Cholesterol, Total 01  289 mg/dL".
 const LAB_FOOTNOTE = String.raw`(?:\b0\d\s+\D{0,12}?)?`;
-const LAB_UNIT = String.raw`\s*(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl|%)?`;
+// A flag printed between the value and the unit ("18 L mmol/mol") is skipped so the unit is still found.
+const LAB_UNIT = String.raw`\s*(?:(?:h|l|hh|ll|hi|lo|high|low|\*)\s+(?=mmol|mg|%))?(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl|%)?`;
 
 type RangeSide = "above" | "below" | null;
 
@@ -407,7 +408,8 @@ function buildRuleRows(lower: string, labValues: LabValue[], outside: OutsideMap
     const spec = specs[item.label];
     const measure = spec.pattern ? readLabMeasure(lower, spec.pattern, spec.gap) : null;
     const rangeText = spec.pattern ? printedRangeFor(lower, spec.pattern, spec.gap) : vitaminDRange;
-    const printedUnit = measure?.unit ? PRINTED_UNIT_LABEL[measure.unit] || measure.unit : "";
+    // No unit printed next to the value but it was converted: say which SI unit it was in.
+    const printedUnit = measure?.unit ? PRINTED_UNIT_LABEL[measure.unit] || measure.unit : measure && Math.abs(measure.value - Number(item.value)) > 1e-9 ? (spec.key === "a1c" ? "mmol/mol" : "mmol/L") : "";
     const converted = Boolean(measure && printedUnit && printedUnit.toLowerCase() !== String(item.unit).toLowerCase());
     const valueText = converted && measure ? `${measure.value} ${printedUnit} (about ${item.value} ${item.unit})` : `${item.value} ${item.unit}`;
     const inRange = /in range discussion/i.test(item.flag);
@@ -451,7 +453,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   const vitaminDMatch = lower.match(/vitamin d(?:[\s,]*\(?25[\s-]*(?:hydroxy|oh)\)?)?\D{0,24}\d+(?:\.\d+)?([^\n]{0,60})/i);
   if (vitaminDMatch) vitaminDMatch[1] = cutAtNextTest(vitaminDMatch[1]);
   // European and UK labs report vitamin D in nmol/L; the common 30 ng/mL cut-off is about 75 nmol/L.
-  const vitaminDUnit = vitaminDMatch && /^\s*nmol\s*\/\s*l/i.test(vitaminDMatch[1]) ? "nmol/L" : "ng/mL";
+  const vitaminDUnit = vitaminDMatch && /^\s*(?:(?:h|l|hi|lo|high|low|\*)\s+)?nmol\s*\/\s*l/i.test(vitaminDMatch[1]) ? "nmol/L" : "ng/mL";
   const vitaminDNg = vitaminD === null ? null : vitaminDUnit === "nmol/L" ? Math.round((vitaminD / 2.496) * 10) / 10 : vitaminD;
   // Follow the range the lab printed; use the common 30 ng/mL target only when none is printed.
   const vitaminDHasRange = Boolean(vitaminDMatch && /\d\s*[-–]\s*\d|[<>≤≥]\s*=?\s*\d/.test(vitaminDMatch[1]));

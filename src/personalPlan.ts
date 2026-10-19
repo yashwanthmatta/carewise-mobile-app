@@ -8,7 +8,7 @@ export type PlanItem = { text: string; why?: string; source?: string };
 export type PlanSection = { key: "food" | "move" | "track" | "safety"; title: string; items: PlanItem[] };
 export type PersonalPlan = { title: string; urgent: boolean; sections: PlanSection[]; whyLabel: string; sourceLabel: string };
 type PlanValue = { label: string; value: number | string; unit?: string };
-type PlanInput = { labValues?: PlanValue[]; riskLevel?: string };
+type PlanInput = { labValues?: PlanValue[]; riskLevel?: string; panelResults?: { key: string; status: string }[] };
 
 const PLAN_TEXT = {
   en: {
@@ -27,6 +27,7 @@ const PLAN_TEXT = {
     a1cPlate: "Use the plate method: half non-starchy vegetables, a quarter lean protein and a quarter whole grains or starchy food.",
     a1cDrinks: "Drink water or unsweetened tea or coffee instead of soda and juice.",
     a1cWeight: "If you are overweight, losing 5 to 7% of your body weight can lower your chance of type 2 diabetes.",
+    kidneyPotassium: "Your potassium or kidney result is outside the lab's range. Ask your clinician or a kidney dietitian before eating more fruit, vegetables, beans, lentils, nuts or dairy: many are high in potassium.",
     bpDash: "Follow a DASH-style eating pattern: plenty of fruit, vegetables, beans, nuts, whole grains and low-fat dairy.",
     bpSalt: "Keep salt (sodium) under 2,300 mg a day; check labels on bread, soups, sauces and restaurant food.",
     vitdFood: "Include vitamin D foods such as fatty fish, eggs, and fortified milk or cereal.",
@@ -69,6 +70,7 @@ const PLAN_TEXT = {
     a1cPlate: "Use el método del plato: la mitad verduras sin almidón, un cuarto proteína magra y un cuarto granos integrales o alimentos con almidón.",
     a1cDrinks: "Tome agua, o té o café sin azúcar, en lugar de refrescos y jugos.",
     a1cWeight: "Si tiene sobrepeso, perder del 5 al 7 % de su peso puede reducir la probabilidad de diabetes tipo 2.",
+    kidneyPotassium: "Su resultado de potasio o de riñón está fuera del rango del laboratorio. Pregunte a su médico o a un dietista renal antes de comer más fruta, verduras, frijoles, lentejas, nueces o lácteos: muchos tienen mucho potasio.",
     bpDash: "Siga un patrón de alimentación tipo DASH: muchas frutas, verduras, frijoles, nueces, granos integrales y lácteos bajos en grasa.",
     bpSalt: "Mantenga la sal (sodio) por debajo de 2,300 mg al día; revise las etiquetas del pan, sopas, salsas y comida de restaurante.",
     vitdFood: "Incluya alimentos con vitamina D, como pescado graso, huevos y leche o cereal fortificados.",
@@ -130,7 +132,9 @@ export function buildPersonalPlan(analysis: PlanInput, language: PlanLanguage = 
   const heart = (ldl !== null && ldl >= 130) || (total !== null && total >= 200);
   const heartWhy = ldl !== null && ldl >= 130 ? t.whyLdl(ldl) : total !== null ? t.whyTotal(total) : "";
 
-  const food: PlanItem[] = [];
+  // High potassium or reduced kidney function: potassium-rich foods need a clinician's OK first.
+  const kidney = (analysis.panelResults || []).some((item) => (item.key === "potassium" && (item.status === "above" || item.status === "critical")) || (item.key === "creatinine" && (item.status === "above" || item.status === "critical")) || (item.key === "egfr" && (item.status === "below" || item.status === "critical")));
+  const food: PlanItem[] = kidney ? [{ text: t.kidneyPotassium }] : [];
   if (heart) {
     food.push({ text: t.heartFat, why: heartWhy, source: SOURCES.aha });
     food.push({ text: t.heartFiber, why: heartWhy, source: SOURCES.aha });
@@ -146,7 +150,7 @@ export function buildPersonalPlan(analysis: PlanInput, language: PlanLanguage = 
     if (a1c < 6.5) food.push({ text: t.a1cWeight, why: t.whyA1c(a1c), source: SOURCES.cdcDpp });
   }
   if (highBp) {
-    food.push({ text: t.bpDash, why: t.whyBp(bpText), source: SOURCES.dash });
+    if (!kidney) food.push({ text: t.bpDash, why: t.whyBp(bpText), source: SOURCES.dash });
     food.push({ text: t.bpSalt, why: t.whyBp(bpText), source: SOURCES.aha });
   }
   if (vitd !== null && vitd < 30) food.push({ text: t.vitdFood, why: t.whyVitd(vitd), source: SOURCES.nih });

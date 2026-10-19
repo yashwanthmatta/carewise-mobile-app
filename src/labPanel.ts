@@ -186,8 +186,34 @@ export function normalizeReportText(text: string): string {
 // Split those into parts; lab rows (which print a range) and "Cholesterol, Total 226" stay whole.
 function splitTypedLine(line: string): string[] {
   const numbers = line.match(/\d+(?:\.\d+)?/g) || [];
-  if (numbers.length < 3 || /\d\s*(?:-|–|to)\s*\d/.test(line)) return [line];
-  return line.split(/\s*(?:[,;]|\band\b)\s*(?=[a-z])/i);
+  if (numbers.length < 3 || /\d\s*(?:-|–|to)\s*\d|[<>≤≥]=?\s*\d/.test(line)) return [line];
+  // A piece with no number is part of the next test's name ("PSA, Total 4.6"), so it is kept with it.
+  const pieces = line.split(/(\s*(?:[,;]|\band\b)\s*(?=[a-z]))/i);
+  const parts: string[] = [];
+  let current = pieces[0];
+  for (let i = 1; i < pieces.length; i += 2) {
+    if (/\d/.test(current)) {
+      parts.push(current);
+      current = pieces[i + 1];
+    } else current += pieces[i] + pieces[i + 1];
+  }
+  parts.push(current);
+  return parts;
+}
+
+// A long test name can wrap in a PDF table cell, leaving the name on the line above its
+// value ("Sed Rate by Modified" / "12 mm/h 0-20"). Join a short line with no numbers to
+// the next line when that line starts with the value.
+function joinWrappedNames(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!/\d/.test(line) && line.trim().length > 1 && line.trim().length <= 40 && /^\s*[<>]?\d/.test(lines[i + 1] || "")) {
+      out.push(`${line.trim()} ${lines[i + 1].trim()}`);
+      i += 1;
+    } else out.push(line);
+  }
+  return out;
 }
 
 // One result per test; each line is matched to the test named earliest on it.
@@ -209,7 +235,7 @@ function splitSideBySide(line: string): string[] {
   let previousEnd = names[0].end;
   names.slice(1).forEach((name) => {
     if (name.index < previousEnd) return;
-    if (/\d/.test(line.slice(previousEnd, name.index)) && /^[^\d\n<>()]{0,25}\d/.test(line.slice(name.end)) && !/\bref/i.test(line.slice(name.end, name.end + 25)) && depthBefore(line, name.index) === 0) {
+    if (/\d/.test(line.slice(previousEnd, name.index)) && /^[^\d\n<>()]{0,25}(?:\([^)\n]{1,20}\)[^\d\n<>()]{0,10})?\d/.test(line.slice(name.end)) && !/\bref/i.test(line.slice(name.end, name.end + 25)) && depthBefore(line, name.index) === 0) {
       cuts.push(name.index);
       previousEnd = name.end;
     }
@@ -225,7 +251,7 @@ export function cutAtNextTest(rest: string): string {
   COMPILED_GLOBAL.forEach((pattern) => {
     for (const match of rest.matchAll(pattern)) {
       const index = match.index ?? 0;
-      if (index < cut && /^[^\d\n<>()]{0,25}\d/.test(rest.slice(index + match[0].length)) && depthBefore(rest, index) === 0) cut = index;
+      if (index < cut && /^[^\d\n<>()]{0,25}(?:\([^)\n]{1,20}\)[^\d\n<>()]{0,10})?\d/.test(rest.slice(index + match[0].length)) && depthBefore(rest, index) === 0) cut = index;
     }
   });
   return rest.slice(0, cut);
@@ -234,7 +260,7 @@ export function cutAtNextTest(rest: string): string {
 export function readLabPanel(text: string): LabPanelResult[] {
   const results: LabPanelResult[] = [];
   const seen = new Set<string>();
-  normalizeReportText(text).split(/\r?\n/).flatMap(splitTypedLine).flatMap(splitSideBySide).forEach((line) => {
+  joinWrappedNames(normalizeReportText(text).split(/\r?\n/)).flatMap(splitTypedLine).flatMap(splitSideBySide).forEach((line) => {
     let best: { test: LabTest; index: number; length: number } | null = null;
     COMPILED.forEach(({ test, patterns }) => {
       if (seen.has(test.key)) return;
