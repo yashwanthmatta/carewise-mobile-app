@@ -1,7 +1,7 @@
 {
   "appName": "FollowThrough Health",
-  "bundleId": "com.carewise.app",
-  "androidPackage": "com.carewise.app",
+  "bundleId": "com.followthroughhealth.app",
+  "androidPackage": "com.followthroughhealth.app",
   "category": {
     "apple": "Health & Fitness",
     "googlePlay": "Health & Fitness"

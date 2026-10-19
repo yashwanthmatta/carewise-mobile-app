@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from "react-native";
 import { builtInHelpAnswer } from "./helpAnswers";
 import type { ReportAnalysis } from "./reportAnalysis";
 
@@ -50,7 +50,7 @@ export function HelpChat({ baseUrl, language, reportSummary, analysis }: { baseU
   const [waiting, setWaiting] = useState(false);
   const [share, setShare] = useState(false);
   const [showTopics, setShowTopics] = useState(false);
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ScrollViewInstance>(null);
 
   async function ask(question: string) {
     const clean = question.trim().slice(0, 1000);
