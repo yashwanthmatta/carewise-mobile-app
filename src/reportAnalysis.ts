@@ -222,9 +222,9 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       [/^Systolic blood pressure appears around (.+)\.$/, "La presión arterial sistólica aparece alrededor de $1."],
       [/^Vitamin D appears around (.+)\.$/, "La vitamina D aparece alrededor de $1."],
       [/^(.+)\. The lab marked this result as critical\. Contact your doctor or the lab today\.$/, "$1. El laboratorio marcó este resultado como crítico. Comuníquese hoy con su médico o con el laboratorio."],
-      [/^(.+); no range printed, compared with a general guide: (.+)\. Ask your doctor about this result soon\.$/, "$1; sin rango impreso, comparado con una guía general: $2. Consulte pronto a su médico sobre este resultado."],
+      [/^(.+); no range printed, compared with a general guide: (.+)\. Ask your doctor how soon they want to discuss this result\.$/, "$1; sin rango impreso, comparado con una guía general: $2. Pregunte a su médico cuándo quiere hablar de este resultado."],
       [/^(.+); no range printed, compared with a general guide: (.+)\.$/, "$1; sin rango impreso, comparado con una guía general: $2."],
-      [/^(.+); lab range (.+)\. Ask your doctor about this result soon\.$/, "$1; rango del laboratorio $2. Consulte pronto a su médico sobre este resultado."],
+      [/^(.+); lab range (.+)\. Ask your doctor how soon they want to discuss this result\.$/, "$1; rango del laboratorio $2. Pregunte a su médico cuándo quiere hablar de este resultado."],
       [/^(.+); lab range not printed\.$/, "$1; rango del laboratorio no impreso."],
       [/^(.+); general guide (.+)\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; guía general $2. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
       [/^(.+); lab range not printed\. Labs often treat this level as urgent\. Contact your doctor today, or seek emergency care if you feel very unwell\.$/, "$1; rango del laboratorio no impreso. Los laboratorios suelen considerar urgente este nivel. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal."],
@@ -615,7 +615,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
           : item.far
             ? item.status === "above" ? "Far above the lab's range" : "Far below the lab's range"
             : item.status === "above" ? "Above the lab's range" : item.status === "below" ? "Below the lab's range" : "Marked abnormal by the lab",
-        detail: `${shown}; ${item.generalRange ? `no range printed, compared with a general guide: ${item.rangeText}` : `lab range ${item.rangeText || "not printed"}`}.${item.far ? " Ask your doctor about this result soon." : ""}`,
+        detail: `${shown}; ${item.generalRange ? `no range printed, compared with a general guide: ${item.rangeText}` : `lab range ${item.rangeText || "not printed"}`}.${item.far ? " Ask your doctor how soon they want to discuss this result." : ""}`,
       });
     }
   });

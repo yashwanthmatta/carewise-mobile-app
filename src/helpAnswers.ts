@@ -21,13 +21,13 @@ const EXTRA_TESTS = [
 const NEXT_STEP = {
   en: {
     urgent: "Contact your doctor today. If you feel very unwell, seek emergency care.",
-    needs_review: "Ask your doctor about these results soon.",
+    needs_review: "Some results are well outside the lab's range. Share this report with your doctor and ask how soon they want to talk about it.",
     attention: "Bring these results up at your next visit.",
     routine: "Nothing urgent stands out. Keep this for your next checkup.",
   },
   es: {
     urgent: "Comuníquese hoy con su médico. Si se siente muy mal, busque atención de emergencia.",
-    needs_review: "Pregunte pronto a su médico sobre estos resultados.",
+    needs_review: "Algunos resultados están bastante fuera del rango del laboratorio. Comparta este informe con su médico y pregúntele cuándo quiere hablar de ello.",
     attention: "Comente estos resultados en su próxima consulta.",
     routine: "No se ve nada urgente. Guárdelo para su próximo chequeo.",
   },
