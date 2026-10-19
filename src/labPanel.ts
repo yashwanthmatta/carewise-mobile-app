@@ -217,6 +217,19 @@ function splitSideBySide(line: string): string[] {
   return [0, ...cuts].map((start, i) => line.slice(start, cuts[i] ?? line.length));
 }
 
+// Cuts a line's tail at the next test name followed by its own number, so a range or flag
+// read after a value never comes from the test printed beside it.
+export function cutAtNextTest(rest: string): string {
+  let cut = rest.length;
+  COMPILED_GLOBAL.forEach((pattern) => {
+    for (const match of rest.matchAll(pattern)) {
+      const index = match.index ?? 0;
+      if (index < cut && /^[^\d\n<>()]{0,25}\d/.test(rest.slice(index + match[0].length)) && depthBefore(rest, index) === 0) cut = index;
+    }
+  });
+  return rest.slice(0, cut);
+}
+
 export function readLabPanel(text: string): LabPanelResult[] {
   const results: LabPanelResult[] = [];
   const seen = new Set<string>();
