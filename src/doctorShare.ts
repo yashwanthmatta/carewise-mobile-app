@@ -1,6 +1,6 @@
 import { buildRecordSummary, getRecordFor, type HealthRecordItem } from "./healthRecord";
-import { LAB_PANEL_TEXT } from "./labPanel";
-import { allTestRows, type ReportAnalysis } from "./reportAnalysis";
+import type { ReportAnalysis } from "./reportAnalysis";
+import { buildReportView } from "./reportView";
 
 // The read-only summary sent with "Share with my doctor". Same shape as the website's,
 // always in English, and only what the family already sees on the result.
@@ -16,7 +16,6 @@ export const SHARE_VIEWER_URL = "https://carewise-frontend.onrender.com/share.ht
 export function buildShareSnapshot(analysis: ReportAnalysis, person: string, record: HealthRecordItem[]) {
   const summary = buildRecordSummary(getRecordFor(record, person));
   const entry = (item: HealthRecordItem) => ({ name: item.name, start: item.start || "", notes: item.notes || "" });
-  const statusText = LAB_PANEL_TEXT.en as Record<string, string>;
   return {
     version: 1,
     person,
@@ -26,11 +25,11 @@ export function buildShareSnapshot(analysis: ReportAnalysis, person: string, rec
     next_step: NEXT_STEP[analysis.riskLevel] ?? "",
     findings: analysis.findings.map((item) => ({ label: item.label, level: item.level, detail: item.detail })),
     values: analysis.labValues.map((item) => ({ label: item.label, value: String(item.value), unit: item.unit || "", flag: item.flag || "" })),
-    panel: allTestRows(analysis).map((item) => ({
+    panel: buildReportView(analysis, "en").tests.map((item) => ({
       name: item.name,
-      result: `${item.valueText} ${item.unit || ""}`.trim(),
-      range: item.rangeText || "",
-      status: statusText[`status_${item.status}`] ?? item.status,
+      result: item.value,
+      range: item.range,
+      status: item.label,
     })),
     scan: analysis.scan ? { modality: analysis.scan.en.modality || "Imaging", follow_ups: analysis.scan.en.followUps.map((item) => item.sentence) } : null,
     history: {

@@ -129,7 +129,7 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       doctorBrief: "Resumen para el médico",
       saveToTrends: "Guardar en tendencias",
       copyQuestions: "Copiar preguntas",
-      draftNotice: "Traducción preliminar, pendiente de revisión por un profesional de salud y un traductor médico. El resumen para el médico se genera en inglés.",
+      draftNotice: "Traducción preliminar, pendiente de revisión por un médico y un traductor médico. El resumen para el médico se genera en inglés.",
     },
     phrases: {
       "LDL cholesterol": "Colesterol LDL",
@@ -165,18 +165,18 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Vitamin D appears in the report text, but FollowThrough Health could not confidently read the value.": "La vitamina D aparece en el informe, pero FollowThrough Health no pudo leer el valor con seguridad.",
       "FollowThrough Health needs typed or pasted lab values to explain specific results.": "FollowThrough Health necesita los valores del laboratorio escritos o pegados para explicar resultados específicos.",
       "If these symptoms are happening now, seek emergency care or call local emergency services.": "Si estos síntomas están ocurriendo ahora, busque atención de emergencia o llame a los servicios de emergencia locales.",
-      "Discuss heart-risk context, diet pattern, exercise, family history, and follow-up timing with a clinician.": "Hable con un profesional de salud sobre su riesgo cardíaco, su alimentación, el ejercicio, sus antecedentes familiares y cuándo hacer seguimiento.",
+      "Discuss heart-risk context, diet pattern, exercise, family history, and follow-up timing with a doctor.": "Hable con un médico sobre su riesgo cardíaco, su alimentación, el ejercicio, sus antecedentes familiares y cuándo hacer seguimiento.",
       "Ask whether fasting status, alcohol, refined carbs, medicines, or thyroid/metabolic factors could affect triglycerides.": "Pregunte si el ayuno, el alcohol, los carbohidratos refinados, los medicamentos o factores tiroideos o metabólicos podrían afectar sus triglicéridos.",
       "Track home blood pressure with time, position, cuff size, and symptoms before your visit.": "Antes de su consulta, registre su presión arterial en casa con la hora, la posición, el tamaño del brazalete y los síntomas.",
       "Paste key lab rows, values, units, and reference flags from the report.": "Pegue las filas principales del informe: valores, unidades e indicadores de referencia.",
-      "Build meals around vegetables, fiber-rich carbs, lean protein, and unsaturated fats unless your clinician gave different advice.": "Base sus comidas en verduras, carbohidratos ricos en fibra, proteínas magras y grasas insaturadas, salvo que su profesional de salud le haya indicado otra cosa.",
-      "Aim for consistent walking or movement you can repeat most days, adjusted for your clinician's guidance.": "Procure caminar o moverse de forma constante la mayoría de los días, según las indicaciones de su profesional de salud.",
+      "Build meals around vegetables, foods like oats, beans and whole grains, lean protein, and healthier fats like olive oil and nuts unless your doctor gave different advice.": "Base sus comidas en verduras, alimentos como avena, frijoles y granos integrales, proteínas magras y grasas más saludables, como el aceite de oliva y las nueces, salvo que su médico le haya indicado otra cosa.",
+      "Aim for consistent walking or movement you can repeat most days, adjusted for your doctor's guidance.": "Procure caminar o moverse de forma constante la mayoría de los días, según las indicaciones de su médico.",
       "Type or paste your lab results first, or press Try sample report.": "Escriba o pegue primero sus resultados, o pulse «Try sample report».",
-      "Ask a licensed professional to review the original report.": "Pida a un profesional de salud autorizado que revise el informe original.",
+      "Ask a licensed professional to review the original report.": "Pida a un médico autorizado que revise el informe original.",
       "What LDL goal is appropriate for me based on my age, family history, blood pressure, and other risks?": "¿Qué meta de LDL es adecuada para mí según mi edad, mis antecedentes familiares, mi presión arterial y otros riesgos?",
       "Does my A1C need repeat testing or a diabetes care plan?": "¿Necesito repetir la prueba de A1C o un plan de atención para la diabetes?",
       "What changes would help lower my A1C safely over the next 3 months?": "¿Qué cambios me ayudarían a bajar mi A1C de forma segura en los próximos 3 meses?",
-      "Should I repeat Vitamin D testing or discuss supplementation dose and duration?": "¿Debo repetir la prueba de vitamina D o hablar sobre la dosis y la duración de un suplemento?",
+      "Should I repeat my vitamin D test, and do I need a supplement? If so, how much should I take and for how long?": "¿Debo repetir la prueba de vitamina D o hablar sobre la dosis y la duración de un suplemento?",
       "Which results matter most for me, and when should I repeat labs?": "¿Qué resultados son más importantes para mí y cuándo debo repetir los análisis?",
       "Should I see primary care, a dietitian, or a specialist based on these results?": "Según estos resultados, ¿debo ver a mi médico de cabecera, a un nutricionista o a un especialista?",
       "Which values from my original report should I focus on first?": "¿En qué valores de mi informe original debo fijarme primero?",
@@ -499,7 +499,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     } else {
       findings.push({ label: "LDL cholesterol", level: "In a better range", detail: `LDL appears around ${ldl} mg/dL.` });
     }
-    suggestions.push("Discuss heart-risk context, diet pattern, exercise, family history, and follow-up timing with a clinician.");
+    suggestions.push("Discuss heart-risk context, diet pattern, exercise, family history, and follow-up timing with a doctor.");
     questions.push("What LDL goal is appropriate for me based on my age, family history, blood pressure, and other risks?");
   }
 
@@ -547,7 +547,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     if (vitaminDLow) {
       score -= 4;
       findings.push({ label: "Vitamin D", level: "Needs attention", detail: `Vitamin D appears around ${vitaminD} ${vitaminDUnit}.` });
-      questions.push("Should I repeat Vitamin D testing or discuss supplementation dose and duration?");
+      questions.push("Should I repeat my vitamin D test, and do I need a supplement? If so, how much should I take and for how long?");
     } else if (outside.vitaminD) {
       score -= 2;
       findings.push({ label: "Vitamin D", level: OUTSIDE_LAB_RANGE[outside.vitaminD], detail: `Vitamin D appears around ${vitaminD} ${vitaminDUnit}.${labRangeDetail("vitaminD")}` });
@@ -645,8 +645,8 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   }
 
   if (!scanOnly) {
-    suggestions.push("Build meals around vegetables, fiber-rich carbs, lean protein, and unsaturated fats unless your clinician gave different advice.");
-    suggestions.push("Aim for consistent walking or movement you can repeat most days, adjusted for your clinician's guidance.");
+    suggestions.push("Build meals around vegetables, foods like oats, beans and whole grains, lean protein, and healthier fats like olive oil and nuts unless your doctor gave different advice.");
+    suggestions.push("Aim for consistent walking or movement you can repeat most days, adjusted for your doctor's guidance.");
     questions.push("Which results matter most for me, and when should I repeat labs?");
     questions.push("Should I see primary care, a dietitian, or a specialist based on these results?");
   } else {

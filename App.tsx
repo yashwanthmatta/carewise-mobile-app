@@ -22,12 +22,11 @@ import {
   type ReportAnalysisOut,
   type SessionOut
 } from "./src/apiClient";
+import { buildReportView } from "./src/reportView";
 import {
   REPORT_LANGUAGES,
   SAMPLE_REPORT_TEXT,
-  allTestRows,
   analyzeReportTextLocally,
-  outsideRangeCount,
   buildDoctorBriefText,
   reportUiText,
   translateReportAnalysis,
@@ -39,7 +38,7 @@ import HealthRecordScreen, { loadHealthRecord } from "./src/HealthRecordScreen";
 import RemindersScreen from "./src/RemindersScreen";
 import { buildHistoryBriefText, getRecordFor, normalizeRecordPerson } from "./src/healthRecord";
 import { buildPersonalPlan } from "./src/personalPlan";
-import { LAB_PANEL_TEXT, labTestInfo } from "./src/labPanel";
+import { LAB_PANEL_TEXT } from "./src/labPanel";
 import { SCAN_TEXT } from "./src/scanReport";
 import { EarlyAccessForm, FeedbackCard } from "./src/FeedbackCard";
 import { trackUsage } from "./src/productSignals";
@@ -885,24 +884,36 @@ export default function App() {
         {screen === "reports" && reportView ? (() => {
           const lang = reportLanguage === "es" ? "es" : "en";
           const labText = LAB_PANEL_TEXT[lang];
-          const panel = localAnalysis ? allTestRows(localAnalysis) : [];
-          const counts = localAnalysis ? outsideRangeCount(localAnalysis) : { outside: 0, total: 0 };
-          const outside = counts.outside;
           const risk = reportView.riskLevel;
+          // Summary, cards, steps and All tests all come from one view built from the report rows.
+          const view = localAnalysis && !localAnalysis.noData && !localAnalysis.scanOnly ? buildReportView(localAnalysis, lang, personalPlan) : null;
+          const questions = [...(view?.questions || []), ...reportView.questions].filter((item, index, list) => item && list.indexOf(item) === index).slice(0, 6);
+          const questionList = questions.map((item, index) => (
+            <View key={item} style={styles.questionRow}>
+              <Text style={styles.questionNumber}>{index + 1}</Text>
+              <Text style={[styles.bodyText, styles.flex]}>{item}</Text>
+            </View>
+          ));
           return (
           <View style={styles.card}>
             <Text style={styles.eyebrow}>{uiText("eyebrow", "FollowThrough Health explanation")}</Text>
-            <View style={styles.verdict}>
-              <Text style={styles.verdictScore}>
-                {localAnalysis?.noData ? "—" : localAnalysis?.scanOnly ? SCAN_TEXT[lang].scoreLabel : String(counts.outside)}
-                {localAnalysis?.noData || localAnalysis?.scanOnly || !counts.total ? null : <Text style={styles.verdictOutOf}>{lang === "es" ? ` de ${counts.total} fuera de rango` : ` of ${counts.total} outside range`}</Text>}
-              </Text>
-              <Text style={styles.verdictLabel}>
-                {localAnalysis?.noData
-                  ? translateReportText("No results found", reportLanguage)
-                  : translateReportText(risk === "urgent" ? "Urgent review" : risk === "needs_review" ? "Clinician review" : risk === "attention" ? "Needs attention" : "Routine follow-up", reportLanguage)}
-              </Text>
-            </View>
+            {view && (view.headline || view.body.length) ? (
+              <View style={[styles.summaryBox, view.urgent ? styles.summaryUrgent : view.outside || view.cards.length ? styles.summaryAttention : styles.summaryClear]}>
+                <Text style={styles.summaryEyebrow}>{view.title.toUpperCase()}</Text>
+                <Text style={[styles.summaryHeadline, view.urgent && styles.summaryHeadlineUrgent]}>{view.headline}</Text>
+                {view.body.map((line) => <Text key={line} style={styles.bodyText}>{line}</Text>)}
+                {view.count ? <Text style={styles.smallText}>{view.count}</Text> : null}
+              </View>
+            ) : (
+              <View style={styles.verdict}>
+                <Text style={styles.verdictScore}>{localAnalysis?.noData ? "—" : SCAN_TEXT[lang].scoreLabel}</Text>
+                <Text style={styles.verdictLabel}>
+                  {localAnalysis?.noData
+                    ? translateReportText("No results found", reportLanguage)
+                    : translateReportText(risk === "urgent" ? "Urgent review" : risk === "needs_review" ? "Clinician review" : risk === "attention" ? "Needs attention" : "Routine follow-up", reportLanguage)}
+                </Text>
+              </View>
+            )}
             {localAnalysis && !localAnalysis.noData ? (
               <Text style={[styles.nextStep, risk === "urgent" ? styles.nextUrgent : risk === "needs_review" ? styles.nextReview : risk === "attention" ? styles.nextAttention : styles.nextRoutine]}>
                 {NEXT_STEP[lang][risk]}
@@ -928,31 +939,59 @@ export default function App() {
               ))}
             </View>
             {uiText("draftNotice", "") ? <Text style={styles.smallText}>{uiText("draftNotice", "")}</Text> : null}
-            <Text style={styles.listTitle}>{uiText("questions", "Questions to ask your doctor")}</Text>
-            {reportView.questions.map((item, index) => (
-              <View key={item} style={styles.questionRow}>
-                <Text style={styles.questionNumber}>{index + 1}</Text>
-                <Text style={[styles.bodyText, styles.flex]}>{item}</Text>
+            {view?.cards.length ? <Text style={styles.listTitle}>{view.text.attentionTitle}</Text> : null}
+            {view?.cards.map((card) => (
+              <View key={card.key} style={[styles.resultCard, card.tone === "critical" ? styles.resultCardCritical : card.tone === "goal" ? styles.resultCardGoal : null]}>
+                <View style={styles.resultCardHead}>
+                  <Text style={[styles.listTitle, styles.flex]}>{card.name}</Text>
+                  <Text style={[styles.resultCardLabel, card.tone === "critical" && styles.resultCardLabelCritical]}>{card.label}</Text>
+                </View>
+                <Text style={styles.resultCardValue}>{card.value}</Text>
+                {card.unitHint ? <Text style={styles.smallText}>{card.unitHint}</Text> : null}
+                <Text style={styles.smallText}>{card.rangeLabel}: {card.range || view.text.noRangePrinted}</Text>
+                {card.what ? <><Text style={styles.resultCardQuestion}>{view.text.whatIs}</Text><Text style={styles.bodyText}>{card.what}</Text></> : null}
+                {card.meaning ? <><Text style={styles.resultCardQuestion}>{view.text.whatMeans}</Text><Text style={styles.bodyText}>{card.meaning}</Text></> : null}
+                {card.ask ? <><Text style={styles.resultCardQuestion}>{view.text.askDoctor}</Text><Text style={[styles.bodyText, styles.resultCardAsk]}>“{card.ask}”</Text></> : null}
               </View>
             ))}
-            <Text style={styles.listTitle}>{uiText("keyFindings", "Key findings")}</Text>
-            {reportView.findings.map((item) => (
-              <View key={`${item.label}-${item.detail}`} style={styles.listItem}>
-                <Text style={styles.findingTitle}>{item.label}</Text>
-                <Text style={styles.bodyText}>{item.level}. {item.detail}</Text>
-              </View>
-            ))}
-            {reportView.labValues.length ? <Text style={styles.listTitle}>{uiText("detectedValues", "Detected values")}</Text> : null}
-            {reportView.labValues.length ? (
-              <View style={styles.valueGrid}>
-                {reportView.labValues.map((item) => (
-                  <View key={item.label} style={styles.valueTile}>
-                    <Text style={styles.smallText}>{item.label}</Text>
-                    <Text style={styles.valueNumber}>{item.value} <Text style={styles.smallText}>{item.unit}</Text></Text>
-                    <Text style={styles.smallText}>{item.flag}</Text>
+            {view && personalPlan ? (
+              <View style={styles.planBox}>
+                <Text style={styles.sectionTitle}>{view.text.stepsTitle}</Text>
+                {view.steps.map((step, index) => (
+                  <View key={step.title} style={styles.questionRow}>
+                    <Text style={styles.questionNumber}>{index + 1}</Text>
+                    <View style={styles.flex}>
+                      <Text style={styles.listTitle}>{step.title}</Text>
+                      <Text style={styles.bodyText}>{step.body}</Text>
+                    </View>
                   </View>
                 ))}
+                <Text style={styles.smallText}>{view.text.stepsNote}</Text>
+                {view.more.length ? (
+                  <Expandable title={view.text.moreIdeas} detail={String(view.more.length)}>
+                    {view.more.map((item) => <Text key={item} style={styles.bodyText}>• {item}</Text>)}
+                  </Expandable>
+                ) : null}
               </View>
+            ) : null}
+            {view?.cards.length ? (
+              <Expandable title={uiText("questions", "Questions to ask your doctor")} detail={String(questions.length)}>{questionList}</Expandable>
+            ) : (
+              <>
+                <Text style={styles.listTitle}>{uiText("questions", "Questions to ask your doctor")}</Text>
+                {questionList}
+              </>
+            )}
+            {!view?.tests.length && !localAnalysis?.scanOnly ? (
+              <>
+                <Text style={styles.listTitle}>{uiText("keyFindings", "Key findings")}</Text>
+                {reportView.findings.map((item) => (
+                  <View key={`${item.label}-${item.detail}`} style={styles.listItem}>
+                    <Text style={styles.findingTitle}>{item.label}</Text>
+                    <Text style={styles.bodyText}>{item.level}. {item.detail}</Text>
+                  </View>
+                ))}
+              </>
             ) : null}
             {localAnalysis?.scan ? (() => {
               const scan = localAnalysis.scan[lang];
@@ -993,53 +1032,33 @@ export default function App() {
                 </View>
               );
             })() : null}
-            {panel.length ? (
-              <Expandable title={labText.title} detail={ALL_TESTS[lang](panel.length, outside)}>
-                <Text style={styles.smallText}>{labText.note}</Text>
-                {panel.map((item) => {
-                  const t = labText;
-                  const info = item.rule ? null : labTestInfo(item.key);
-                  const flagged = item.status !== "within" && item.status !== "unknown";
-                  return (
-                    <View key={item.key} style={[styles.listItem, item.status === "critical" && styles.planUrgent]}>
-                      <Text style={styles.listTitle}>
-                        {reportLanguage === "es" ? (info ? info.es : translateReportText(item.name, reportLanguage)) : item.name}: {`${item.valueText} ${item.unit}`.trim()}
-                      </Text>
-                      <Text style={[styles.smallText, flagged && styles.labFlagText]}>
-                        {t[`status_${item.status}` as keyof typeof t]} · {t.range}: {item.rangeText || t.noRange}
-                      </Text>
-                      {info ? <Text style={styles.bodyText}>{reportLanguage === "es" ? info.whatEs : info.what}</Text> : null}
-                    </View>
-                  );
-                })}
-              </Expandable>
-            ) : null}
-            {personalPlan ? (
-              <Expandable title={personalPlan.title}>
-                {personalPlan.sections.map((section) => (
-                  <View key={section.key} style={[styles.planCard, section.key === "safety" && styles.planSafety, personalPlan.urgent && section.key === "move" && styles.planUrgent]}>
-                    <Text style={styles.listTitle}>{section.title}</Text>
-                    {section.items.map((item, index) => {
-                      const next = section.items[index + 1];
-                      const note = next && next.why === item.why && next.source === item.source
-                        ? ""
-                        : [item.why ? `${personalPlan.whyLabel}: ${item.why}` : "", item.source ? `${personalPlan.sourceLabel}: ${item.source}` : ""].filter(Boolean).join(" · ");
-                      return (
-                        <View key={`${section.key}-${index}`}>
-                          <Text style={styles.bodyText}>• {item.text}</Text>
-                          {note ? <Text style={styles.smallText}>{note}</Text> : null}
-                        </View>
-                      );
-                    })}
+            {view?.tests.length ? (
+              <Expandable title={labText.title} detail={ALL_TESTS[lang](view.tests.length, view.outside)}>
+                <Text style={styles.smallText}>{view.text.allTestsNote}</Text>
+                {view.tests.map((item) => (
+                  <View key={item.key} style={[styles.listItem, item.status === "critical" && styles.planUrgent]}>
+                    <Text style={styles.listTitle}>{item.name}: {item.value}</Text>
+                    {item.unitHint ? <Text style={styles.smallText}>{item.unitHint}</Text> : null}
+                    <Text style={[styles.smallText, item.attention && styles.labFlagText]}>
+                      {item.label} · {labText.range}: {item.range || labText.noRange}
+                    </Text>
+                    {item.what ? <Text style={styles.bodyText}>{item.what}</Text> : null}
                   </View>
                 ))}
               </Expandable>
             ) : null}
-            <Expandable title={uiText("suggestions", "Wellness suggestions")}>
-              {reportView.suggestions.map((item) => (
-                <Text key={item} style={styles.bodyText}>• {item}</Text>
-              ))}
-            </Expandable>
+            {reportView.labValues.length ? (
+              <Expandable title={uiText("detectedValues", "Detected values")}>
+                <View style={styles.valueGrid}>
+                  {reportView.labValues.map((item) => (
+                    <View key={item.label} style={styles.valueTile}>
+                      <Text style={styles.smallText}>{item.label}</Text>
+                      <Text style={styles.valueNumber}>{item.value} <Text style={styles.smallText}>{item.unit}</Text></Text>
+                    </View>
+                  ))}
+                </View>
+              </Expandable>
+            ) : null}
             {localAnalysis && !localAnalysis.noData ? <FeedbackCard key={localAnalysis.id} baseUrl={API_BASE_URL} language={lang} /> : null}
             <Text style={styles.smallText}>
               {uiText("safetyText", "This is not a diagnosis or treatment plan. A licensed professional should interpret your original report with your full history.")}
@@ -1267,6 +1286,22 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   verdict: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", paddingHorizontal: 16, paddingVertical: 12 },
   verdictScore: { color: INK, fontSize: 44, fontWeight: "800", letterSpacing: -1.5 },
+  summaryBox: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 6, marginBottom: 8 },
+  summaryAttention: { backgroundColor: "#fffbeb", borderColor: "#fde68a" },
+  summaryUrgent: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
+  summaryClear: { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" },
+  summaryEyebrow: { fontSize: 12, fontWeight: "700", letterSpacing: 1, color: SOFT },
+  summaryHeadline: { fontSize: 21, fontWeight: "700", color: "#14302c", lineHeight: 27 },
+  summaryHeadlineUrgent: { color: "#991b1b" },
+  resultCard: { borderWidth: 1, borderColor: "#e5ded3", borderLeftWidth: 5, borderLeftColor: "#d97706", borderRadius: 14, padding: 14, gap: 4, marginBottom: 10, backgroundColor: "#fff" },
+  resultCardCritical: { borderLeftColor: "#b91c1c", backgroundColor: "#fffafa" },
+  resultCardGoal: { borderLeftColor: "#ca8a04" },
+  resultCardHead: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  resultCardLabel: { fontSize: 14, fontWeight: "700", color: "#9a3b17", flexShrink: 1, textAlign: "right" },
+  resultCardLabelCritical: { color: "#b91c1c" },
+  resultCardValue: { fontSize: 20, fontWeight: "700", color: "#14302c" },
+  resultCardQuestion: { marginTop: 8, fontSize: 12, fontWeight: "700", letterSpacing: 0.5, color: SOFT, textTransform: "uppercase" },
+  resultCardAsk: { fontWeight: "600" },
   verdictOutOf: { color: SOFT, fontSize: 15, fontWeight: "600", letterSpacing: 0 },
   verdictLabel: { color: INK, fontSize: 15, fontWeight: "700", flexShrink: 1, textAlign: "right" },
   nextStep: { borderRadius: 16, borderWidth: 1, padding: 14, fontSize: 16, lineHeight: 22, fontWeight: "700" },
