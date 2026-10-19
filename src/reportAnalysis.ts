@@ -21,6 +21,10 @@ export type ReportAnalysis = {
   labValues: LabValue[];
   panelResults: LabPanelResult[];
   ruleRows: TestRow[];
+  // Whether the glucose was taken fasting (null when the report doesn't say).
+  glucoseFasting?: boolean | null;
+  // The report says the blood pressure was measured at home.
+  bpAtHome?: boolean;
   scan: { en: ScanExplanation; es: ScanExplanation } | null;
   scanOnly: boolean;
   // No results could be read, so no score is shown.
@@ -176,7 +180,7 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "What LDL goal is appropriate for me based on my age, family history, blood pressure, and other risks?": "¿Qué meta de LDL es adecuada para mí según mi edad, mis antecedentes familiares, mi presión arterial y otros riesgos?",
       "Does my A1C need repeat testing or a diabetes care plan?": "¿Necesito repetir la prueba de A1C o un plan de atención para la diabetes?",
       "What changes would help lower my A1C safely over the next 3 months?": "¿Qué cambios me ayudarían a bajar mi A1C de forma segura en los próximos 3 meses?",
-      "Should I repeat my vitamin D test, and do I need a supplement? If so, how much should I take and for how long?": "¿Debo repetir la prueba de vitamina D o hablar sobre la dosis y la duración de un suplemento?",
+      "Should I repeat my vitamin D test, and is this level a concern for me?": "¿Debo repetir la prueba de vitamina D o hablar sobre la dosis y la duración de un suplemento?",
       "Which results matter most for me, and when should I repeat labs?": "¿Qué resultados son más importantes para mí y cuándo debo repetir los análisis?",
       "Should I see primary care, a dietitian, or a specialist based on these results?": "Según estos resultados, ¿debo ver a mi médico de cabecera, a un nutricionista o a un especialista?",
       "Which values from my original report should I focus on first?": "¿En qué valores de mi informe original debo fijarme primero?",
@@ -297,7 +301,9 @@ function readLabMeasure(text: string, namePattern: string, maxGap = 24): { value
   if (!match || match.index === undefined) return null;
   const value = Number(match[1]);
   const rest = cutAtNextTest(text.slice(match.index + match[0].length).split("\n")[0].slice(0, 60));
-  return { value, unit: (match[2] || "").replace(/\s+/g, "").toLowerCase(), outside: compareWithPrintedRange(value, rest) };
+  // The unit can come after a previous-result column ("17 L 17 03/2026 mmol/mol").
+  const unit = match[2] || rest.match(/(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl)/i)?.[1] || "";
+  return { value, unit: unit.replace(/\s+/g, "").toLowerCase(), outside: compareWithPrintedRange(value, rest) };
 }
 
 // Reads the reference range printed on the same line after a value ("0-99", "<5.7",
@@ -432,7 +438,23 @@ export function allTestRows(analysis: ReportAnalysis): TestRow[] {
 // The headline count: results outside the range the lab printed, out of every test shown.
 export function outsideRangeCount(analysis: ReportAnalysis): { outside: number; total: number } {
   const rows = allTestRows(analysis);
-  return { outside: rows.filter((row) => OUTSIDE_STATUSES.has(row.status)).length, total: rows.length };
+  // A comparison with a general guide (no range printed) is not "outside the lab's range".
+  return { outside: rows.filter((row) => OUTSIDE_STATUSES.has(row.status) && !((row as TestRow & { generalRange?: boolean }).generalRange && (row.status === "above" || row.status === "below"))).length, total: rows.length };
+}
+
+// Whether the glucose on the report was taken fasting: true, false, or null when not stated.
+function readGlucoseFasting(lower: string): boolean | null {
+  // The result line itself (with a number), not a section heading such as "BLOOD SUGAR".
+  const line = lower.split("\n").find((item) => /glucose|blood sugar|\bfbs\b|\brbs\b|\bfpg\b/.test(item) && /\d/.test(item) && !/a1c/.test(item)) || "";
+  if (/random|non[- ]?fasting|\brbs\b|post[- ]?prandial|\bpp(?:bs)?\b|after (?:a )?meal/.test(line)) return false;
+  if (/fasting|\bfbs\b|\bfpg\b|\bfbg\b/.test(line) || /\bfasting\s*[:=]?\s*(?:yes|y)\b/.test(lower)) return true;
+  if (/\bfasting\s*[:=]?\s*(?:no|n)\b/.test(lower)) return false;
+  return null;
+}
+
+// True when the report text says the blood pressure was measured at home.
+function readBpAtHome(lower: string): boolean {
+  return /(?:home|self[- ]?measured|at home)[^\n]{0,40}(?:blood pressure|\bbp\b)|(?:blood pressure|\bbp\b)[^\n]{0,40}(?:at home|home reading|self[- ]?measured)/.test(lower);
 }
 
 export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
@@ -453,7 +475,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   const vitaminDMatch = lower.match(/vitamin d(?:[\s,]*\(?25[\s-]*(?:hydroxy|oh)\)?)?\D{0,24}\d+(?:\.\d+)?([^\n]{0,60})/i);
   if (vitaminDMatch) vitaminDMatch[1] = cutAtNextTest(vitaminDMatch[1]);
   // European and UK labs report vitamin D in nmol/L; the common 30 ng/mL cut-off is about 75 nmol/L.
-  const vitaminDUnit = vitaminDMatch && /^\s*(?:(?:h|l|hi|lo|high|low|\*)\s+)?nmol\s*\/\s*l/i.test(vitaminDMatch[1]) ? "nmol/L" : "ng/mL";
+  const vitaminDUnit = vitaminDMatch && /^[^a-z]*(?:(?:h|l|hi|lo|high|low|\*)\s+)?(?:[\d.,/\s]*)nmol\s*\/\s*l/i.test(vitaminDMatch[1]) ? "nmol/L" : "ng/mL";
   const vitaminDNg = vitaminD === null ? null : vitaminDUnit === "nmol/L" ? Math.round((vitaminD / 2.496) * 10) / 10 : vitaminD;
   // Follow the range the lab printed; use the common 30 ng/mL target only when none is printed.
   const vitaminDHasRange = Boolean(vitaminDMatch && /\d\s*[-–]\s*\d|[<>≤≥]\s*=?\s*\d/.test(vitaminDMatch[1]));
@@ -547,7 +569,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     if (vitaminDLow) {
       score -= 4;
       findings.push({ label: "Vitamin D", level: "Needs attention", detail: `Vitamin D appears around ${vitaminD} ${vitaminDUnit}.` });
-      questions.push("Should I repeat my vitamin D test, and do I need a supplement? If so, how much should I take and for how long?");
+      questions.push("Should I repeat my vitamin D test, and is this level a concern for me?");
     } else if (outside.vitaminD) {
       score -= 2;
       findings.push({ label: "Vitamin D", level: OUTSIDE_LAB_RANGE[outside.vitaminD], detail: `Vitamin D appears around ${vitaminD} ${vitaminDUnit}.${labRangeDetail("vitaminD")}` });
@@ -669,6 +691,8 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     riskAreas,
     labValues,
     panelResults,
+    glucoseFasting: readGlucoseFasting(lower),
+    bpAtHome: readBpAtHome(lower),
     ruleRows: buildRuleRows(lower, labValues, outside, vitaminDHasRange && vitaminDMatch ? vitaminDMatch[1].match(RANGE_PATTERN)?.[0].replace(/\s+/g, " ").trim() || "" : ""),
     scan,
     scanOnly,

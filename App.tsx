@@ -902,7 +902,7 @@ export default function App() {
                 <Text style={styles.summaryEyebrow}>{view.title.toUpperCase()}</Text>
                 <Text style={[styles.summaryHeadline, view.urgent && styles.summaryHeadlineUrgent]}>{view.headline}</Text>
                 {view.body.map((line) => <Text key={line} style={styles.bodyText}>{line}</Text>)}
-                {view.count ? <Text style={styles.smallText}>{view.count}</Text> : null}
+                {localAnalysis && !localAnalysis.noData ? <Text style={[styles.bodyText, styles.summaryNext]}>{NEXT_STEP[lang][risk]}</Text> : null}
               </View>
             ) : (
               <View style={styles.verdict}>
@@ -914,7 +914,7 @@ export default function App() {
                 </Text>
               </View>
             )}
-            {localAnalysis && !localAnalysis.noData ? (
+            {localAnalysis && !localAnalysis.noData && !(view && (view.headline || view.body.length)) ? (
               <Text style={[styles.nextStep, risk === "urgent" ? styles.nextUrgent : risk === "needs_review" ? styles.nextReview : risk === "attention" ? styles.nextAttention : styles.nextRoutine]}>
                 {NEXT_STEP[lang][risk]}
               </Text>
@@ -949,9 +949,24 @@ export default function App() {
                 <Text style={styles.resultCardValue}>{card.value}</Text>
                 {card.unitHint ? <Text style={styles.smallText}>{card.unitHint}</Text> : null}
                 <Text style={styles.smallText}>{card.rangeLabel}: {card.range || view.text.noRangePrinted}</Text>
+                {card.note ? <Text style={styles.smallText}>{card.note}</Text> : null}
                 {card.what ? <><Text style={styles.resultCardQuestion}>{view.text.whatIs}</Text><Text style={styles.bodyText}>{card.what}</Text></> : null}
                 {card.meaning ? <><Text style={styles.resultCardQuestion}>{view.text.whatMeans}</Text><Text style={styles.bodyText}>{card.meaning}</Text></> : null}
                 {card.ask ? <><Text style={styles.resultCardQuestion}>{view.text.askDoctor}</Text><Text style={[styles.bodyText, styles.resultCardAsk]}>“{card.ask}”</Text></> : null}
+              </View>
+            ))}
+            {view?.other.length ? <Text style={styles.listTitle}>{view.text.otherTitle}</Text> : null}
+            {view?.other.map((item) => (
+              <View key={item.key} style={[styles.resultCard, styles.resultCardOther, item.tone === "out" ? styles.resultCardGoal : item.tone === "critical" ? styles.resultCardCritical : null]}>
+                <View style={styles.resultCardHead}>
+                  <Text style={[styles.listTitle, styles.flex]}>{item.name}</Text>
+                  <Text style={styles.resultCardLabel}>{item.label}</Text>
+                </View>
+                <Text style={styles.resultCardValue}>{item.value}</Text>
+                <Text style={styles.smallText}>{item.note}</Text>
+                {item.what ? <><Text style={styles.resultCardQuestion}>{view.text.whatIs}</Text><Text style={styles.bodyText}>{item.what}</Text></> : null}
+                {item.meaning ? <><Text style={styles.resultCardQuestion}>{view.text.whatMeans}</Text><Text style={styles.bodyText}>{item.meaning}</Text></> : null}
+                {item.ask ? <><Text style={styles.resultCardQuestion}>{view.text.askDoctor}</Text><Text style={[styles.bodyText, styles.resultCardAsk]}>“{item.ask}”</Text></> : null}
               </View>
             ))}
             {view && personalPlan ? (
@@ -968,8 +983,13 @@ export default function App() {
                 ))}
                 <Text style={styles.smallText}>{view.text.stepsNote}</Text>
                 {view.more.length ? (
-                  <Expandable title={view.text.moreIdeas} detail={String(view.more.length)}>
-                    {view.more.map((item) => <Text key={item} style={styles.bodyText}>• {item}</Text>)}
+                  <Expandable title={view.text.moreIdeas} detail={String(view.more.reduce((total, group) => total + group.items.length, 0))}>
+                    {view.more.map((group) => (
+                      <View key={group.title}>
+                        <Text style={styles.resultCardQuestion}>{group.title}</Text>
+                        {group.items.map((item) => <Text key={item} style={styles.bodyText}>• {item}</Text>)}
+                      </View>
+                    ))}
                   </Expandable>
                 ) : null}
               </View>
@@ -1293,6 +1313,8 @@ const styles = StyleSheet.create({
   summaryEyebrow: { fontSize: 12, fontWeight: "700", letterSpacing: 1, color: SOFT },
   summaryHeadline: { fontSize: 21, fontWeight: "700", color: "#14302c", lineHeight: 27 },
   summaryHeadlineUrgent: { color: "#991b1b" },
+  summaryNext: { fontWeight: "700", marginTop: 4 },
+  resultCardOther: { borderLeftColor: "#64748b" },
   resultCard: { borderWidth: 1, borderColor: "#e5ded3", borderLeftWidth: 5, borderLeftColor: "#d97706", borderRadius: 14, padding: 14, gap: 4, marginBottom: 10, backgroundColor: "#fff" },
   resultCardCritical: { borderLeftColor: "#b91c1c", backgroundColor: "#fffafa" },
   resultCardGoal: { borderLeftColor: "#ca8a04" },
