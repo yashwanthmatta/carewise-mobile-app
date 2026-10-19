@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.carewise.app",
+      "bundleIdentifier": "com.followthroughhealth.app",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.carewise.app",
+      "package": "com.followthroughhealth.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

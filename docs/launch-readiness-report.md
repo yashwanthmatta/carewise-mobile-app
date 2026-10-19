@@ -7,8 +7,8 @@ Generated from the local mobile project configuration.
 - App name: CareWise AI
 - Expo name: CareWise
 - Version: 0.1.0
-- iOS bundle ID: com.carewise.app
-- Android package: com.carewise.app
+- iOS bundle ID: com.followthroughhealth.app
+- Android package: com.followthroughhealth.app
 - iOS build number: 1
 - Android version code: 1
 - Backend API: https://carewise-api.onrender.com

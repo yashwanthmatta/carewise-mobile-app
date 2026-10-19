@@ -39,8 +39,8 @@ const appReviewTestPlan = readText("src/appReviewTestPlan.md");
 
 assert(app.name === "FollowThrough Health", "Expo app name must be FollowThrough Health");
 assert(app.slug === "carewise", "Expo slug must be carewise");
-assert(app.ios?.bundleIdentifier === "com.carewise.app", "iOS bundle identifier is missing");
-assert(app.android?.package === "com.carewise.app", "Android package is missing");
+assert(app.ios?.bundleIdentifier === "com.followthroughhealth.app", "iOS bundle identifier is missing");
+assert(app.android?.package === "com.followthroughhealth.app", "Android package is missing");
 assert(app.ios?.buildNumber, "iOS buildNumber is missing");
 assert(Number.isInteger(app.android?.versionCode), "Android versionCode is missing");
 assert(app.extra?.apiBaseUrl?.startsWith("https://"), "Production API URL must use HTTPS");
