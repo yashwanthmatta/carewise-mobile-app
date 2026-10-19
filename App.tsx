@@ -25,7 +25,9 @@ import {
 import {
   REPORT_LANGUAGES,
   SAMPLE_REPORT_TEXT,
+  allTestRows,
   analyzeReportTextLocally,
+  outsideRangeCount,
   buildDoctorBriefText,
   reportUiText,
   translateReportAnalysis,
@@ -883,16 +885,17 @@ export default function App() {
         {screen === "reports" && reportView ? (() => {
           const lang = reportLanguage === "es" ? "es" : "en";
           const labText = LAB_PANEL_TEXT[lang];
-          const panel = localAnalysis?.panelResults || [];
-          const outside = panel.filter((item) => item.status !== "within" && item.status !== "unknown").length;
+          const panel = localAnalysis ? allTestRows(localAnalysis) : [];
+          const counts = localAnalysis ? outsideRangeCount(localAnalysis) : { outside: 0, total: 0 };
+          const outside = counts.outside;
           const risk = reportView.riskLevel;
           return (
           <View style={styles.card}>
             <Text style={styles.eyebrow}>{uiText("eyebrow", "FollowThrough Health explanation")}</Text>
             <View style={styles.verdict}>
               <Text style={styles.verdictScore}>
-                {localAnalysis?.noData ? "—" : localAnalysis?.scanOnly ? SCAN_TEXT[lang].scoreLabel : String(reportView.score)}
-                {localAnalysis?.noData || localAnalysis?.scanOnly ? null : <Text style={styles.verdictOutOf}> /100</Text>}
+                {localAnalysis?.noData ? "—" : localAnalysis?.scanOnly ? SCAN_TEXT[lang].scoreLabel : String(counts.outside)}
+                {localAnalysis?.noData || localAnalysis?.scanOnly || !counts.total ? null : <Text style={styles.verdictOutOf}>{lang === "es" ? ` de ${counts.total} fuera de rango` : ` of ${counts.total} outside range`}</Text>}
               </Text>
               <Text style={styles.verdictLabel}>
                 {localAnalysis?.noData
@@ -995,12 +998,12 @@ export default function App() {
                 <Text style={styles.smallText}>{labText.note}</Text>
                 {panel.map((item) => {
                   const t = labText;
-                  const info = labTestInfo(item.key);
+                  const info = item.rule ? null : labTestInfo(item.key);
                   const flagged = item.status !== "within" && item.status !== "unknown";
                   return (
                     <View key={item.key} style={[styles.listItem, item.status === "critical" && styles.planUrgent]}>
                       <Text style={styles.listTitle}>
-                        {reportLanguage === "es" && info ? info.es : item.name}: {`${item.valueText} ${item.unit}`.trim()}
+                        {reportLanguage === "es" ? (info ? info.es : translateReportText(item.name, reportLanguage)) : item.name}: {`${item.valueText} ${item.unit}`.trim()}
                       </Text>
                       <Text style={[styles.smallText, flagged && styles.labFlagText]}>
                         {t[`status_${item.status}` as keyof typeof t]} · {t.range}: {item.rangeText || t.noRange}

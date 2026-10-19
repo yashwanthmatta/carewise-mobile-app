@@ -1,5 +1,5 @@
 import { LAB_TESTS, labTestInfo } from "./labPanel";
-import { translateReportAnalysis, type ReportAnalysis } from "./reportAnalysis";
+import { outsideRangeCount, translateReportAnalysis, type ReportAnalysis } from "./reportAnalysis";
 import { buildPersonalPlan, type PlanSection } from "./personalPlan";
 
 // Built-in help answers, used when the online helper is off or unreachable. They come
@@ -82,9 +82,12 @@ function resultAnswer(analysis: ReportAnalysis | null, es: boolean): string {
   }
   const view = es ? translateReportAnalysis(analysis, "es") : analysis;
   const lines: string[] = [];
+  const counts = outsideRangeCount(analysis);
   lines.push(analysis.scanOnly
     ? (es ? "Es un informe de imagen. FollowThrough Health explica las palabras del radiólogo; no mira las imágenes." : "This is a scan report. FollowThrough Health explains the radiologist's words; it does not look at the images.")
-    : (es ? `Puntuación de salud: ${analysis.score}/100 (estimación educativa).` : `Health score: ${analysis.score}/100 (an educational estimate).`));
+    : counts.total
+      ? (es ? `${counts.outside} de ${counts.total} resultados fuera del rango del laboratorio.` : `${counts.outside} of ${counts.total} results outside the lab's range.`)
+      : (es ? "No se leyeron resultados con rango para comparar." : "No results with a range to compare were read."));
   const flagged = view.findings.filter((item) => !/better range|within|mejor rango|dentro/i.test(item.level)).slice(0, 3);
   if (flagged.length) lines.push((es ? "Lo que necesita atención: " : "What needs attention: ") + flagged.map((item) => `${item.label} (${item.level.toLowerCase()})`).join("; ") + ".");
   const outside = analysis.panelResults.filter((item) => item.status === "above" || item.status === "below");

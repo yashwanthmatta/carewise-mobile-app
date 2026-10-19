@@ -1,5 +1,5 @@
 import { SCAN_TEXT, explainScanReport, type ScanExplanation } from "./scanReport";
-import { LAB_TEST_NAMES_ES, cutAtNextTest, normalizeReportText, readLabPanel, type LabPanelResult } from "./labPanel";
+import { LAB_TEST_NAMES_ES, RANGE_PATTERN, cutAtNextTest, normalizeReportText, readLabPanel, type LabPanelResult, type LabPanelStatus } from "./labPanel";
 // On-device report explanation, shared with the FollowThrough Health web app.
 // Generated from carewise-frontend/script.js (analyzeReportTextLocally and the
 // Spanish report translations); keep the two in sync when either changes.
@@ -7,6 +7,9 @@ import { LAB_TEST_NAMES_ES, cutAtNextTest, normalizeReportText, readLabPanel, ty
 export type ReportLanguage = "en" | "es";
 export type Finding = { label: string; level: string; detail: string };
 export type LabValue = { label: string; value: number | string; unit: string; flag: string };
+// One row of "All tests on your report". Rule rows are the tests read by their own rules
+// (cholesterol, triglycerides, A1C, vitamin D); panel rows come from readLabPanel.
+export type TestRow = { key: string; name: string; valueText: string; unit: string; rangeText: string; status: LabPanelStatus | "target_above" | "target_below"; rule?: boolean };
 export type ReportAnalysis = {
   id: string;
   score: number;
@@ -17,6 +20,7 @@ export type ReportAnalysis = {
   riskAreas: { heart: string; diabetes: string; vitamins: string };
   labValues: LabValue[];
   panelResults: LabPanelResult[];
+  ruleRows: TestRow[];
   scan: { en: ScanExplanation; es: ScanExplanation } | null;
   scanOnly: boolean;
   // No results could be read, so no score is shown.
@@ -378,6 +382,57 @@ function buildDetectedReportValues({ ldl, totalCholesterol, triglycerides, a1c, 
   return values.filter((item): item is LabValue => item !== null);
 }
 
+function printedRangeFor(text: string, namePattern: string, maxGap = 24): string {
+  const match = text.match(new RegExp(`${namePattern}\\D{0,${maxGap}}?${LAB_FOOTNOTE}(?<![a-z])(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
+  if (!match || match.index === undefined) return "";
+  const rest = cutAtNextTest(text.slice(match.index + match[0].length).split("\n")[0].slice(0, 60));
+  return rest.match(RANGE_PATTERN)?.[0].replace(/\s+/g, " ").trim() || "";
+}
+
+const PRINTED_UNIT_LABEL: Record<string, string> = { "mmol/l": "mmol/L", "mmol/mol": "mmol/mol", "mg/dl": "mg/dL", "%": "%" };
+
+// Rows for the tests read by their own rules, shaped like lab panel rows so "All tests on
+// your report" lists every result the headline counts. Status follows the lab's printed
+// range; a value inside it that misses a common target is "usual target", which is
+// explained but not counted as outside.
+function buildRuleRows(lower: string, labValues: LabValue[], outside: OutsideMap, vitaminDRange: string): TestRow[] {
+  const specs: Record<string, { key: keyof OutsideMap; pattern?: string; gap?: number }> = {
+    "LDL cholesterol": { key: "ldl", pattern: String.raw`\bldl(?: cholesterol)?` },
+    "Total cholesterol": { key: "totalCholesterol", pattern: String.raw`(?:total cholesterol|cholesterol,?\s*total)` },
+    Triglycerides: { key: "triglycerides", pattern: "triglycerides" },
+    A1C: { key: "a1c", pattern: String.raw`(?:hemoglobin\s*)?a1c`, gap: 40 },
+    "Vitamin D": { key: "vitaminD" },
+  };
+  return labValues.filter((item) => specs[item.label]).map((item) => {
+    const spec = specs[item.label];
+    const measure = spec.pattern ? readLabMeasure(lower, spec.pattern, spec.gap) : null;
+    const rangeText = spec.pattern ? printedRangeFor(lower, spec.pattern, spec.gap) : vitaminDRange;
+    const printedUnit = measure?.unit ? PRINTED_UNIT_LABEL[measure.unit] || measure.unit : "";
+    const converted = Boolean(measure && printedUnit && printedUnit.toLowerCase() !== String(item.unit).toLowerCase());
+    const valueText = converted && measure ? `${measure.value} ${printedUnit} (about ${item.value} ${item.unit})` : `${item.value} ${item.unit}`;
+    const inRange = /in range discussion/i.test(item.flag);
+    const lowIsBad = item.label === "Vitamin D";
+    let status: TestRow["status"] = "within";
+    const side = outside[spec.key];
+    if (side) status = side;
+    // Flagged only by a general guideline, not by the range the lab printed.
+    else if (!inRange) status = lowIsBad ? "target_below" : "target_above";
+    return { key: spec.key, name: item.label, valueText, unit: "", rangeText, status, rule: true };
+  });
+}
+
+const OUTSIDE_STATUSES = new Set(["above", "below", "critical", "outside"]);
+
+export function allTestRows(analysis: ReportAnalysis): TestRow[] {
+  return [...(analysis.ruleRows || []), ...(analysis.panelResults || [])];
+}
+
+// The headline count: results outside the range the lab printed, out of every test shown.
+export function outsideRangeCount(analysis: ReportAnalysis): { outside: number; total: number } {
+  const rows = allTestRows(analysis);
+  return { outside: rows.filter((row) => OUTSIDE_STATUSES.has(row.status)).length, total: rows.length };
+}
+
 export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   // Decimal commas ("1,4"), thousands commas and common misspellings are fixed first.
   const text = normalizeReportText(rawText);
@@ -612,6 +667,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     riskAreas,
     labValues,
     panelResults,
+    ruleRows: buildRuleRows(lower, labValues, outside, vitaminDHasRange && vitaminDMatch ? vitaminDMatch[1].match(RANGE_PATTERN)?.[0].replace(/\s+/g, " ").trim() || "" : ""),
     scan,
     scanOnly,
     noData,
