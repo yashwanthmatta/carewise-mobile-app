@@ -29,7 +29,7 @@ type LabTest = { key: string; name: string; es: string; aliases: string[]; what:
 // Tests handled by the main report reader (LDL, total cholesterol, triglycerides,
 // A1C, vitamin D, blood pressure) are deliberately not listed here.
 export const LAB_TESTS: LabTest[] = [
-  { key: "wbc", name: "White blood cells", es: "Glóbulos blancos", aliases: ["white blood cell count", "white blood cells", "white cell count", "wbc", "leukocytes", "leucocytes"], what: "Cells that fight infection.", whatEs: "Células que combaten las infecciones." },
+  { key: "wbc", name: "White blood cells", es: "Glóbulos blancos", aliases: ["white blood cell count", "white blood cells", "white cell count", "wbc", "leukocytes", "leucocytes", "total leucocyte count", "total leukocyte count", "leucocyte count", "leukocyte count"], what: "Cells that fight infection.", whatEs: "Células que combaten las infecciones." },
   { key: "rbc", name: "Red blood cells", es: "Glóbulos rojos", aliases: ["red blood cell count", "red blood cells", "red cell count", "rbc", "erythrocytes"], what: "Cells that carry oxygen around the body.", whatEs: "Células que llevan oxígeno por el cuerpo." },
   { key: "hemoglobin", name: "Hemoglobin", es: "Hemoglobina", aliases: ["hemoglobin(?![\\s(]*(?:hb)?a1c)", "haemoglobin(?![\\s(]*(?:hb)?a1c)", "hgb", "hb(?!a1c)"], what: "The protein in red blood cells that carries oxygen; low levels can mean anemia.", whatEs: "La proteína de los glóbulos rojos que lleva oxígeno; si está baja puede indicar anemia." },
   { key: "hematocrit", name: "Hematocrit", es: "Hematocrito", aliases: ["hematocrit", "haematocrit", "hct", "packed cell volume"], what: "The share of your blood made up of red blood cells.", whatEs: "La parte de la sangre formada por glóbulos rojos." },
