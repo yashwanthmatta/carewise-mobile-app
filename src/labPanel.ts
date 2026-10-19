@@ -86,7 +86,7 @@ export const LAB_TESTS: LabTest[] = [
 ];
 
 const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|gm\/dl|g\/dl|g\/l|mg\/l|lakhs?\s?\/\s?(?:cu\.?\s?mm|[uµμ]l)|lakhs?|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|ng\/l|pg\/ml|mm\/hr?|seconds|sec|fl|pg|%)/i;
-const RANGE_PATTERN = /(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)|(<=?|>=?|≤|≥)\s*(\d+(?:\.\d+)?)/;
+export const RANGE_PATTERN = /(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)|(<=?|>=?|≤|≥)\s*(\d+(?:\.\d+)?)/;
 const FLAG_PATTERN = /(?:^|[\s(])(HH|LL|H|L|High|Low|HIGH|LOW|Critical|CRITICAL|CRIT|Panic|PANIC|Abnormal|ABNORMAL)(?=[\s*)]|$)/;
 const COMPILED = LAB_TESTS.map((test) => ({ test, patterns: test.aliases.map((alias) => new RegExp(`\\b${alias}\\b`, "i")) }));
 
@@ -310,7 +310,9 @@ export const LAB_PANEL_TEXT = {
     status_below: "Below the lab's range",
     status_critical: "Marked critical by the lab",
     status_outside: "Marked abnormal by the lab",
-    status_unknown: "No range printed"
+    status_unknown: "No range printed",
+    status_target_above: "Above the usual target",
+    status_target_below: "Below the usual target"
   },
   es: {
     title: "Todas las pruebas de su informe",
@@ -326,7 +328,9 @@ export const LAB_PANEL_TEXT = {
     status_below: "Por debajo del rango del laboratorio",
     status_critical: "Marcado como crítico por el laboratorio",
     status_outside: "Marcado como anormal por el laboratorio",
-    status_unknown: "Sin rango impreso"
+    status_unknown: "Sin rango impreso",
+    status_target_above: "Por encima del objetivo habitual",
+    status_target_below: "Por debajo del objetivo habitual"
   }
 };
 

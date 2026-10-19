@@ -1,6 +1,6 @@
 import { buildRecordSummary, getRecordFor, type HealthRecordItem } from "./healthRecord";
 import { LAB_PANEL_TEXT } from "./labPanel";
-import type { ReportAnalysis } from "./reportAnalysis";
+import { allTestRows, type ReportAnalysis } from "./reportAnalysis";
 
 // The read-only summary sent with "Share with my doctor". Same shape as the website's,
 // always in English, and only what the family already sees on the result.
@@ -26,7 +26,7 @@ export function buildShareSnapshot(analysis: ReportAnalysis, person: string, rec
     next_step: NEXT_STEP[analysis.riskLevel] ?? "",
     findings: analysis.findings.map((item) => ({ label: item.label, level: item.level, detail: item.detail })),
     values: analysis.labValues.map((item) => ({ label: item.label, value: String(item.value), unit: item.unit || "", flag: item.flag || "" })),
-    panel: analysis.panelResults.map((item) => ({
+    panel: allTestRows(analysis).map((item) => ({
       name: item.name,
       result: `${item.valueText} ${item.unit || ""}`.trim(),
       range: item.rangeText || "",
