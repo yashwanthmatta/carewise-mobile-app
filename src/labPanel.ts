@@ -186,8 +186,19 @@ export function normalizeReportText(text: string): string {
 // Split those into parts; lab rows (which print a range) and "Cholesterol, Total 226" stay whole.
 function splitTypedLine(line: string): string[] {
   const numbers = line.match(/\d+(?:\.\d+)?/g) || [];
-  if (numbers.length < 3 || /\d\s*(?:-|–|to)\s*\d/.test(line)) return [line];
-  return line.split(/\s*(?:[,;]|\band\b)\s*(?=[a-z])/i);
+  if (numbers.length < 3 || /\d\s*(?:-|–|to)\s*\d|[<>≤≥]=?\s*\d/.test(line)) return [line];
+  // A piece with no number is part of the next test's name ("PSA, Total 4.6"), so it is kept with it.
+  const pieces = line.split(/(\s*(?:[,;]|\band\b)\s*(?=[a-z]))/i);
+  const parts: string[] = [];
+  let current = pieces[0];
+  for (let i = 1; i < pieces.length; i += 2) {
+    if (/\d/.test(current)) {
+      parts.push(current);
+      current = pieces[i + 1];
+    } else current += pieces[i] + pieces[i + 1];
+  }
+  parts.push(current);
+  return parts;
 }
 
 // One result per test; each line is matched to the test named earliest on it.
@@ -209,7 +220,7 @@ function splitSideBySide(line: string): string[] {
   let previousEnd = names[0].end;
   names.slice(1).forEach((name) => {
     if (name.index < previousEnd) return;
-    if (/\d/.test(line.slice(previousEnd, name.index)) && /^[^\d\n<>()]{0,25}\d/.test(line.slice(name.end)) && !/\bref/i.test(line.slice(name.end, name.end + 25)) && depthBefore(line, name.index) === 0) {
+    if (/\d/.test(line.slice(previousEnd, name.index)) && /^[^\d\n<>()]{0,25}(?:\([^)\n]{1,20}\)[^\d\n<>()]{0,10})?\d/.test(line.slice(name.end)) && !/\bref/i.test(line.slice(name.end, name.end + 25)) && depthBefore(line, name.index) === 0) {
       cuts.push(name.index);
       previousEnd = name.end;
     }
@@ -225,7 +236,7 @@ export function cutAtNextTest(rest: string): string {
   COMPILED_GLOBAL.forEach((pattern) => {
     for (const match of rest.matchAll(pattern)) {
       const index = match.index ?? 0;
-      if (index < cut && /^[^\d\n<>()]{0,25}\d/.test(rest.slice(index + match[0].length)) && depthBefore(rest, index) === 0) cut = index;
+      if (index < cut && /^[^\d\n<>()]{0,25}(?:\([^)\n]{1,20}\)[^\d\n<>()]{0,10})?\d/.test(rest.slice(index + match[0].length)) && depthBefore(rest, index) === 0) cut = index;
     }
   });
   return rest.slice(0, cut);
