@@ -201,6 +201,21 @@ function splitTypedLine(line: string): string[] {
   return parts;
 }
 
+// A long test name can wrap in a PDF table cell, leaving the name on the line above its
+// value ("Sed Rate by Modified" / "12 mm/h 0-20"). Join a short line with no numbers to
+// the next line when that line starts with the value.
+function joinWrappedNames(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!/\d/.test(line) && line.trim().length > 1 && line.trim().length <= 40 && /^\s*[<>]?\d/.test(lines[i + 1] || "")) {
+      out.push(`${line.trim()} ${lines[i + 1].trim()}`);
+      i += 1;
+    } else out.push(line);
+  }
+  return out;
+}
+
 // One result per test; each line is matched to the test named earliest on it.
 // Some reports print two tests side by side ("Sodium 139 136-145   Potassium 5.6 H 3.5-5.1").
 // Split before a later test name when a number sits between it and the previous one and
@@ -245,7 +260,7 @@ export function cutAtNextTest(rest: string): string {
 export function readLabPanel(text: string): LabPanelResult[] {
   const results: LabPanelResult[] = [];
   const seen = new Set<string>();
-  normalizeReportText(text).split(/\r?\n/).flatMap(splitTypedLine).flatMap(splitSideBySide).forEach((line) => {
+  joinWrappedNames(normalizeReportText(text).split(/\r?\n/)).flatMap(splitTypedLine).flatMap(splitSideBySide).forEach((line) => {
     let best: { test: LabTest; index: number; length: number } | null = null;
     COMPILED.forEach(({ test, patterns }) => {
       if (seen.has(test.key)) return;
