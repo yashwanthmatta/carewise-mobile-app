@@ -18,7 +18,7 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSDocumentsFolderUsageDescription": "CareWise lets you choose health report files that you want to upload for simple-language explanation."
+        "NSDocumentsFolderUsageDescription": "FollowThrough Health lets you choose a health report file to explain in simple language."
       }
     },
     "android": {

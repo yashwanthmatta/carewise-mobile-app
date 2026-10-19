@@ -40,11 +40,11 @@ Generated from the local mobile project configuration.
 
 - Apple category: Health & Fitness
 - Google Play category: Health & Fitness
-- Support URL: https://carewise-frontend.onrender.com/legal/data-deletion.html
-- Privacy Policy URL: https://carewise-frontend.onrender.com/legal/privacy.html
-- Terms URL: https://carewise-frontend.onrender.com/legal/terms.html
-- Medical Disclaimer URL: https://carewise-frontend.onrender.com/legal/disclaimer.html
-- Data Deletion URL: https://carewise-frontend.onrender.com/legal/data-deletion.html
+- Support URL: https://followthroughhealth.com/legal/data-deletion.html
+- Privacy Policy URL: https://followthroughhealth.com/legal/privacy.html
+- Terms URL: https://followthroughhealth.com/legal/terms.html
+- Medical Disclaimer URL: https://followthroughhealth.com/legal/disclaimer.html
+- Data Deletion URL: https://followthroughhealth.com/legal/data-deletion.html
 
 ## Screenshot Plan
 

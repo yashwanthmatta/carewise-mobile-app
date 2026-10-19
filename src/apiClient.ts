@@ -408,6 +408,11 @@ export class CareWiseApiClient {
     return this.request<PrivacyExportSummaryOut>("/privacy/me/export-summary");
   }
 
+  // Deletes the account and everything saved with it on the server, straight away.
+  deleteAccount() {
+    return this.request<{ status: string; deletion_request_id: string }>("/privacy/me", { method: "DELETE" });
+  }
+
   requestDataDeletion(reason: string) {
     return this.request<DataDeletionRequestOut>("/privacy/me/delete-request", {
       method: "POST",

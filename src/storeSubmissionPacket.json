@@ -12,11 +12,11 @@
     "Health report uploads and wellness education only"
   ],
   "support": {
-    "url": "https://carewise-frontend.onrender.com/legal/data-deletion.html",
-    "privacyPolicyUrl": "https://carewise-frontend.onrender.com/legal/privacy.html",
-    "termsUrl": "https://carewise-frontend.onrender.com/legal/terms.html",
-    "medicalDisclaimerUrl": "https://carewise-frontend.onrender.com/legal/disclaimer.html",
-    "dataDeletionUrl": "https://carewise-frontend.onrender.com/legal/data-deletion.html"
+    "url": "https://followthroughhealth.com/legal/data-deletion.html",
+    "privacyPolicyUrl": "https://followthroughhealth.com/legal/privacy.html",
+    "termsUrl": "https://followthroughhealth.com/legal/terms.html",
+    "medicalDisclaimerUrl": "https://followthroughhealth.com/legal/disclaimer.html",
+    "dataDeletionUrl": "https://followthroughhealth.com/legal/data-deletion.html"
   },
   "reviewNotes": [
     "FollowThrough Health explains uploaded health reports in simple language for education and visit preparation.",

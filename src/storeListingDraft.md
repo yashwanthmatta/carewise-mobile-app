@@ -32,8 +32,8 @@ health report, lab results, wellness, health tracker, care plan, medical notes, 
 
 ## Support URL
 
-https://carewise-frontend.onrender.com/legal/data-deletion.html
+https://followthroughhealth.com/legal/data-deletion.html
 
 ## Privacy Policy URL
 
-https://carewise-frontend.onrender.com/legal/privacy.html
+https://followthroughhealth.com/legal/privacy.html
