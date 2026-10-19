@@ -1,5 +1,5 @@
 import { SCAN_TEXT, explainScanReport, type ScanExplanation } from "./scanReport";
-import { LAB_TEST_NAMES_ES, normalizeReportText, readLabPanel, type LabPanelResult } from "./labPanel";
+import { LAB_TEST_NAMES_ES, cutAtNextTest, normalizeReportText, readLabPanel, type LabPanelResult } from "./labPanel";
 // On-device report explanation, shared with the FollowThrough Health web app.
 // Generated from carewise-frontend/script.js (analyzeReportTextLocally and the
 // Spanish report translations); keep the two in sync when either changes.
@@ -291,7 +291,7 @@ function readLabMeasure(text: string, namePattern: string, maxGap = 24): { value
   const match = text.match(new RegExp(`${namePattern}\\D{0,${maxGap}}?${LAB_FOOTNOTE}(?<![a-z])(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
   if (!match || match.index === undefined) return null;
   const value = Number(match[1]);
-  const rest = text.slice(match.index + match[0].length).split("\n")[0].slice(0, 60);
+  const rest = cutAtNextTest(text.slice(match.index + match[0].length).split("\n")[0].slice(0, 60));
   return { value, unit: (match[2] || "").replace(/\s+/g, "").toLowerCase(), outside: compareWithPrintedRange(value, rest) };
 }
 
@@ -394,6 +394,7 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   const systolic = readReportNumber(lower, [/(?:blood pressure|\bbp\b)\D{0,60}(\d{2,3})\s*\/\s*\d{2,3}/i]);
   const diastolic = readReportNumber(lower, [/(?:blood pressure|\bbp\b)\D{0,60}\d{2,3}\s*\/\s*(\d{2,3})/i]);
   const vitaminDMatch = lower.match(/vitamin d(?:[\s,]*\(?25[\s-]*(?:hydroxy|oh)\)?)?\D{0,24}\d+(?:\.\d+)?([^\n]{0,60})/i);
+  if (vitaminDMatch) vitaminDMatch[1] = cutAtNextTest(vitaminDMatch[1]);
   // European and UK labs report vitamin D in nmol/L; the common 30 ng/mL cut-off is about 75 nmol/L.
   const vitaminDUnit = vitaminDMatch && /^\s*nmol\s*\/\s*l/i.test(vitaminDMatch[1]) ? "nmol/L" : "ng/mL";
   const vitaminDNg = vitaminD === null ? null : vitaminDUnit === "nmol/L" ? Math.round((vitaminD / 2.496) * 10) / 10 : vitaminD;
