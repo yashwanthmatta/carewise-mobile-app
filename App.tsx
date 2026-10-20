@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  AppState,
   Linking,
   Pressable,
   SafeAreaView,
@@ -46,6 +47,7 @@ import { HelpChat } from "./src/HelpChat";
 import { buildShareSnapshot, shareViewerLink } from "./src/doctorShare";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
+const PAUSE_KEY = "carewise_explanations_paused";
 const ACCESS_TOKEN_KEY = "carewise.accessToken";
 const REFRESH_TOKEN_KEY = "carewise.refreshToken";
 const MIN_PASSWORD_LENGTH = 12;
@@ -160,18 +162,31 @@ export default function App() {
   const [planReactions, setPlanReactions] = useState<string[]>([]);
   const [reportLanguage, setReportLanguage] = useState<ReportLanguage>("en");
   // Safety switch: the team can pause report explanations from the server (/features).
+  // The last answer is remembered, so a phone that is offline keeps a pause in force, and the
+  // switch is checked again whenever the app comes back to the foreground or explains a report.
   const [explanationsPaused, setExplanationsPaused] = useState(false);
+  async function refreshExplanationsPause() {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(`${API_BASE_URL}/features`, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!response.ok) throw new Error(`features ${response.status}`);
+      const paused = (await response.json())?.report_explanations === false;
+      setExplanationsPaused(paused);
+      await SecureStore.setItemAsync(PAUSE_KEY, paused ? "1" : "0").catch(() => {});
+    } catch {
+      const stored = await SecureStore.getItemAsync(PAUSE_KEY).catch(() => null);
+      if (stored === "1") setExplanationsPaused(true);
+    }
+  }
   useEffect(() => {
-    let active = true;
-    fetch(`${API_BASE_URL}/features`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((features) => {
-        if (active && features && features.report_explanations === false) setExplanationsPaused(true);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
+    SecureStore.getItemAsync(PAUSE_KEY).then((stored) => { if (stored === "1") setExplanationsPaused(true); }).catch(() => {});
+    refreshExplanationsPause();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshExplanationsPause();
+    });
+    return () => subscription.remove();
   }, []);
   const [reportPerson, setReportPerson] = useState("");
   const [labTrends, setLabTrends] = useState<LabTrendOut[]>([]);
@@ -707,6 +722,7 @@ export default function App() {
   }
 
   function explainReportOnDevice() {
+    refreshExplanationsPause();
     if (!reportText.trim()) {
       setStatus("Paste report text or use the sample report first.");
       return;

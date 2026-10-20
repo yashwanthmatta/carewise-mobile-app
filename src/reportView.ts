@@ -7,7 +7,7 @@ import { PLAN_TEXT, type PersonalPlan } from "./personalPlan";
 
 // Version of the interpretation rules and wording below. Change it whenever a rule, threshold or
 // explanation changes, so every output can be traced to the rules that produced it.
-export const EXPLANATION_RULES_VERSION = "2026-10-20.1";
+export const EXPLANATION_RULES_VERSION = "2026-10-20.2";
 
 // Plain-language guide per test: what it is, what a high or low result can mean, and a
 // question for the doctor. Educational wording only: no diagnosis, medicine names or doses.
@@ -92,7 +92,7 @@ export const VIEW_TEXT = {
     allInLabs: "Your lab results are within the lab's ranges",
     dangerLabel: (label: string) => `${label} — a level labs often treat as urgent`,
     dangerMeaning: "Labs often treat a result at this level as urgent, even when it is not flagged. Contact your doctor today, or get emergency care if you feel very unwell.",
-    checkDanger: (name: string) => `If the ${name} number is right, it is at a level labs often treat as urgent: confirm it against your report now, and if it matches, contact your doctor today.`,
+    checkDanger: (name: string) => `If the ${name} number is right, it is at a level labs often treat as urgent: confirm it against your report now. If it matches, or you cannot check, contact your doctor today, and get emergency care if you feel very unwell.`,
     emergencyHeadline: "Your report mentions symptoms that may need emergency care",
     emergencyBody: (terms: string) => `If you have ${terms} now, call 911 or your local emergency number. Do not wait for a doctor's appointment.`,
     emergencyNext: "If these symptoms are happening now, call 911 or your local emergency number.",
@@ -163,7 +163,7 @@ export const VIEW_TEXT = {
     allInLabs: "Sus resultados de laboratorio están dentro de los rangos del laboratorio",
     dangerLabel: (label: string) => `${label} — un nivel que los laboratorios suelen tratar como urgente`,
     dangerMeaning: "Los laboratorios suelen tratar un resultado a este nivel como urgente, aunque no esté marcado. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal.",
-    checkDanger: (name: string) => `Si el número de ${name} es correcto, está a un nivel que los laboratorios suelen tratar como urgente: compárelo ahora con su informe y, si coincide, comuníquese hoy con su médico.`,
+    checkDanger: (name: string) => `Si el número de ${name} es correcto, está a un nivel que los laboratorios suelen tratar como urgente: compárelo ahora con su informe. Si coincide, o no puede comprobarlo, comuníquese hoy con su médico y busque atención de emergencia si se siente muy mal.`,
     emergencyHeadline: "Su informe menciona síntomas que podrían necesitar atención de emergencia",
     emergencyBody: (terms: string) => `Si tiene ${terms} ahora, llame al 911 o al número de emergencias local. No espere a una cita médica.`,
     emergencyNext: "Si estos síntomas están ocurriendo ahora, llame al 911 o al número de emergencias local.",
