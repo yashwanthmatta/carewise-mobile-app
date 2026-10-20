@@ -7,7 +7,7 @@ import { PLAN_TEXT, type PersonalPlan } from "./personalPlan";
 
 // Version of the interpretation rules and wording below. Change it whenever a rule, threshold or
 // explanation changes, so every output can be traced to the rules that produced it.
-export const EXPLANATION_RULES_VERSION = "2026-10-20.2";
+export const EXPLANATION_RULES_VERSION = "2026-10-20.3";
 
 // Plain-language guide per test: what it is, what a high or low result can mean, and a
 // question for the doctor. Educational wording only: no diagnosis, medicine names or doses.
@@ -64,7 +64,8 @@ const TEST_GROUPS: Record<string, { en: string; es: string; keys: string[] }> = 
   blood: { en: "blood count", es: "hemograma", keys: ["wbc", "rbc", "hemoglobin", "hematocrit", "mcv", "mch", "mchc", "rdw", "platelets", "neutrophils", "lymphocytes", "monocytes", "eosinophils", "basophils"] },
   thyroid: { en: "thyroid", es: "tiroides", keys: ["tsh", "ft4", "ft3"] },
   iron: { en: "iron", es: "hierro", keys: ["ferritin", "iron", "tibc"] },
-  vitb: { en: "vitamin B12 and folate", es: "vitamina B12 y folato", keys: ["b12", "folate"] },
+  b12: { en: "vitamin B12", es: "vitamina B12", keys: ["b12"] },
+  folate: { en: "folate", es: "folato", keys: ["folate"] },
   uric: { en: "uric acid", es: "ácido úrico", keys: ["uricacid"] },
   inflammation: { en: "inflammation", es: "inflamación", keys: ["crp", "esr"] },
   clotting: { en: "blood clotting", es: "coagulación", keys: ["inr", "pt"] },
@@ -134,7 +135,7 @@ export const VIEW_TEXT = {
     attentionTitle: "Results to talk about",
     whatIs: "What is it?", whatMeans: "What does this mean?", askDoctor: "Ask your doctor", yourResult: "Your result",
     labRange: "Lab's range", noRangePrinted: "Not printed on your report", generalGuide: "Common guide (no range on your report)",
-    labels: { guideHigh: "High compared with a common guide", guideLow: "Low compared with a common guide", lowLab: "Low — below this lab's range", check: "Check this number", high: "High", low: "Low", in: "In range", none: "No range printed", critical: "Critical", abnormal: "Flagged by the lab", goalAbove: "In range, above a common goal", goalBelow: "In range, below a common goal", pre: "High — prediabetes range", diabetes: "High — diabetes range" },
+    labels: { guideHigh: "High compared with a common guide", guideLow: "Low compared with a common guide", lowLab: "Low — below this lab's range", farHigh: "Far above the lab's range", farLow: "Far below the lab's range", check: "Check this number", high: "High", low: "Low", in: "In range", none: "No range printed", critical: "Critical", abnormal: "Flagged by the lab", goalAbove: "In range, above a common goal", goalBelow: "In range, below a common goal", pre: "High — prediabetes range", diabetes: "High — diabetes range" },
     photoNote: "These numbers were read from a photo, which can misread a decimal point. Check each one against your report before relying on this summary.",
     checkMeaning: "This number may have been misread from the photo, for example a missing decimal point. Compare it with your report and confirm it in the box above the result.",
     checkFirst: (n: number) => `${n === 1 ? "One number" : `${n} numbers`} from your photo may be misread. Please confirm ${n === 1 ? "it" : "them"} against the report first.`,
@@ -205,7 +206,7 @@ export const VIEW_TEXT = {
     attentionTitle: "Resultados para hablar con su médico",
     whatIs: "¿Qué es?", whatMeans: "¿Qué significa?", askDoctor: "Pregunte a su médico", yourResult: "Su resultado",
     labRange: "Rango del laboratorio", noRangePrinted: "No aparece en su informe", generalGuide: "Guía común (su informe no trae rango)",
-    labels: { guideHigh: "Alto según una guía común", guideLow: "Bajo según una guía común", lowLab: "Bajo — por debajo del rango de este laboratorio", check: "Revise este número", high: "Alto", low: "Bajo", in: "En rango", none: "Sin rango impreso", critical: "Crítico", abnormal: "Marcado por el laboratorio", goalAbove: "En rango, por encima de una meta común", goalBelow: "En rango, por debajo de una meta común", pre: "Alto — rango de prediabetes", diabetes: "Alto — rango de diabetes" },
+    labels: { guideHigh: "Alto según una guía común", guideLow: "Bajo según una guía común", lowLab: "Bajo — por debajo del rango de este laboratorio", farHigh: "Muy por encima del rango del laboratorio", farLow: "Muy por debajo del rango del laboratorio", check: "Revise este número", high: "Alto", low: "Bajo", in: "En rango", none: "Sin rango impreso", critical: "Crítico", abnormal: "Marcado por el laboratorio", goalAbove: "En rango, por encima de una meta común", goalBelow: "En rango, por debajo de una meta común", pre: "Alto — rango de prediabetes", diabetes: "Alto — rango de diabetes" },
     photoNote: "Estos números se leyeron de una foto, que puede confundir el punto decimal. Compare cada uno con su informe antes de confiar en este resumen.",
     checkMeaning: "Es posible que este número se haya leído mal en la foto, por ejemplo sin el punto decimal. Compárelo con su informe y confírmelo en el recuadro de arriba.",
     checkFirst: (n: number) => `${n === 1 ? "Un número" : `${n} números`} de su foto ${n === 1 ? "podría estar mal leído" : "podrían estar mal leídos"}. Confírme${n === 1 ? "lo" : "los"} primero con el informe.`,
@@ -250,6 +251,9 @@ export function describeTestRow(row: TestRow, language: "en" | "es", a1cPercent:
   if (row.key === "a1c" && row.status === "above" && a1cPercent !== null) label = a1cPercent >= 6.5 ? t.labels.diabetes : a1cPercent >= 5.7 ? t.labels.pre : label;
   if (row.status === "check") label = t.labels.check;
   if (row.key === "vitaminD" && row.status === "below") label = t.labels.lowLab;
+  // Well beyond the lab's printed range (rule 3): say so, without claiming urgency.
+  const a1cBand = row.key === "a1c" && a1cPercent !== null && a1cPercent >= 5.7;
+  if (row.far && !row.danger && !row.generalRange && !a1cBand && (row.status === "above" || row.status === "below")) label = row.status === "above" ? t.labels.farHigh : t.labels.farLow;
   // No range printed: compared with a common guide, which is not the lab's own range.
   const byGuide = Boolean((row as TestRow & { generalRange?: boolean }).generalRange) && (row.status === "above" || row.status === "below");
   if (byGuide) label = row.status === "above" ? t.labels.guideHigh : t.labels.guideLow;
