@@ -50,6 +50,9 @@ const TEST_GUIDE: Record<string, Record<string, string>> = {
   troponin: { high: "Troponin rises when the heart muscle is stressed or damaged.", highEs: "La troponina sube cuando el músculo del corazón está bajo estrés o dañado.", askHigh: "Do I need to be seen today about my troponin?", askHighEs: "¿Necesito que me vean hoy por mi troponina?" },
 };
 
+// Spanish names for the emergency-care symptoms used in the emergency message.
+const SYMPTOM_NAMES_ES: Record<string, string> = { "chest pain": "dolor de pecho", "trouble breathing": "dificultad para respirar", "shortness of breath": "falta de aire", "difficulty breathing": "dificultad para respirar", "stroke": "señales de derrame cerebral", "face droop": "la cara caída de un lado", "slurred speech": "dificultad para hablar", "arm weakness": "debilidad en un brazo", "weakness on one side": "debilidad en un lado del cuerpo", "sudden numbness": "adormecimiento repentino", "paralysis": "parálisis", "suicide": "pensamientos de suicidio", "overdose": "una sobredosis", "poison": "un envenenamiento", "severe bleeding": "sangrado fuerte", "loss of consciousness": "pérdida del conocimiento", "unconscious": "pérdida del conocimiento", "cannot wake": "dificultad para despertar", "seizure": "una convulsión", "anaphylaxis": "una reacción alérgica grave", "severe allergic reaction": "una reacción alérgica grave", "swelling of the face": "hinchazón de la cara", "swelling of the tongue": "hinchazón de la lengua", "blue lips": "labios azulados", "coughing blood": "tos con sangre", "coughing up blood": "tos con sangre", "blood in vomit": "vómito con sangre", "sudden severe headache": "un dolor de cabeza repentino y muy fuerte", "carbon monoxide": "exposición a monóxido de carbono", "severe burn": "una quemadura grave", "electric shock": "una descarga eléctrica", "near drowning": "casi ahogamiento", "head injury": "un golpe en la cabeza", "neck injury": "una lesión en el cuello", "spinal injury": "una lesión en la columna", "heat stroke": "un golpe de calor", "fever and confusion": "fiebre con confusión", "rash that does not fade": "un sarpullido que no se aclara al presionar", "confusion": "confusión", "severe testicular pain": "dolor testicular fuerte", "snake bite": "una mordedura de serpiente" };
+
 // Groups used to say which results are worth discussing, in plain words.
 const TEST_GROUPS: Record<string, { en: string; es: string; keys: string[] }> = {
   cholesterol: { en: "cholesterol", es: "colesterol", keys: ["ldl", "totalCholesterol", "triglycerides", "hdl", "nonhdl"] },
@@ -87,6 +90,13 @@ export const VIEW_TEXT = {
   en: {
     summaryTitle: "Your lab report summary",
     allInLabs: "Your lab results are within the lab's ranges",
+    dangerLabel: (label: string) => `${label} — a level labs often treat as urgent`,
+    dangerMeaning: "Labs often treat a result at this level as urgent, even when it is not flagged. Contact your doctor today, or get emergency care if you feel very unwell.",
+    checkDanger: (name: string) => `If the ${name} number is right, it is at a level labs often treat as urgent: confirm it against your report now, and if it matches, contact your doctor today.`,
+    emergencyHeadline: "Your report mentions symptoms that may need emergency care",
+    emergencyBody: (terms: string) => `If you have ${terms} now, call 911 or your local emergency number. Do not wait for a doctor's appointment.`,
+    emergencyNext: "If these symptoms are happening now, call 911 or your local emergency number.",
+    stepEmergency: "Get emergency help if this is happening now",
     guideMeaning: "Your report didn't print a range for this test, so it was compared with a common general guide. Your lab's own range may differ.",
     guideSentence: (names: string) => `${names} had no range on your report and ${names.includes(" and ") ? "are" : "is"} outside a common guide; ask your doctor what range applies to you.`,
     count: (o: number, t: number) => `${o} of your ${t} lab results ${o === 1 ? "is" : "are"} outside the lab's ranges.`,
@@ -151,6 +161,13 @@ export const VIEW_TEXT = {
   es: {
     summaryTitle: "Resumen de su análisis",
     allInLabs: "Sus resultados de laboratorio están dentro de los rangos del laboratorio",
+    dangerLabel: (label: string) => `${label} — un nivel que los laboratorios suelen tratar como urgente`,
+    dangerMeaning: "Los laboratorios suelen tratar un resultado a este nivel como urgente, aunque no esté marcado. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal.",
+    checkDanger: (name: string) => `Si el número de ${name} es correcto, está a un nivel que los laboratorios suelen tratar como urgente: compárelo ahora con su informe y, si coincide, comuníquese hoy con su médico.`,
+    emergencyHeadline: "Su informe menciona síntomas que podrían necesitar atención de emergencia",
+    emergencyBody: (terms: string) => `Si tiene ${terms} ahora, llame al 911 o al número de emergencias local. No espere a una cita médica.`,
+    emergencyNext: "Si estos síntomas están ocurriendo ahora, llame al 911 o al número de emergencias local.",
+    stepEmergency: "Busque ayuda de emergencia si esto ocurre ahora",
     guideMeaning: "Su informe no trae un rango para esta prueba, así que se comparó con una guía general común. El rango de su laboratorio puede ser distinto.",
     guideSentence: (names: string) => `${names} no ${names.includes(" y ") ? "tienen" : "tiene"} rango en su informe y ${names.includes(" y ") ? "están" : "está"} fuera de una guía común; pregunte a su médico qué rango le corresponde.`,
     count: (o: number, t: number) => `${o} de sus ${t} resultados de laboratorio ${o === 1 ? "está" : "están"} fuera de los rangos del laboratorio.`,
@@ -242,14 +259,17 @@ export function describeTestRow(row: TestRow, language: "en" | "es", a1cPercent:
   const plainName = name.replace(/\s*\(.*\)$/, "");
   const ask = row.status === "check" ? "" : goal ? t.goalAsk(plainName) : dir === "high" || row.status === "critical" ? (es ? guide.askHighEs : guide.askHigh) || t.genericAsk(plainName)
     : dir === "low" ? (es ? guide.askLowEs : guide.askLow) || t.genericAsk(plainName) : row.status === "outside" ? t.genericAsk(plainName) : "";
-  const shownMeaning = byGuide && meaning ? `${t.guideMeaning} ${meaning}` : meaning;
+  // A value at a level labs often phone through as critical, whether or not the lab flagged it.
+  const danger = Boolean(row.danger) && row.status !== "check";
+  if (danger) label = t.dangerLabel(label);
+  const shownMeaning = danger ? t.dangerMeaning : byGuide && meaning ? `${t.guideMeaning} ${meaning}` : meaning;
   const value = (row.rule ? String(row.valueText) : `${row.valueText} ${row.unit || ""}`.trim()).replace("(about ", es ? "(unos " : "(about ");
   return {
-    key: row.key, name, plainName, what, label, meaning: shownMeaning, ask, value, note: "",
+    key: row.key, name, plainName, what, label, meaning: shownMeaning, ask, value, note: "", guide: Boolean((row as TestRow & { generalRange?: boolean }).generalRange),
     unit: row.rule ? "" : row.unit || "", unitHint: unitHint(row.rule ? "" : row.unit, language),
     range: row.rangeText || "", rangeLabel: (row as TestRow & { generalRange?: boolean }).generalRange ? t.generalGuide : t.labRange,
     status: row.status, attention: row.status !== "within" && row.status !== "unknown",
-    tone: row.status === "check" ? "check" : row.status === "critical" ? "critical" : byGuide ? "guide" : goal ? "goal" : row.status === "within" ? "in" : row.status === "unknown" ? "none" : "out",
+    tone: row.status === "check" ? "check" : row.status === "critical" || danger ? "critical" : byGuide ? "guide" : goal ? "goal" : row.status === "within" ? "in" : row.status === "unknown" ? "none" : "out",
   };
 }
 
@@ -314,12 +334,13 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
     tone: bpCategory === "severe" ? "critical" : bpHigh ? "out" : "in",
   }] : [];
 
-  const outside = tests.filter((item) => item.tone === "out" || item.tone === "critical").length;
+  // Only results judged against the lab's own printed range count as "outside the lab's ranges".
+  const outside = tests.filter((item) => (item.tone === "out" || item.tone === "critical") && !item.guide).length;
   const noRange = tests.filter((item) => item.tone === "none").length;
   const goals = tests.filter((item) => item.tone === "goal");
   const guided = tests.filter((item) => item.tone === "guide");
   const critical = tests.filter((item) => item.tone === "critical");
-  const urgent = analysis.riskLevel === "urgent" || critical.length > 0;
+  const urgent = analysis.riskLevel === "urgent" || critical.length > 0 || (analysis.emergencySymptoms || []).length > 0;
   const groupNames = [...new Set(cards.filter((item) => item.tone !== "goal" && item.tone !== "check").map((item) => GROUP_OF[item.key] || item.key))]
     .map((group) => TEST_GROUPS[group]?.[lang] || cards.find((item) => item.key === group)?.plainName || group);
   const groupText = listWords(groupNames, lang);
@@ -352,7 +373,18 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
   if (noRange && noRange < tests.length) body.push(t.noRange(noRange));
   const toCheck = tests.filter((item) => item.tone === "check").length;
   if (toCheck) body.unshift(t.checkFirst(toCheck));
+  rows.filter((row) => row.danger && unsure.includes(row.key)).forEach((row) => {
+    const item = tests.find((test) => test.key === row.key);
+    body.unshift(t.checkDanger(item ? item.plainName : row.name));
+  });
   if (fromPhoto && tests.length) body.push(t.photoNote);
+  // Current emergency symptoms in the report text come first and point to emergency care.
+  const symptoms = analysis.emergencySymptoms || [];
+  const emergency = symptoms.length > 0;
+  if (emergency) {
+    headline = t.emergencyHeadline;
+    body.unshift(t.emergencyBody(listWords(symptoms.map((term) => (es ? SYMPTOM_NAMES_ES[term] || term : term)), lang)));
+  }
 
   // Three steps first; a short, grouped list of other ideas under "More ideas".
   const kidney = (analysis.panelResults || []).some((item) => (item.key === "potassium" && (item.status === "above" || item.status === "critical")) || (item.key === "creatinine" && (item.status === "above" || item.status === "critical")) || (item.key === "egfr" && (item.status === "below" || item.status === "critical")));
@@ -364,7 +396,7 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
     : has("vitaminD", ["below", "target_below"]) ? "vitd" : "veg";
   const discussText = [...(groupNames.length ? groupNames : goals.map((item) => item.plainName)), ...(bpHigh ? [TEST_GROUPS.bp[lang]] : [])];
   const steps = [
-    urgent ? { title: t.stepDoctorToday, body: t.stepDoctorTodayBody(criticalNames || groupText || TEST_GROUPS.bp[lang]) }
+    emergency ? { title: t.stepEmergency, body: t.emergencyNext } : urgent ? { title: t.stepDoctorToday, body: t.stepDoctorTodayBody(criticalNames || groupText || TEST_GROUPS.bp[lang]) }
       : discussText.length ? { title: t.stepDoctor, body: t.stepDoctorBody(listWords(discussText, lang)) }
       : { title: t.stepCheckup, body: t.stepCheckupBody },
     urgent ? { title: t.stepHold, body: t.stepHoldBody } : { title: t.stepWalk, body: t.stepWalkBody },
@@ -387,5 +419,6 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
     count: tests.length ? t.count(outside, tests.length) : "",
     outside, total: tests.length, cards, other, tests, steps, more: more.filter((group) => group.items.length), questions, text: t,
     rulesVersion: EXPLANATION_RULES_VERSION,
+    emergency, urgentReasons: analysis.urgentReasons || [],
   };
 }

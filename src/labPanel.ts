@@ -138,6 +138,7 @@ function generalRangeFor(key: string, line: string, value: number, unit: string)
   }
 }
 
+// PENDING CLINICIAN REVIEW (docs/clinical-rules-for-review.md), like every urgency rule.
 // Levels many hospital labs phone through as critical values. Deliberately
 // conservative: only clearly dangerous numbers, in the units the result uses.
 // Platelet counts are printed per µL, in thousands, or (in India) in lakhs; bring them to thousands.

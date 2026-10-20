@@ -102,13 +102,13 @@ const PRIMARY_SCREENS: Screen[] = ["reports", "record", "labs", "account"];
 const NEXT_STEP = {
   en: {
     urgent: "Contact your doctor today. If you feel very unwell, seek emergency care.",
-    needs_review: "Ask your doctor about these results soon.",
+    needs_review: "Some results are well outside the lab's range. Share this report with your doctor and ask how soon they want to talk about it.",
     attention: "Bring these results up at your next visit.",
     routine: "Nothing urgent stands out. Keep this for your next checkup.",
   },
   es: {
     urgent: "Comuníquese hoy con su médico. Si se siente muy mal, busque atención de emergencia.",
-    needs_review: "Pregunte pronto a su médico sobre estos resultados.",
+    needs_review: "Algunos resultados están bastante fuera del rango del laboratorio. Comparta este informe con su médico y pregúntele cuándo quiere hablar de ello.",
     attention: "Comente estos resultados en su próxima consulta.",
     routine: "No se ve nada urgente. Guárdelo para su próximo chequeo.",
   },
@@ -159,6 +159,20 @@ export default function App() {
   const [localAnalysis, setLocalAnalysis] = useState<ReportAnalysis | null>(null);
   const [planReactions, setPlanReactions] = useState<string[]>([]);
   const [reportLanguage, setReportLanguage] = useState<ReportLanguage>("en");
+  // Safety switch: the team can pause report explanations from the server (/features).
+  const [explanationsPaused, setExplanationsPaused] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_BASE_URL}/features`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((features) => {
+        if (active && features && features.report_explanations === false) setExplanationsPaused(true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const [reportPerson, setReportPerson] = useState("");
   const [labTrends, setLabTrends] = useState<LabTrendOut[]>([]);
   const [labTestName, setLabTestName] = useState("LDL cholesterol");
@@ -881,7 +895,20 @@ export default function App() {
           </View>
         ) : null}
 
-        {screen === "reports" && reportView ? (() => {
+        {screen === "reports" && reportView && explanationsPaused ? (
+          <View style={styles.card}>
+            <View style={[styles.summaryBox, styles.summaryAttention]}>
+              <Text style={styles.summaryHeadline}>{reportLanguage === "es" ? "Las explicaciones están en pausa" : "Explanations are paused"}</Text>
+              <Text style={styles.bodyText}>
+                {reportLanguage === "es"
+                  ? "Pausamos las explicaciones mientras revisamos un problema. Hable con su médico sobre sus resultados."
+                  : "We have paused explanations while we check a problem. Please talk to your doctor about your results."}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {screen === "reports" && reportView && !explanationsPaused ? (() => {
           const lang = reportLanguage === "es" ? "es" : "en";
           const labText = LAB_PANEL_TEXT[lang];
           const risk = reportView.riskLevel;
@@ -902,7 +929,7 @@ export default function App() {
                 <Text style={styles.summaryEyebrow}>{view.title.toUpperCase()}</Text>
                 <Text style={[styles.summaryHeadline, view.urgent && styles.summaryHeadlineUrgent]}>{view.headline}</Text>
                 {view.body.map((line) => <Text key={line} style={styles.bodyText}>{line}</Text>)}
-                {localAnalysis && !localAnalysis.noData ? <Text style={[styles.bodyText, styles.summaryNext]}>{NEXT_STEP[lang][risk]}</Text> : null}
+                {localAnalysis && !localAnalysis.noData ? <Text style={[styles.bodyText, styles.summaryNext]}>{view.emergency ? view.text.emergencyNext : NEXT_STEP[lang][risk]}</Text> : null}
               </View>
             ) : (
               <View style={styles.verdict}>
