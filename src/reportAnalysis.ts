@@ -9,7 +9,7 @@ export type Finding = { label: string; level: string; detail: string };
 export type LabValue = { label: string; value: number | string; unit: string; flag: string };
 // One row of "All tests on your report". Rule rows are the tests read by their own rules
 // (cholesterol, triglycerides, A1C, vitamin D); panel rows come from readLabPanel.
-export type TestRow = { key: string; name: string; valueText: string; unit: string; rangeText: string; status: LabPanelStatus | "target_above" | "target_below" | "check"; rule?: boolean; danger?: boolean };
+export type TestRow = { key: string; name: string; valueText: string; unit: string; rangeText: string; status: LabPanelStatus | "target_above" | "target_below" | "check"; rule?: boolean; danger?: boolean; far?: boolean; generalRange?: boolean };
 export type ReportAnalysis = {
   id: string;
   score: number;
