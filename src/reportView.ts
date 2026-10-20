@@ -99,7 +99,7 @@ export const VIEW_TEXT = {
     stepEmergency: "Get emergency help if this is happening now",
     guideMeaning: "Your report didn't print a range for this test, so it was compared with a common general guide. Your lab's own range may differ.",
     guideSentence: (names: string) => `${names} had no range on your report and ${names.includes(" and ") ? "are" : "is"} outside a common guide; ask your doctor what range applies to you.`,
-    count: (o: number, t: number) => `${o} of your ${t} lab results ${o === 1 ? "is" : "are"} outside the lab's ranges.`,
+    count: (o: number, t: number, c = 0) => `${o} of your ${t} lab results ${o === 1 ? "is" : "are"} outside the lab's ranges${c ? `, not counting ${c === 1 ? "1 number" : `${c} numbers`} still to confirm` : ""}.`,
     discussLabs: (groups: string) => `Your ${groups} results deserve a conversation with your doctor.`,
     othersLabs: "The other lab results are within the lab's ranges.",
     bpMention: (value: string | number, home: boolean) => `Your report also mentions ${home ? "home blood pressure readings" : "a blood pressure reading"} around ${value}, which ${home ? "are" : "is"} worth discussing.`,
@@ -170,7 +170,7 @@ export const VIEW_TEXT = {
     stepEmergency: "Busque ayuda de emergencia si esto ocurre ahora",
     guideMeaning: "Su informe no trae un rango para esta prueba, así que se comparó con una guía general común. El rango de su laboratorio puede ser distinto.",
     guideSentence: (names: string) => `${names} no ${names.includes(" y ") ? "tienen" : "tiene"} rango en su informe y ${names.includes(" y ") ? "están" : "está"} fuera de una guía común; pregunte a su médico qué rango le corresponde.`,
-    count: (o: number, t: number) => `${o} de sus ${t} resultados de laboratorio ${o === 1 ? "está" : "están"} fuera de los rangos del laboratorio.`,
+    count: (o: number, t: number, c = 0) => `${o} de sus ${t} resultados de laboratorio ${o === 1 ? "está" : "están"} fuera de los rangos del laboratorio${c ? `, sin contar ${c === 1 ? "1 número" : `${c} números`} por confirmar` : ""}.`,
     discussLabs: (groups: string) => `Conviene hablar con su médico sobre sus resultados de ${groups}.`,
     othersLabs: "Los demás resultados de laboratorio están dentro de los rangos del laboratorio.",
     bpMention: (value: string | number, home: boolean) => `Su informe también menciona ${home ? "mediciones de presión arterial en casa" : "una presión arterial"} de alrededor de ${value}, que conviene comentar.`,
@@ -348,6 +348,8 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
   const goalNames = listWords(goals.map((item) => item.plainName), lang);
   const bpSentence = bpKnown ? (bpHigh ? t.bpMention(String(bpValue?.value), home) : "") : "";
 
+  // Numbers waiting to be confirmed are never counted as in range or outside it.
+  const toCheck = tests.filter((item) => item.tone === "check").length;
   let headline = ""; const body: string[] = [];
   if (!tests.length) {
     headline = urgent ? t.prompt : bpHigh ? t.few : "";
@@ -356,22 +358,21 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
     headline = urgent ? t.prompt : t.few;
     body.push(t.noneCompared(tests.length));
     if (bpSentence) body.push(bpSentence);
-  } else if (!urgent && !outside && !goals.length && !guided.length) {
+  } else if (!urgent && !outside && !goals.length && !guided.length && !toCheck) {
     headline = t.allInLabs;
     body.push(t.allInBody(tests.length - noRange));
     if (bpSentence) body.push(bpSentence);
   } else {
     headline = urgent ? t.prompt : outside > tests.length / 2 ? t.several : t.few;
     if (critical.length) body.push(t.promptBody(criticalNames));
-    body.push(t.count(outside, tests.length));
+    body.push(t.count(outside, tests.length, toCheck));
     if (groupNames.length) body.push(t.discussLabs(groupText));
     if (goals.length) body.push(t.goal(goalNames));
     if (guided.length) body.push(t.guideSentence(listWords(guided.map((item) => item.plainName), lang)));
     if (bpSentence) body.push(bpSentence);
-    if (outside + noRange + goals.length + guided.length < tests.length) body.push(t.othersLabs);
+    if (outside + noRange + goals.length + guided.length + toCheck < tests.length) body.push(t.othersLabs);
   }
   if (noRange && noRange < tests.length) body.push(t.noRange(noRange));
-  const toCheck = tests.filter((item) => item.tone === "check").length;
   if (toCheck) body.unshift(t.checkFirst(toCheck));
   rows.filter((row) => row.danger && unsure.includes(row.key)).forEach((row) => {
     const item = tests.find((test) => test.key === row.key);
