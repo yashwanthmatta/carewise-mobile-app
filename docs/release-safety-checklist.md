@@ -14,7 +14,8 @@ Android phone before any release. Record the build number, explanation rules ver
 | 4 | Put the phone in airplane mode, close the app fully, reopen, tap Explain | Still paused (last known state is remembered) |
 | 5 | Turn airplane mode off, bring the app to the foreground | Still paused while the switch is on |
 | 6 | Set the switch back to false, redeploy, bring the app to the foreground | Explanations return |
-| 7 | Fresh install while offline (never seen the switch) | Explanations show; note this in the release notes as a known limit |
+| 7 | Fresh install while offline (has never checked the switch) | "Connect to the internet once": no explanation is generated; the report text stays visible; "Try again" works once online |
+| 8 | Fresh install online, first launch | "Checking safety settings…" briefly, then explanations (allow up to 45 s if the API is waking up) |
 
 ## 2. Safety wording (compare with the website for the same text)
 

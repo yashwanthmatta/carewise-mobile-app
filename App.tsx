@@ -164,24 +164,30 @@ export default function App() {
   // Safety switch: the team can pause report explanations from the server (/features).
   // The last answer is remembered, so a phone that is offline keeps a pause in force, and the
   // switch is checked again whenever the app comes back to the foreground or explains a report.
-  const [explanationsPaused, setExplanationsPaused] = useState(false);
+  // Fail closed: until the app has checked the switch at least once, it explains nothing.
+  const [pauseReason, setPauseReason] = useState<"" | "server" | "unverified" | "checking">("checking");
+  const explanationsPaused = pauseReason !== "";
   async function refreshExplanationsPause() {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
+      // The API can take half a minute to wake up on its first request.
+      const timer = setTimeout(() => controller.abort(), 45000);
       const response = await fetch(`${API_BASE_URL}/features`, { signal: controller.signal });
       clearTimeout(timer);
       if (!response.ok) throw new Error(`features ${response.status}`);
       const paused = (await response.json())?.report_explanations === false;
-      setExplanationsPaused(paused);
+      setPauseReason(paused ? "server" : "");
       await SecureStore.setItemAsync(PAUSE_KEY, paused ? "1" : "0").catch(() => {});
     } catch {
       const stored = await SecureStore.getItemAsync(PAUSE_KEY).catch(() => null);
-      if (stored === "1") setExplanationsPaused(true);
+      setPauseReason(stored === "0" ? "" : stored === "1" ? "server" : "unverified");
     }
   }
   useEffect(() => {
-    SecureStore.getItemAsync(PAUSE_KEY).then((stored) => { if (stored === "1") setExplanationsPaused(true); }).catch(() => {});
+    SecureStore.getItemAsync(PAUSE_KEY).then((stored) => {
+      if (stored === "0") setPauseReason((reason) => (reason === "checking" || reason === "unverified" ? "" : reason));
+      if (stored === "1") setPauseReason("server");
+    }).catch(() => {});
     refreshExplanationsPause();
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") refreshExplanationsPause();
@@ -914,12 +920,25 @@ export default function App() {
         {screen === "reports" && reportView && explanationsPaused ? (
           <View style={styles.card}>
             <View style={[styles.summaryBox, styles.summaryAttention]}>
-              <Text style={styles.summaryHeadline}>{reportLanguage === "es" ? "Las explicaciones están en pausa" : "Explanations are paused"}</Text>
-              <Text style={styles.bodyText}>
-                {reportLanguage === "es"
-                  ? "Pausamos las explicaciones mientras revisamos un problema. Hable con su médico sobre sus resultados."
-                  : "We have paused explanations while we check a problem. Please talk to your doctor about your results."}
+              <Text style={styles.summaryHeadline}>
+                {pauseReason === "checking"
+                  ? reportLanguage === "es" ? "Comprobando la configuración de seguridad…" : "Checking safety settings…"
+                  : pauseReason === "unverified"
+                  ? reportLanguage === "es" ? "Conéctese a internet una vez" : "Connect to the internet once"
+                  : reportLanguage === "es" ? "Las explicaciones están en pausa" : "Explanations are paused"}
               </Text>
+              <Text style={styles.bodyText}>
+                {pauseReason === "checking"
+                  ? reportLanguage === "es" ? "Esto tarda unos segundos la primera vez." : "This takes a few seconds the first time."
+                  : pauseReason === "unverified"
+                  ? reportLanguage === "es"
+                    ? "Antes de explicar informes, FollowThrough Health debe comprobar una vez su configuración de seguridad. Su informe sigue en el cuadro de texto. Conéctese a internet e inténtelo de nuevo."
+                    : "Before explaining reports, FollowThrough Health needs to check its safety settings once. Your report is still in the text box. Connect to the internet and try again."
+                  : reportLanguage === "es"
+                    ? "Pausamos las explicaciones mientras revisamos un problema. Su informe sigue en el cuadro de texto. Hable con su médico sobre sus resultados."
+                    : "We have paused explanations while we check a problem. Your report is still in the text box. Please talk to your doctor about your results."}
+              </Text>
+              {pauseReason === "unverified" ? <ActionButton label={reportLanguage === "es" ? "Intentar de nuevo" : "Try again"} onPress={refreshExplanationsPause} variant="secondary" /> : null}
             </View>
           </View>
         ) : null}
