@@ -9,7 +9,7 @@ export type Finding = { label: string; level: string; detail: string };
 export type LabValue = { label: string; value: number | string; unit: string; flag: string };
 // One row of "All tests on your report". Rule rows are the tests read by their own rules
 // (cholesterol, triglycerides, A1C, vitamin D); panel rows come from readLabPanel.
-export type TestRow = { key: string; name: string; valueText: string; unit: string; rangeText: string; status: LabPanelStatus | "target_above" | "target_below" | "check"; rule?: boolean };
+export type TestRow = { key: string; name: string; valueText: string; unit: string; rangeText: string; status: LabPanelStatus | "target_above" | "target_below" | "check"; rule?: boolean; danger?: boolean };
 export type ReportAnalysis = {
   id: string;
   score: number;
@@ -21,6 +21,8 @@ export type ReportAnalysis = {
   labValues: LabValue[];
   panelResults: LabPanelResult[];
   ruleRows: TestRow[];
+  emergencySymptoms?: string[];
+  urgentReasons?: string[];
   // Whether the glucose was taken fasting (null when the report doesn't say).
   glucoseFasting?: boolean | null;
   // The report says the blood pressure was measured at home.
@@ -238,6 +240,30 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
   },
 };
 
+// Current symptoms that point to emergency care (call 911) rather than "contact your doctor
+// today". Every other emergency term keeps the "contact your doctor today" wording.
+// Pending clinician review (docs/clinical-rules-for-review.md).
+const EMERGENCY_CARE_TERMS = new Set(["chest pain", "trouble breathing", "shortness of breath", "difficulty breathing", "stroke", "face droop", "slurred speech", "arm weakness", "weakness on one side", "sudden numbness", "paralysis", "suicide", "overdose", "poison", "severe bleeding", "loss of consciousness", "unconscious", "cannot wake", "seizure", "anaphylaxis", "severe allergic reaction", "swelling of the face", "swelling of the tongue", "blue lips", "coughing blood", "coughing up blood", "blood in vomit", "sudden severe headache", "carbon monoxide", "severe burn", "electric shock", "near drowning", "head injury", "neck injury", "spinal injury", "heat stroke", "fever and confusion", "rash that does not fade", "confusion", "severe testicular pain", "snake bite"]);
+
+// Each mention of an emergency symptom is judged within its own sentence: denied ("no chest
+// pain"), past or family history ("history of stroke in 2015"), or current. Only current mentions
+// count. Pending clinician review, like every urgency rule (docs/clinical-rules-for-review.md).
+const SYMPTOM_DENIED = /\b(?:no|not|without|denies|denied|negative for|none of|free of|absence of|ruled out|rules out|never had)\b/;
+const SYMPTOM_HISTORY_BEFORE = /\b(?:history of|h\/o|hx of|past medical history|pmh|previous|prior|remote|family history|fhx|mother had|father had|status post|s\/p|in (?:19|20)\d\d)\b/;
+const SYMPTOM_HISTORY_AFTER = /\b(?:in (?:19|20)\d\d|\d+\s*(?:years?|months?)\s*ago|resolved|in the past|recovered|recovery)\b/;
+function symptomMention(text: string, index: number, term: string): "denied" | "history" | "current" {
+  const starts = [".", ";", "\n", "!", "?"].map((mark) => text.lastIndexOf(mark, index - 1));
+  const start = Math.max(...starts) + 1;
+  const ends = [".", ";", "\n", "!", "?"].map((mark) => text.indexOf(mark, index + term.length)).filter((at) => at >= 0);
+  const end = ends.length ? Math.min(...ends) : text.length;
+  // "No fever, but chest pain" - only the words after the last "but" belong to this symptom.
+  const before = text.slice(start, index).split(/\b(?:but|however|although|except|now|today|currently)\b/).pop() || "";
+  const after = text.slice(index + term.length, end);
+  if (SYMPTOM_DENIED.test(before.slice(-40))) return "denied";
+  if (/after stroke/.test(text.slice(start, end)) || SYMPTOM_HISTORY_BEFORE.test(before) || SYMPTOM_HISTORY_AFTER.test(after)) return "history";
+  return "current";
+}
+
 function findEmergencyTerms(text: string): string[] {
   const matches: string[] = [];
   emergencyTerms.forEach((term) => {
@@ -245,7 +271,7 @@ function findEmergencyTerms(text: string): string[] {
     while (start < text.length) {
       const index = text.indexOf(term, start);
       if (index === -1) break;
-      if (!isNegated(text, index)) {
+      if (symptomMention(text, index, term) === "current") {
         matches.push(term);
         break;
       }
@@ -263,11 +289,7 @@ function isNegated(text: string, termIndex: number): boolean {
 }
 
 function getNonNegatedEmergencyMatches(text: string): string[] {
-  return findEmergencyTerms(text).filter((term) => {
-    const index = text.indexOf(term);
-    const context = text.slice(Math.max(0, index - 18), index + term.length);
-    return !/\b(no|denies|without|negative for)\s+[\w\s,;/.-]{0,18}$/i.test(context.slice(0, Math.max(0, context.length - term.length)));
-  });
+  return findEmergencyTerms(text);
 }
 
 function hasHypertensiveCrisis(text: string): boolean {
@@ -462,6 +484,8 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   const text = normalizeReportText(rawText);
   const lower = text.toLowerCase();
   const urgentMatches = getNonNegatedEmergencyMatches(lower);
+  // Current emergency symptoms in the report text, kept apart from lab-value urgency.
+  const emergencySymptoms = urgentMatches.filter((term) => EMERGENCY_CARE_TERMS.has(term));
   if (hasHypertensiveCrisis(lower)) urgentMatches.push("blood pressure over 180/120");
 
   const ldl = readCholesterolMgDl(lower, String.raw`\bldl(?: cholesterol)?`);
@@ -691,6 +715,9 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     riskAreas,
     labValues,
     panelResults,
+    emergencySymptoms,
+    // Every rule that made this report urgent (shown to reviewers in the validation pack).
+    urgentReasons: [...urgentMatches],
     glucoseFasting: readGlucoseFasting(lower),
     bpAtHome: readBpAtHome(lower),
     ruleRows: buildRuleRows(lower, labValues, outside, vitaminDHasRange && vitaminDMatch ? vitaminDMatch[1].match(RANGE_PATTERN)?.[0].replace(/\s+/g, " ").trim() || "" : ""),

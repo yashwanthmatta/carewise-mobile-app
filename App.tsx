@@ -159,6 +159,20 @@ export default function App() {
   const [localAnalysis, setLocalAnalysis] = useState<ReportAnalysis | null>(null);
   const [planReactions, setPlanReactions] = useState<string[]>([]);
   const [reportLanguage, setReportLanguage] = useState<ReportLanguage>("en");
+  // Safety switch: the team can pause report explanations from the server (/features).
+  const [explanationsPaused, setExplanationsPaused] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_BASE_URL}/features`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((features) => {
+        if (active && features && features.report_explanations === false) setExplanationsPaused(true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const [reportPerson, setReportPerson] = useState("");
   const [labTrends, setLabTrends] = useState<LabTrendOut[]>([]);
   const [labTestName, setLabTestName] = useState("LDL cholesterol");
@@ -881,7 +895,20 @@ export default function App() {
           </View>
         ) : null}
 
-        {screen === "reports" && reportView ? (() => {
+        {screen === "reports" && reportView && explanationsPaused ? (
+          <View style={styles.card}>
+            <View style={[styles.summaryBox, styles.summaryAttention]}>
+              <Text style={styles.summaryHeadline}>{reportLanguage === "es" ? "Las explicaciones están en pausa" : "Explanations are paused"}</Text>
+              <Text style={styles.bodyText}>
+                {reportLanguage === "es"
+                  ? "Pausamos las explicaciones mientras revisamos un problema. Hable con su médico sobre sus resultados."
+                  : "We have paused explanations while we check a problem. Please talk to your doctor about your results."}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {screen === "reports" && reportView && !explanationsPaused ? (() => {
           const lang = reportLanguage === "es" ? "es" : "en";
           const labText = LAB_PANEL_TEXT[lang];
           const risk = reportView.riskLevel;
@@ -902,7 +929,7 @@ export default function App() {
                 <Text style={styles.summaryEyebrow}>{view.title.toUpperCase()}</Text>
                 <Text style={[styles.summaryHeadline, view.urgent && styles.summaryHeadlineUrgent]}>{view.headline}</Text>
                 {view.body.map((line) => <Text key={line} style={styles.bodyText}>{line}</Text>)}
-                {localAnalysis && !localAnalysis.noData ? <Text style={[styles.bodyText, styles.summaryNext]}>{NEXT_STEP[lang][risk]}</Text> : null}
+                {localAnalysis && !localAnalysis.noData ? <Text style={[styles.bodyText, styles.summaryNext]}>{view.emergency ? view.text.emergencyNext : NEXT_STEP[lang][risk]}</Text> : null}
               </View>
             ) : (
               <View style={styles.verdict}>
