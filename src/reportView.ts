@@ -7,7 +7,7 @@ import { PLAN_TEXT, type PersonalPlan } from "./personalPlan";
 
 // Version of the interpretation rules and wording below. Change it whenever a rule, threshold or
 // explanation changes, so every output can be traced to the rules that produced it.
-export const EXPLANATION_RULES_VERSION = "2026-10-20.1";
+export const EXPLANATION_RULES_VERSION = "2026-10-20.2";
 
 // Plain-language guide per test: what it is, what a high or low result can mean, and a
 // question for the doctor. Educational wording only: no diagnosis, medicine names or doses.
@@ -92,14 +92,14 @@ export const VIEW_TEXT = {
     allInLabs: "Your lab results are within the lab's ranges",
     dangerLabel: (label: string) => `${label} — a level labs often treat as urgent`,
     dangerMeaning: "Labs often treat a result at this level as urgent, even when it is not flagged. Contact your doctor today, or get emergency care if you feel very unwell.",
-    checkDanger: (name: string) => `If the ${name} number is right, it is at a level labs often treat as urgent: confirm it against your report now, and if it matches, contact your doctor today.`,
+    checkDanger: (name: string) => `If the ${name} number is right, it is at a level labs often treat as urgent: confirm it against your report now. If it matches, or you cannot check, contact your doctor today, and get emergency care if you feel very unwell.`,
     emergencyHeadline: "Your report mentions symptoms that may need emergency care",
     emergencyBody: (terms: string) => `If you have ${terms} now, call 911 or your local emergency number. Do not wait for a doctor's appointment.`,
     emergencyNext: "If these symptoms are happening now, call 911 or your local emergency number.",
     stepEmergency: "Get emergency help if this is happening now",
     guideMeaning: "Your report didn't print a range for this test, so it was compared with a common general guide. Your lab's own range may differ.",
     guideSentence: (names: string) => `${names} had no range on your report and ${names.includes(" and ") ? "are" : "is"} outside a common guide; ask your doctor what range applies to you.`,
-    count: (o: number, t: number) => `${o} of your ${t} lab results ${o === 1 ? "is" : "are"} outside the lab's ranges.`,
+    count: (o: number, t: number, c = 0) => `${o} of your ${t} lab results ${o === 1 ? "is" : "are"} outside the lab's ranges${c ? `, not counting ${c === 1 ? "1 number" : `${c} numbers`} still to confirm` : ""}.`,
     discussLabs: (groups: string) => `Your ${groups} results deserve a conversation with your doctor.`,
     othersLabs: "The other lab results are within the lab's ranges.",
     bpMention: (value: string | number, home: boolean) => `Your report also mentions ${home ? "home blood pressure readings" : "a blood pressure reading"} around ${value}, which ${home ? "are" : "is"} worth discussing.`,
@@ -163,14 +163,14 @@ export const VIEW_TEXT = {
     allInLabs: "Sus resultados de laboratorio están dentro de los rangos del laboratorio",
     dangerLabel: (label: string) => `${label} — un nivel que los laboratorios suelen tratar como urgente`,
     dangerMeaning: "Los laboratorios suelen tratar un resultado a este nivel como urgente, aunque no esté marcado. Comuníquese hoy con su médico o busque atención de emergencia si se siente muy mal.",
-    checkDanger: (name: string) => `Si el número de ${name} es correcto, está a un nivel que los laboratorios suelen tratar como urgente: compárelo ahora con su informe y, si coincide, comuníquese hoy con su médico.`,
+    checkDanger: (name: string) => `Si el número de ${name} es correcto, está a un nivel que los laboratorios suelen tratar como urgente: compárelo ahora con su informe. Si coincide, o no puede comprobarlo, comuníquese hoy con su médico y busque atención de emergencia si se siente muy mal.`,
     emergencyHeadline: "Su informe menciona síntomas que podrían necesitar atención de emergencia",
     emergencyBody: (terms: string) => `Si tiene ${terms} ahora, llame al 911 o al número de emergencias local. No espere a una cita médica.`,
     emergencyNext: "Si estos síntomas están ocurriendo ahora, llame al 911 o al número de emergencias local.",
     stepEmergency: "Busque ayuda de emergencia si esto ocurre ahora",
     guideMeaning: "Su informe no trae un rango para esta prueba, así que se comparó con una guía general común. El rango de su laboratorio puede ser distinto.",
     guideSentence: (names: string) => `${names} no ${names.includes(" y ") ? "tienen" : "tiene"} rango en su informe y ${names.includes(" y ") ? "están" : "está"} fuera de una guía común; pregunte a su médico qué rango le corresponde.`,
-    count: (o: number, t: number) => `${o} de sus ${t} resultados de laboratorio ${o === 1 ? "está" : "están"} fuera de los rangos del laboratorio.`,
+    count: (o: number, t: number, c = 0) => `${o} de sus ${t} resultados de laboratorio ${o === 1 ? "está" : "están"} fuera de los rangos del laboratorio${c ? `, sin contar ${c === 1 ? "1 número" : `${c} números`} por confirmar` : ""}.`,
     discussLabs: (groups: string) => `Conviene hablar con su médico sobre sus resultados de ${groups}.`,
     othersLabs: "Los demás resultados de laboratorio están dentro de los rangos del laboratorio.",
     bpMention: (value: string | number, home: boolean) => `Su informe también menciona ${home ? "mediciones de presión arterial en casa" : "una presión arterial"} de alrededor de ${value}, que conviene comentar.`,
@@ -348,6 +348,8 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
   const goalNames = listWords(goals.map((item) => item.plainName), lang);
   const bpSentence = bpKnown ? (bpHigh ? t.bpMention(String(bpValue?.value), home) : "") : "";
 
+  // Numbers waiting to be confirmed are never counted as in range or outside it.
+  const toCheck = tests.filter((item) => item.tone === "check").length;
   let headline = ""; const body: string[] = [];
   if (!tests.length) {
     headline = urgent ? t.prompt : bpHigh ? t.few : "";
@@ -356,22 +358,21 @@ export function buildReportView(analysis: ReportAnalysis, language: string = "en
     headline = urgent ? t.prompt : t.few;
     body.push(t.noneCompared(tests.length));
     if (bpSentence) body.push(bpSentence);
-  } else if (!urgent && !outside && !goals.length && !guided.length) {
+  } else if (!urgent && !outside && !goals.length && !guided.length && !toCheck) {
     headline = t.allInLabs;
     body.push(t.allInBody(tests.length - noRange));
     if (bpSentence) body.push(bpSentence);
   } else {
     headline = urgent ? t.prompt : outside > tests.length / 2 ? t.several : t.few;
     if (critical.length) body.push(t.promptBody(criticalNames));
-    body.push(t.count(outside, tests.length));
+    body.push(t.count(outside, tests.length, toCheck));
     if (groupNames.length) body.push(t.discussLabs(groupText));
     if (goals.length) body.push(t.goal(goalNames));
     if (guided.length) body.push(t.guideSentence(listWords(guided.map((item) => item.plainName), lang)));
     if (bpSentence) body.push(bpSentence);
-    if (outside + noRange + goals.length + guided.length < tests.length) body.push(t.othersLabs);
+    if (outside + noRange + goals.length + guided.length + toCheck < tests.length) body.push(t.othersLabs);
   }
   if (noRange && noRange < tests.length) body.push(t.noRange(noRange));
-  const toCheck = tests.filter((item) => item.tone === "check").length;
   if (toCheck) body.unshift(t.checkFirst(toCheck));
   rows.filter((row) => row.danger && unsure.includes(row.key)).forEach((row) => {
     const item = tests.find((test) => test.key === row.key);
