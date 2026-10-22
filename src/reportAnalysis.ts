@@ -774,12 +774,13 @@ export const SAMPLE_REPORT_TEXT = [
 // Plain-text version of the web app's doctor brief, for the phone's share sheet.
 export function buildDoctorBriefText(analysis: ReportAnalysis, person = "Me"): string {
   return [
+    "PATIENT-GENERATED EDUCATIONAL SUMMARY. VERIFY AGAINST THE ORIGINAL LABORATORY REPORT.",
+    "",
     person === "Me" ? "Patient lab summary for clinician review" : `Lab summary for clinician review: ${person}`,
-    new Date().toLocaleDateString(),
+    `Prepared ${new Date().toLocaleDateString()}. Bring or attach the original report; this summary does not replace it.`,
     person === "Me"
       ? "Prepared by the patient with FollowThrough Health from their own report text."
       : `Prepared by a family caregiver for ${person} with FollowThrough Health from the report text.`,
-    ...(analysis.scanOnly || analysis.noData ? [] : [`Health score ${analysis.score}/100 (educational estimate).`]),
     "",
     ...(analysis.labValues.length ? ["Values detected in the report:", ...analysis.labValues.map((item) => `- ${item.label}: ${item.value} ${item.unit} (${item.flag})`), ""] : []),
     ...((analysis.panelResults || []).length
