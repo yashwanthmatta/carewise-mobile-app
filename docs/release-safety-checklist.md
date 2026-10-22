@@ -30,6 +30,6 @@ Android phone before any release. Record the build number, explanation rules ver
 
 ## 3. General
 
-- Large text (OS accessibility setting) and screen reader (VoiceOver / TalkBack) read the summary, cards and steps in order.
+- Large text (OS accessibility setting) and screen reader (VoiceOver / TalkBack) read the summary, cards and steps in order. Full checklist: docs/accessibility-device-checklist.md.
 - Doctor share shows the same labels as the screen.
 - No report text appears in crash reports or analytics.
