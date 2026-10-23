@@ -91,6 +91,9 @@ export const LAB_TESTS: LabTest[] = [
 
 const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|gm\/dl|g\/dl|g\/l|mg\/l|lakhs?\s?\/\s?(?:cu\.?\s?mm|[uµμ]l)|lakhs?|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|ng\/l|pg\/ml|mm\/hr?|seconds|sec|fl|pg|%)/i;
 export const RANGE_PATTERN = /(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)|(<=?|>=?|≤|≥)\s*(\d+(?:\.\d+)?)/;
+// Dates ("2025-03-01", "03/01/2025", "01.03.2025", never a range like "8.6-10.3") are blanked out before a range is looked for, so a date is
+// never read as the lab's range.
+const DATE_PATTERN = /\b\d{4}-\d{1,2}-\d{1,2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b\d{1,2}\.\d{1,2}\.\d{4}\b/g;
 const FLAG_PATTERN = /(?:^|[\s(])(HH|LL|H|L|High|Low|HIGH|LOW|Critical|CRITICAL|CRIT|Panic|PANIC|Abnormal|ABNORMAL)(?=[\s*)]|$)/;
 const COMPILED = LAB_TESTS.map((test) => ({ test, patterns: test.aliases.map((alias) => new RegExp(`\\b${alias}\\b`, "i")) }));
 
@@ -315,12 +318,16 @@ export function readLabPanel(text: string): LabPanelResult[] {
     if (/[A-Za-z][.,]?$/.test(rest.slice(Math.max(0, numberAt - 2), numberAt)) || /^[OoIlS|]\d/.test(rest.slice(numberAt + valueMatch[2].length))) return;
     // A repeat counts only when it is a plain result with a unit or range, not a goal like "<100".
     if (repeat && valueMatch[1]) return;
+    // A blank result: the only number is the start of the range ("Potassium  mmol/L  3.5-5.1").
+    // Read nothing rather than calling the range's low end the result.
+    if (!valueMatch[1] && /^\s*(?:-|–|to)\s*\d/.test(rest.slice(numberAt + valueMatch[2].length))) return;
     const value = Number(valueMatch[2]);
     let after = rest.slice(valueMatch.index + valueMatch[0].length);
     const unitMatch = after.match(UNIT_PATTERN);
     const unit = unitMatch ? unitMatch[0].replace(/\s+/g, "") : "";
     if (unitMatch && unitMatch.index !== undefined) after = after.slice(0, unitMatch.index) + " " + after.slice(unitMatch.index + unitMatch[0].length);
     const flag = after.match(FLAG_PATTERN)?.[1] ?? "";
+    after = after.replace(DATE_PATTERN, " ");
     const range = after.match(RANGE_PATTERN);
     if (repeat && !unit && !range) return;
     const low = range ? (range[1] !== undefined ? Number(range[1]) : range[3].startsWith(">") || range[3] === "≥" ? Number(range[4]) : null) : null;

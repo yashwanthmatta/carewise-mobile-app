@@ -321,7 +321,8 @@ const LAB_UNIT = String.raw`\s*(?:(?:h|l|hh|ll|hi|lo|high|low|\*)\s+(?=mmol|mg|%
 type RangeSide = "above" | "below" | null;
 
 // The value must not start inside a word, so the "1" in "Hemoglobin A1c" is never read as a result.
-// A number glued to letters is a misread ("s.9" for 5.9, "1o8" for 108), so it is not read at all.
+// A number glued to letters is a misread ("s.9" for 5.9, "1o8" for 108), and a number that starts a
+// range ("a1c % 4.0-5.6" with the result left blank) is the range, not a result: neither is read.
 // When the same test is printed again with a different value ("Previous result: LDL 98" then
 // "LDL 151"), the higher reading is used (every caller is a test where higher is worse) and the
 // other value is reported through onRepeat, so an older or lower value never reassures on its own.
@@ -330,7 +331,7 @@ function readLabMeasure(text: string, namePattern: string, maxGap = 24, onRepeat
   // "7.2 %"). It is never taken from another test further down: in "Lipid panel and A1C" then
   // "Total cholesterol 228", 228 is not an A1C.
   const gap = `([^\\d\\n]{0,${maxGap}}?|[^\\d\\n]{0,${maxGap}}?(?:\\n[ \\t:]*){1,2})`;
-  const pattern = new RegExp(`${namePattern}${gap}${LAB_FOOTNOTE}(?<![a-z])(?<![a-z][.,])(\\d+(?:\\.\\d+)?)(?![oil|]\\d)${LAB_UNIT}`, "gi");
+  const pattern = new RegExp(`${namePattern}${gap}${LAB_FOOTNOTE}(?<![a-z])(?<![a-z][.,])(\\d+(?:\\.\\d+)?)(?![\\d.]\\d|[oil|]\\d)(?!\\s*(?:-|–|to)\\s*\\d)${LAB_UNIT}`, "gi");
   const matches = [...text.matchAll(pattern)];
   if (!matches.length || matches[0].index === undefined) return null;
   const measure = (match: RegExpMatchArray) => {

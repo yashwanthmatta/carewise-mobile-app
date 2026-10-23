@@ -75,6 +75,11 @@ const cases = [
   ["LDL goal is not a second result", "LDL cholesterol 151 mg/dL\nLDL goal <100 mg/dL", (a) => [!a.findings.some((f) => f.level === "More than one result")]],
   ["A1C misread S.9 is not read as 9", "Hemoglobin A1c S.9 % 4.0-5.6", (a) => [!a.labValues.some((v) => v.label === "A1C")]],
   ["glucose misread 1O8 is not read as 1", "Glucose 1O8 mg/dL 70-99", (a) => [!panel(a, "glucose"), a.riskLevel !== "urgent"]],
+  ["blank potassium does not take the range's 3.5", "Test  Result  Units  Range\nPotassium        mmol/L  3.5-5.1\nSodium  140  mmol/L  135-145", (a) => [!panel(a, "potassium")]],
+  ["blank A1C and LDL do not take the range", "Hemoglobin A1c  %  4.0-5.6\nLDL cholesterol  mg/dL  0-99", (a) => [!a.labValues.some((v) => v.label === "A1C" || v.label === "LDL cholesterol")]],
+  ["a date is never the range", "Previous result: Potassium 6.9 mmol/L (2025-03-01)\nPotassium 4.2 mmol/L 3.5-5.1", (a) => [
+    panel(a, "potassium")?.rangeText !== "2025-03", panel(a, "potassium")?.status !== "below", a.riskLevel === "urgent",
+  ]],
 ];
 
 let failed = 0;
