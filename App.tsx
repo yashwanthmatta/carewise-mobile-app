@@ -716,7 +716,7 @@ export default function App() {
     setSelectedReportFile(file);
     setReportName(file.name);
     setStatus(file.mimeType?.startsWith("image/")
-      ? `${file.name} selected. To read a photo of a report on your phone, open carewise-frontend.onrender.com in your browser, or type the numbers here.`
+      ? `${file.name} selected. To read a photo of a report on your phone, open followthroughhealth.com in your browser, or type the numbers here.`
       : `${file.name} selected. Add readable text if the file is a scanned PDF.`);
   }
 
@@ -1257,10 +1257,10 @@ export default function App() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Legal</Text>
             <Text style={styles.bodyText}>Review policies, check what FollowThrough Health has stored for your account, or request deletion. FollowThrough Health is not a medical diagnosis tool.</Text>
-            <ActionButton label="Privacy Policy" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/privacy.html")} />
-            <ActionButton label="Terms" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/terms.html")} />
-            <ActionButton label="Medical Disclaimer" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/disclaimer.html")} />
-            <ActionButton label="Data Deletion" onPress={() => Linking.openURL("https://carewise-frontend.onrender.com/legal/data-deletion.html")} />
+            <ActionButton label="Privacy Policy" onPress={() => Linking.openURL("https://followthroughhealth.com/legal/privacy.html")} />
+            <ActionButton label="Terms" onPress={() => Linking.openURL("https://followthroughhealth.com/legal/terms.html")} />
+            <ActionButton label="Medical Disclaimer" onPress={() => Linking.openURL("https://followthroughhealth.com/legal/disclaimer.html")} />
+            <ActionButton label="Data Deletion" onPress={() => Linking.openURL("https://followthroughhealth.com/legal/data-deletion.html")} />
             <View style={styles.divider} />
             <Text style={styles.listTitle}>Account privacy controls</Text>
             <TextInput

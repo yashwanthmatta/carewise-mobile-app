@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Expo pins compatible versions; upgrade Expo packages with `npx expo install --fix`.
+  # Version-update PRs are off (limit 0); Dependabot still opens security fixes.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
