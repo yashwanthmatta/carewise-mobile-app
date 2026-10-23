@@ -7,7 +7,7 @@ import { PLAN_TEXT, type PersonalPlan } from "./personalPlan";
 
 // Version of the interpretation rules and wording below. Change it whenever a rule, threshold or
 // explanation changes, so every output can be traced to the rules that produced it.
-export const EXPLANATION_RULES_VERSION = "2026-10-20.4";
+export const EXPLANATION_RULES_VERSION = "2026-10-20.5";
 
 // Plain-language guide per test: what it is, what a high or low result can mean, and a
 // question for the doctor. Educational wording only: no diagnosis, medicine names or doses.
