@@ -27,6 +27,10 @@ const cases = [
   ["anemia on a blood count", "Hemoglobin 9.1 g/dL 12.0-15.5\nWBC 13.5 x10^3/uL 4.0-11.0", (a) => [a.riskLevel === "needs_review", panel(a, "hemoglobin")?.far === true]],
   ["critical potassium", "Potassium 6.9 mmol/L 3.5-5.1 HH critical", (a) => [a.riskLevel === "urgent"]],
   ["completely normal", "Total cholesterol 172 mg/dL <200\nLDL cholesterol 92 mg/dL <100\nHDL cholesterol 58 mg/dL >39\nHbA1c 5.2 % 4.0-5.6\nGlucose fasting 88 mg/dL 70-99", (a) => [a.riskLevel === "routine", a.score >= 90]],
+  // Rules .6: the digit in "vitamin D3" / "D2+D3" is part of the name, never the result.
+  ["vitamin D3 with its result", "Vitamin D3 25 ng/mL 30-100 L", (a) => [a.labValues.find((v) => v.label === "Vitamin D")?.value === 25]],
+  ["vitamin D2+D3 with its result", "Vitamin D2+D3 (25-OH) 41 ng/mL 30-100", (a) => [a.labValues.find((v) => v.label === "Vitamin D")?.value === 41]],
+  ["vitamin D3 pending is not a result", "Vitamin D3\nPending", (a) => [!a.labValues.some((v) => v.label === "Vitamin D")]],
   ["UK units", "LDL cholesterol 4.1 mmol/L\nHDL cholesterol 0.9 mmol/L\nHbA1c 53 mmol/mol", (a) => [panel(a, "hdl")?.status === "below", a.labValues.some((v) => v.label === "A1C")]],
   ["no results in the text", "Doctor said my dad has some liver problem and his sugar is a bit high.", (a) => [a.noData === true]],
   ["serious kidney results", "Creatinine 2.3 mg/dL 0.6-1.3\neGFR 28 mL/min/1.73m2 >60", (a) => [a.riskLevel === "needs_review", panel(a, "egfr")?.far === true]],
