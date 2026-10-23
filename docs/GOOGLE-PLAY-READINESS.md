@@ -4,7 +4,7 @@ Last checked: 2026-10-23. Status key: ✅ verified · 🟡 done, needs a person 
 ⬜ not started.
 
 **Overall: technically build-ready (the bundle compiles; target API meets the 2026 rule); not
-submission-ready.** Blockers: billing decision, Play Console account and signing, Data Safety and
+submission-ready.** Blockers: Play Console account and signing, Data Safety and
 Health declarations, closed testing, real-device and TalkBack testing, and clinical, legal and
 security sign-off. **Nothing is published without the owner's explicit approval.**
 
@@ -25,7 +25,7 @@ security sign-off. **Nothing is published without the owner's explicit approval.
 
 | Item | Status | Evidence / next step |
 |---|---|---|
-| **Paid plans: Google Play Billing** | ⛔ | "Start checkout" opens Stripe for a digital subscription. Play requires Google Play Billing for this (limited alternative-billing programmes exist). **Owner decision**, same options as Apple: remove purchase from the app for v1 (recommended), add Play Billing, or enrol in an eligible programme |
+| **Paid plans: Google Play Billing** | ✅ | Resolved 2026-10-23, owner approved removing purchase from the app for v1. The app sells nothing: plan picker, "Start checkout" and the Stripe billing link are removed, and the screen says "Nothing is sold in this app". No feature in the app or on the server is locked behind a plan. `npm run release:check` fails if checkout or payment links come back. Plans stay on the website |
 | Health apps declaration (required for every app) | ⬜ | Play Console → App content. Declare health features honestly: lab-report education, medicine reminders ([Google](https://support.google.com/googleplay/android-developer/answer/14738291)) |
 | Health and Medical policy: no misleading claims; disclaimer | 🟡 | Education-only positioning and disclaimers. Avoid "clinically validated" until the review is signed |
 | Data Safety form | 🟡 | Draft answers in `src/storePrivacyAnswersDraft.md`: account email, health info the user saves, AI processing of help-chat questions (Anthropic), crash/diagnostics only if an SDK is added. Data is encrypted in transit; deletion is available in the app and on the web |
@@ -44,5 +44,5 @@ security sign-off. **Nothing is published without the owner's explicit approval.
 
 ## Before pressing Publish (all required)
 
-CI green · billing decision done · clinical sign-off for the live rules version · security review ·
+CI green · clinical sign-off for the live rules version · security review ·
 legal review · closed test and TalkBack pass · owner's explicit approval.

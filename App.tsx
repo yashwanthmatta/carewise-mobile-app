@@ -63,7 +63,7 @@ const screens: { key: Screen; label: string }[] = [
   { key: "recommendations", label: "Care" },
   { key: "doctors", label: "Doctors" },
   { key: "insurance", label: "Insurance" },
-  { key: "subscriptions", label: "Plans" },
+  { key: "subscriptions", label: "Your plan" },
   { key: "legal", label: "Legal" }
 ];
 
@@ -85,17 +85,6 @@ function formatApiResult(value: unknown) {
   if (typeof value === "string") return value;
   return JSON.stringify(value, null, 2);
 }
-
-function getCheckoutUrl(value: unknown) {
-  if (!value || typeof value !== "object") return "";
-  const candidate = value as { checkout_url?: unknown; url?: unknown };
-  if (typeof candidate.checkout_url === "string") return candidate.checkout_url;
-  if (typeof candidate.url === "string") return candidate.url;
-  return "";
-}
-
-// Plan codes stay stable on the server; these are the names and prices people see.
-const PLAN_LABELS = { basic: "Free", plus: "Plus $7/mo", premium: "Family $12/mo" } as const;
 
 // The four everyday tabs; the rest sit behind "More".
 const PRIMARY_SCREENS: Screen[] = ["reports", "record", "labs", "account"];
@@ -213,10 +202,7 @@ export default function App() {
   const [insuranceConditions, setInsuranceConditions] = useState("general wellness");
   const [insuranceBudget, setInsuranceBudget] = useState("medium");
   const [insuranceMatchResult, setInsuranceMatchResult] = useState("");
-  const [planCode, setPlanCode] = useState<"basic" | "plus" | "premium">("basic");
-  const [subscriptionResult, setSubscriptionResult] = useState("");
   const [currentPlanLabel, setCurrentPlanLabel] = useState("Free");
-  const [canManageBilling, setCanManageBilling] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const api = useMemo(() => new CareWiseApiClient(API_BASE_URL, token), [token]);
@@ -602,7 +588,7 @@ export default function App() {
     }
     Alert.alert(
       "Delete your account?",
-      "This deletes your account and everything saved with it on FollowThrough Health: saved reports, health record, reminders, doctor links and plan. It cannot be undone. A paid plan is not cancelled by this; cancel it first from Manage plan.",
+      "This deletes your account and everything saved with it on FollowThrough Health: saved reports, health record, reminders, doctor links and plan. It cannot be undone. A plan bought outside this app is not cancelled by this; cancel it where you bought it first.",
       [
         { text: "Keep my account", style: "cancel" },
         {
@@ -682,32 +668,10 @@ export default function App() {
     if (screen !== "subscriptions" || !token) return;
     api.getMySubscription()
       .then((plan) => {
-        setCurrentPlanLabel(`${plan.plan_name}${plan.status === "past_due" ? " (payment due)" : ""}`);
-        setCanManageBilling(Boolean(plan.can_manage_billing));
+        setCurrentPlanLabel(plan.plan_name);
       })
       .catch(() => undefined);
   }, [screen, token]);
-
-  function openBillingPortal() {
-    run("Opening billing page", async () => {
-      const result = await api.openBillingPortal();
-      if (result.portal_url.startsWith("https://billing.stripe.com/")) await Linking.openURL(result.portal_url);
-    });
-  }
-
-  function startSubscriptionCheckout() {
-    run("Starting plan checkout", async () => {
-      const result = await api.createSubscriptionCheckout(planCode);
-      const checkoutUrl = getCheckoutUrl(result);
-      setSubscriptionResult(formatApiResult(result));
-      if (checkoutUrl) {
-        await Linking.openURL(checkoutUrl);
-        setStatus("Checkout opened. Payment processing is handled outside FollowThrough Health by the configured provider.");
-        return;
-      }
-      setStatus("Plan request completed. Checkout is not configured yet for this environment.");
-    });
-  }
 
   async function pickReportFile() {
     const result = await DocumentPicker.getDocumentAsync({ type: ["text/plain", "application/pdf", "image/*"] });
@@ -1226,30 +1190,9 @@ export default function App() {
         ) : null}
         {screen === "subscriptions" ? (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Plans</Text>
-            <Text style={styles.bodyText}>FollowThrough Health is free to start. Plus ($7 a month) adds personal plans, reminders and trends; Family ($12 a month) covers up to 5 people. Billed monthly through Stripe; cancel any time.</Text>
-            {token ? <Text style={styles.smallText}>Your plan: {currentPlanLabel}</Text> : <Text style={styles.smallText}>Sign in on the Account tab to choose a paid plan.</Text>}
-            <View style={styles.buttonRow}>
-              {(["basic", "plus", "premium"] as const).map((code) => (
-                <Pressable
-                  key={code}
-                  onPress={() => setPlanCode(code)}
-                  style={[styles.planPill, planCode === code && styles.activePlanPill]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${PLAN_LABELS[code]} plan`}
-                  accessibilityState={{ selected: planCode === code }}
-                >
-                  <Text style={[styles.tabText, planCode === code && styles.activeTabText]}>{PLAN_LABELS[code]}</Text>
-                </Pressable>
-              ))}
-            </View>
-            {planCode === "basic" ? (
-              <Text style={styles.smallText}>The Free plan needs no payment. Everything on the Upload, History and Record screens is included.</Text>
-            ) : (
-              <ActionButton label="Start checkout" onPress={startSubscriptionCheckout} disabled={!token || busy} />
-            )}
-            {canManageBilling ? <ActionButton label="Manage or cancel plan" onPress={openBillingPortal} variant="secondary" disabled={busy} /> : null}
-            {subscriptionResult ? <Text style={styles.resultBox}>{subscriptionResult}</Text> : <Text style={styles.smallText}>Payments are handled by Stripe. FollowThrough Health never sees your card number.</Text>}
+            <Text style={styles.sectionTitle}>Your plan</Text>
+            <Text style={styles.bodyText}>Everything in this app is free to use: explaining reports, the doctor brief, your health record, reminders and the help chat. Nothing is sold in this app.</Text>
+            {token ? <Text style={styles.smallText}>Your account: {currentPlanLabel}</Text> : null}
             <EarlyAccessForm baseUrl={API_BASE_URL} language={reportLanguage === "es" ? "es" : "en"} />
           </View>
         ) : null}

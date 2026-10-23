@@ -106,13 +106,14 @@ assert(appSource.includes("requestDataDeletion"), "App must include data deletio
 assert(appSource.includes("generateCarePlan"), "App must include backend care-plan generation behavior");
 assert(appSource.includes("searchDoctorList"), "App must include backend doctor search behavior");
 assert(appSource.includes("matchInsurancePlan"), "App must include backend insurance matching behavior");
-assert(appSource.includes("startSubscriptionCheckout"), "App must include backend subscription checkout behavior");
+// Store rules (Apple 3.1.1, Google Play Billing): v1 sells nothing in the app, so no checkout or payment links.
+assert(!/startSubscriptionCheckout|createSubscriptionCheckout|openBillingPortal|Start checkout|billing\.stripe\.com/.test(appSource), "App must not sell plans or open payment pages (store billing rules).");
+assert(appSource.includes("Nothing is sold in this app."), "Plan screen must say nothing is sold in the app.");
 assert(appSource.includes("This is not a diagnosis or prescription."), "Care plan screen must include safe non-diagnostic wording.");
 assert(appSource.includes("does not guarantee eligibility, coverage, claim approval, or exact out-of-pocket costs"), "Insurance screen must avoid coverage guarantees.");
 assert(appSource.includes('accessibilityLabel="Diet style"'), "Care plan diet field must expose an accessibility label.");
 assert(appSource.includes('accessibilityLabel="Doctor search location"'), "Doctor search location field must expose an accessibility label.");
 assert(appSource.includes('accessibilityLabel="Insurance budget level"'), "Insurance budget field must expose an accessibility label.");
-assert(appSource.includes("accessibilityState={{ selected: planCode === code }}"), "Plan selector must expose selected state.");
 
 assert(apiClient.includes("/reports/upload-file"), "API client must call multipart report upload endpoint");
 assert(apiClient.includes("/auth/password-reset/request"), "API client must call password reset request endpoint");
@@ -125,7 +126,6 @@ assert(apiClient.includes("/auth/logout"), "API client must call logout endpoint
 assert(apiClient.includes("/recommendations/ai"), "API client must call recommendation endpoint");
 assert(apiClient.includes("/doctors/search"), "API client must call doctor search endpoint");
 assert(apiClient.includes("/insurance/match"), "API client must call insurance match endpoint");
-assert(apiClient.includes("/subscriptions/checkout"), "API client must call subscription checkout endpoint");
 assert(apiClient.includes("FormData"), "API client must use FormData for file uploads");
 assert(apiClient.includes("/reports/") && apiClient.includes("/analyze"), "API client must analyze uploaded reports");
 assert(apiClient.includes("REQUEST_TIMEOUT_MS = 20000"), "API client must define a network timeout.");
