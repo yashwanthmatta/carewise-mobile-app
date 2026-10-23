@@ -375,13 +375,6 @@ export class CareWiseApiClient {
     });
   }
 
-  createSubscriptionCheckout(planCode: "basic" | "plus" | "premium") {
-    return this.request("/subscriptions/checkout", {
-      method: "POST",
-      body: JSON.stringify({ plan_code: planCode }),
-    });
-  }
-
   createDoctorShare(snapshot: Record<string, unknown>, days = 7, label = ""): Promise<{ id: string; token: string; expires_at: string }> {
     return this.request<{ id: string; token: string; expires_at: string }>("/shares", {
       method: "POST",
@@ -391,10 +384,6 @@ export class CareWiseApiClient {
 
   getMySubscription(): Promise<SubscriptionMeOut> {
     return this.request<SubscriptionMeOut>("/subscriptions/me");
-  }
-
-  openBillingPortal(): Promise<{ portal_url: string }> {
-    return this.request<{ portal_url: string }>("/subscriptions/portal", { method: "POST", body: "{}" });
   }
 
   registerNotificationDevice(deviceToken: string, channel = "push") {

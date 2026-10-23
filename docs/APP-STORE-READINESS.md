@@ -3,8 +3,7 @@
 Last checked: 2026-10-23. Status key: ✅ verified in code or by a check · 🟡 done, needs a person to
 confirm · ⛔ blocker · ⬜ not started.
 
-**Overall: technically build-ready (the bundle compiles); not submission-ready.** Blockers: in-app
-purchase decision, signing and Apple account, real-device and VoiceOver testing, clinical, legal and
+**Overall: technically build-ready (the bundle compiles); not submission-ready.** Blockers: signing and Apple account, real-device and VoiceOver testing, clinical, legal and
 security sign-off. **Nothing is submitted without the owner's explicit approval.**
 
 ## Build and configuration
@@ -27,7 +26,7 @@ security sign-off. **Nothing is submitted without the owner's explicit approval.
 | Item | Status | Evidence / next step |
 |---|---|---|
 | Account deletion inside the app (5.1.1(v)) | ✅ | Profile → Delete account (`App.tsx`), calls the API, confirms first |
-| **Paid plans (3.1.1 in-app purchase)** | ⛔ | The app's "Start checkout" opens Stripe web checkout for Plus/Family. Apple generally requires In-App Purchase for digital subscriptions bought in the app, and US external-link rules have been changing. **Owner decision:** (a) remove purchase from the app for the first release and manage plans on the website, (b) add In-App Purchase, or (c) use an external purchase link only where Apple's current rules allow it. (a) is the fastest and lowest risk |
+| **Paid plans (3.1.1 in-app purchase)** | ✅ | Resolved 2026-10-23, owner approved removing purchase from the app for v1. The app sells nothing: plan picker, "Start checkout" and the Stripe billing link are removed, and the screen says "Nothing is sold in this app". No feature in the app or on the server is locked behind a plan. `npm run release:check` fails if checkout or payment links come back. Plans stay on the website |
 | Health and medical claims (1.4.1) | 🟡 | Positioned as education; no diagnosis or medicine names; disclaimers in the app. Wording must avoid "clinically validated" until the review is signed |
 | Privacy policy URL and in-app links | ✅ | Links point to followthroughhealth.com (`App.tsx`, `src/storeSubmissionPacket.json`) |
 | App Privacy answers | 🟡 | Draft in `src/storePrivacyAnswersDraft.md`; the public page is `legal/app-store-disclosures.html` (under legal review) |
