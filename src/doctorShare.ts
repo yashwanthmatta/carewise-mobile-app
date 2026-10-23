@@ -11,7 +11,7 @@ const NEXT_STEP: Record<ReportAnalysis["riskLevel"], string> = {
   routine: "Nothing urgent stands out. For the next checkup.",
 };
 
-export const SHARE_VIEWER_URL = "https://carewise-frontend.onrender.com/share.html";
+export const SHARE_VIEWER_URL = "https://followthroughhealth.com/share.html";
 
 export function buildShareSnapshot(analysis: ReportAnalysis, person: string, record: HealthRecordItem[]) {
   const summary = buildRecordSummary(getRecordFor(record, person));
