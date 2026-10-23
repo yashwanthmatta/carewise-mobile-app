@@ -201,6 +201,8 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Marked abnormal by the lab": "Marcado como anormal por el laboratorio",
       "Within the lab's range": "Dentro del rango del laboratorio",
       "Other tests": "Otras pruebas",
+      "More than one result": "Más de un resultado",
+      "My report shows more than one result for the same test. Which one is current, and do I need a repeat test?": "Mi informe muestra más de un resultado para la misma prueba. ¿Cuál es el actual y necesito repetir la prueba?",
       "Possible danger level": "Posible nivel de peligro",
       "No range to compare": "Sin rango para comparar",
       "Detected (usually negative)": "Detectado (normalmente negativo)",
@@ -217,6 +219,7 @@ const REPORT_TRANSLATIONS: Record<string, Translation> = {
       "Bring the full report, and any earlier scans, to your appointment so your doctor can compare them.": "Lleve el informe completo y cualquier estudio anterior a su cita para que su médico pueda compararlos.",
     },
     patterns: [
+      [/^Your report shows another (.+) result \((.+)\)\. This explanation uses the more concerning one\. Ask your doctor which result is current\.$/, "Su informe muestra otro resultado de $1 ($2). Esta explicación usa el más preocupante. Pregunte a su médico cuál es el resultado actual."],
       [/^LDL appears around (.+) mg\/dL\.$/, "El LDL aparece alrededor de $1 mg/dL."],
       [/^Total cholesterol appears around (.+) mg\/dL\.$/, "El colesterol total aparece alrededor de $1 mg/dL."],
       [/^Triglycerides appear around (.+) mg\/dL\.$/, "Los triglicéridos aparecen alrededor de $1 mg/dL."],
@@ -318,18 +321,39 @@ const LAB_UNIT = String.raw`\s*(?:(?:h|l|hh|ll|hi|lo|high|low|\*)\s+(?=mmol|mg|%
 type RangeSide = "above" | "below" | null;
 
 // The value must not start inside a word, so the "1" in "Hemoglobin A1c" is never read as a result.
-function readLabMeasure(text: string, namePattern: string, maxGap = 24): { value: number; unit: string; outside: RangeSide } | null {
+// A number glued to letters is a misread ("s.9" for 5.9, "1o8" for 108), so it is not read at all.
+// When the same test is printed again with a different value ("Previous result: LDL 98" then
+// "LDL 151"), the higher reading is used (every caller is a test where higher is worse) and the
+// other value is reported through onRepeat, so an older or lower value never reassures on its own.
+function readLabMeasure(text: string, namePattern: string, maxGap = 24, onRepeat?: (other: number) => void): { value: number; unit: string; outside: RangeSide } | null {
   // The value is on the same line as the test name, or starts the next line ("A1C:" then
   // "7.2 %"). It is never taken from another test further down: in "Lipid panel and A1C" then
   // "Total cholesterol 228", 228 is not an A1C.
-  const gap = `(?:[^\\d\\n]{0,${maxGap}}?|[^\\d\\n]{0,${maxGap}}?(?:\\n[ \\t:]*){1,2})`;
-  const match = text.match(new RegExp(`${namePattern}${gap}${LAB_FOOTNOTE}(?<![a-z])(\\d+(?:\\.\\d+)?)${LAB_UNIT}`, "i"));
-  if (!match || match.index === undefined) return null;
-  const value = Number(match[1]);
-  const rest = cutAtNextTest(text.slice(match.index + match[0].length).split("\n")[0].slice(0, 60));
-  // The unit can come after a previous-result column ("17 L 17 03/2026 mmol/mol").
-  const unit = match[2] || rest.match(/(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl)/i)?.[1] || "";
-  return { value, unit: unit.replace(/\s+/g, "").toLowerCase(), outside: compareWithPrintedRange(value, rest) };
+  const gap = `([^\\d\\n]{0,${maxGap}}?|[^\\d\\n]{0,${maxGap}}?(?:\\n[ \\t:]*){1,2})`;
+  const pattern = new RegExp(`${namePattern}${gap}${LAB_FOOTNOTE}(?<![a-z])(?<![a-z][.,])(\\d+(?:\\.\\d+)?)(?![oil|]\\d)${LAB_UNIT}`, "gi");
+  const matches = [...text.matchAll(pattern)];
+  if (!matches.length || matches[0].index === undefined) return null;
+  const measure = (match: RegExpMatchArray) => {
+    const value = Number(match[2]);
+    const rest = cutAtNextTest(text.slice((match.index ?? 0) + match[0].length).split("\n")[0].slice(0, 60));
+    // The unit can come after a previous-result column ("17 L 17 03/2026 mmol/mol").
+    const unit = (match[3] || rest.match(/(mmol\s*\/\s*mol|mmol\s*\/\s*l|mg\s*\/\s*dl)/i)?.[1] || "").replace(/\s+/g, "").toLowerCase();
+    return { value, unit, rest, outside: compareWithPrintedRange(value, rest) };
+  };
+  let chosen = measure(matches[0]);
+  if (onRepeat) {
+    matches.slice(1).forEach((match) => {
+      // Goals, ratios and limits ("LDL goal <100", "LDL/HDL ratio 3.2") are not repeat results.
+      if (/[<>≤≥\/]|goal|target|ratio|optimal|desirable|less than|greater than/.test(match[1])) return;
+      const other = measure(match);
+      if (other.unit !== chosen.unit || other.value === chosen.value) return;
+      if (!other.unit && !/\d\s*[-–]\s*\d|[<>≤≥]\s*=?\s*\d/.test(other.rest)) return;
+      const lower = other.value > chosen.value ? chosen : other;
+      if (other.value > chosen.value) chosen = other;
+      onRepeat(lower.value);
+    });
+  }
+  return { value: chosen.value, unit: chosen.unit, outside: chosen.outside };
 }
 
 // Reads the reference range printed on the same line after a value ("0-99", "<5.7",
@@ -360,8 +384,8 @@ type OutsideMap = Partial<Record<"ldl" | "totalCholesterol" | "triglycerides" | 
 // UK and European labs report lipids in mmol/L and A1C in mmol/mol (IFCC).
 // Convert to the US units the explanations use; a value with no unit that is
 // only plausible in the other unit is treated as that unit.
-function readCholesterolMgDl(text: string, namePattern: string): number | null {
-  const measure = readLabMeasure(text, namePattern);
+function readCholesterolMgDl(text: string, namePattern: string, onRepeat?: (other: number) => void): number | null {
+  const measure = readLabMeasure(text, namePattern, 24, onRepeat);
   if (!measure) return null;
   if (measure.unit === "mmol/l" || (!measure.unit && measure.value < 25)) return Math.round(measure.value * 38.67);
   return measure.value;
@@ -383,16 +407,16 @@ function readPlainCholesterolMgDl(text: string): number | null {
   return null;
 }
 
-function readTriglyceridesMgDl(text: string): number | null {
-  const measure = readLabMeasure(text, "triglycerides");
+function readTriglyceridesMgDl(text: string, onRepeat?: (other: number) => void): number | null {
+  const measure = readLabMeasure(text, "triglycerides", 24, onRepeat);
   if (!measure) return null;
   if (measure.unit === "mmol/l" || (!measure.unit && measure.value < 15)) return Math.round(measure.value * 88.57);
   return measure.value;
 }
 
-function readA1cPercent(text: string): number | null {
+function readA1cPercent(text: string, onRepeat?: (other: number) => void): number | null {
   // UK reports say "HbA1c level - IFCC standardised 44 mmol/mol", so allow a longer label.
-  const measure = readLabMeasure(text, String.raw`(?:hemoglobin\s*)?a1c`, 40);
+  const measure = readLabMeasure(text, String.raw`(?:hemoglobin\s*)?a1c`, 40, onRepeat);
   if (!measure) return null;
   if (measure.unit === "mmol/mol" || (!measure.unit && measure.value > 20)) return Math.round((0.0915 * measure.value + 2.15) * 10) / 10;
   return measure.value;
@@ -492,10 +516,12 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
   const emergencySymptoms = urgentMatches.filter((term) => EMERGENCY_CARE_TERMS.has(term));
   if (hasHypertensiveCrisis(lower)) urgentMatches.push("blood pressure over 180/120");
 
-  const ldl = readCholesterolMgDl(lower, String.raw`\bldl(?: cholesterol)?`);
-  const totalCholesterol = readCholesterolMgDl(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`) ?? readPlainCholesterolMgDl(lower);
-  const triglycerides = readTriglyceridesMgDl(lower);
-  const a1c = readA1cPercent(lower);
+  // Tests printed more than once with different values: [name, the other value as printed].
+  const repeats: [string, string][] = [];
+  const ldl = readCholesterolMgDl(lower, String.raw`\bldl(?: cholesterol)?`, (other) => repeats.push(["LDL cholesterol", String(other)]));
+  const totalCholesterol = readCholesterolMgDl(lower, String.raw`(?:total cholesterol|cholesterol,?\s*total)`, (other) => repeats.push(["Total cholesterol", String(other)])) ?? readPlainCholesterolMgDl(lower);
+  const triglycerides = readTriglyceridesMgDl(lower, (other) => repeats.push(["Triglycerides", String(other)]));
+  const a1c = readA1cPercent(lower, (other) => repeats.push(["A1C", String(other)]));
   // Skip the "25-hydroxy" / "25-OH" in the test name so it is not read as the value.
   const vitaminD = readReportNumber(lower, [/vitamin d(?:[23](?:\s*[+/&]\s*d?[23])?(?![\d.]))?(?:[\s,]*\(?25[\s-]*(?:hydroxy|oh)\)?)?(?:[^\d\n]{0,24}?|[^\d\n]{0,24}?(?:\n[ \t:]*){1,2})(?<![a-z])(\d+(?:\.\d+)?)(?![\d.]|[\s-]*(?:hydroxy|oh)\b)/i]);
   const systolic = readReportNumber(lower, [/(?:blood pressure|\bbp\b)\D{0,60}(\d{2,3})\s*\/\s*\d{2,3}/i]);
@@ -648,6 +674,14 @@ export function analyzeReportTextLocally(rawText: string): ReportAnalysis {
     }
   });
   score -= Math.min(30, panelPenalty);
+  // A test printed twice with different values: say so, and say which value was used.
+  panelResults.forEach((item) => {
+    if (item.otherValueText) repeats.push([item.name, item.otherValueText]);
+  });
+  repeats.forEach(([name, other]) => {
+    findings.push({ label: name, level: "More than one result", detail: `Your report shows another ${name} result (${other}). This explanation uses the more concerning one. Ask your doctor which result is current.` });
+  });
+  if (repeats.length) questions.push("My report shows more than one result for the same test. Which one is current, and do I need a repeat test?");
   // A result far outside its range is never "routine", however good the rest looks.
   if (anyFar) {
     score = Math.min(score, 74);

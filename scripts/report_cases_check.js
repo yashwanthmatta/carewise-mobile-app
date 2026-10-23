@@ -65,6 +65,16 @@ const cases = [
   ]],
   ["dangerously low platelets in lakhs", "Platelet Count 0.15 lakhs/cumm 1.5-4.5", (a) => [a.riskLevel === "urgent"]],
   ["result with no range is not called normal", "Ferritin 20", (a) => [a.riskLevel === "attention", a.findings.some((f) => f.level === "No range to compare")]],
+  // Rules 2026-10-20.6: a repeated test keeps its more concerning value; a number glued to letters is not read.
+  ["second potassium result is dangerous", "Potassium 4.1 mmol/L 3.5-5.1\nPotassium 6.9 mmol/L 3.5-5.1", (a) => [
+    a.riskLevel === "urgent", panel(a, "potassium")?.valueText === "6.9", a.findings.some((f) => f.level === "More than one result"),
+  ]],
+  ["previous and current LDL", "Previous result: LDL cholesterol 98 mg/dL\nCurrent result: LDL cholesterol 151 mg/dL <100 H", (a) => [
+    a.labValues.find((v) => v.label === "LDL cholesterol")?.value === 151, a.findings.some((f) => f.level === "More than one result"),
+  ]],
+  ["LDL goal is not a second result", "LDL cholesterol 151 mg/dL\nLDL goal <100 mg/dL", (a) => [!a.findings.some((f) => f.level === "More than one result")]],
+  ["A1C misread S.9 is not read as 9", "Hemoglobin A1c S.9 % 4.0-5.6", (a) => [!a.labValues.some((v) => v.label === "A1C")]],
+  ["glucose misread 1O8 is not read as 1", "Glucose 1O8 mg/dL 70-99", (a) => [!panel(a, "glucose"), a.riskLevel !== "urgent"]],
 ];
 
 let failed = 0;
