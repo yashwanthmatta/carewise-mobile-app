@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import type { CareWiseApiClient, ReminderOut } from "./apiClient";
+import { deviceTimeZone, reminderZoneChoices } from "./reminderZones";
 
 // Medicine reminders, the same ones as on the website (saved to the account). FollowThrough Health
 // can phone the person at each time; the call never says what the medicine is.
@@ -11,14 +12,6 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function parseReminderTimes(text: string): string[] {
   return [...new Set(text.split(/[,\s]+/).map((value) => value.trim()).filter(Boolean).map((value) => (/^\d:\d\d$/.test(value) ? `0${value}` : value)))];
-}
-
-function deviceTimeZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
-  } catch {
-    return "America/New_York";
-  }
 }
 
 function callLine(item: ReminderOut): string {
@@ -39,6 +32,7 @@ export default function RemindersScreen({ api, signedIn }: { api: CareWiseApiCli
   const [label, setLabel] = useState("");
   const [times, setTimes] = useState("08:00");
   const [days, setDays] = useState<string[]>(DAYS.map(([value]) => value));
+  const [zone, setZone] = useState(deviceTimeZone());
   const [call, setCall] = useState(false);
   const [phone, setPhone] = useState("");
   const [callerName, setCallerName] = useState("");
@@ -90,7 +84,7 @@ export default function RemindersScreen({ api, signedIn }: { api: CareWiseApiCli
         label: label.trim(),
         times: list,
         days: days.length === 7 ? [] : days,
-        timezone: deviceTimeZone(),
+        timezone: zone,
         language: "en",
         call,
         phone: call ? number : "",
@@ -162,6 +156,17 @@ export default function RemindersScreen({ api, signedIn }: { api: CareWiseApiCli
                   );
                 })}
               </View>
+              <Text style={styles.small}>Their time zone: reminders and calls happen at these times where the person lives.</Text>
+              <View style={styles.row}>
+                {reminderZoneChoices().map((choice) => {
+                  const selected = zone === choice.value;
+                  return (
+                    <Pressable key={choice.value} onPress={() => setZone(choice.value)} style={[styles.pill, selected && styles.pillActive]} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`${choice.label} time zone`}>
+                      <Text style={[styles.pillText, selected && styles.pillTextActive]}>{choice.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <View style={styles.switchRow}>
                 <Switch value={call} onValueChange={setCall} accessibilityLabel="Phone them at these times" />
                 <Text style={styles.body}>Phone them at these times</Text>
@@ -171,8 +176,8 @@ export default function RemindersScreen({ api, signedIn }: { api: CareWiseApiCli
                   <TextInput style={styles.input} value={phone} onChangeText={setPhone} maxLength={20} placeholder="Their phone, e.g. +1 555 123 4567" accessibilityLabel="Their phone number" keyboardType="phone-pad" />
                   <TextInput style={styles.input} value={callerName} onChangeText={setCallerName} maxLength={40} placeholder="Your first name (said on the call)" accessibilityLabel="Your first name" />
                   <View style={styles.switchRow}>
-                    <Switch value={consent} onValueChange={setConsent} accessibilityLabel="They agreed to get these calls" />
-                    <Text style={[styles.body, styles.flex]}>They agreed to get these calls. The first call asks them to press 1 to confirm; 9 stops calls.</Text>
+                    <Switch value={consent} onValueChange={setConsent} accessibilityLabel="This person agreed to get automated reminder calls at this number" />
+                    <Text style={[styles.body, styles.flex]}>This person agreed to get automated reminder calls at this number. The first call asks them to press 1 to confirm; 9 stops calls.</Text>
                   </View>
                 </View>
               ) : null}
