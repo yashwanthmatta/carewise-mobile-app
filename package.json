@@ -29,7 +29,8 @@
     "build:ios:production": "eas build --platform ios --profile production",
     "submit:android:production": "eas submit --platform android --profile production",
     "submit:ios:production": "eas submit --platform ios --profile production",
-    "signals:check": "node scripts/product_signals_check.js"
+    "signals:check": "node scripts/product_signals_check.js",
+    "reminders:check": "node scripts/reminder_zones_check.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
