@@ -1,10 +1,12 @@
 # FollowThrough Health Store Privacy Answers Draft
 
+> Updated 2026-10-23 by the legal and advertising review (carewise-frontend `docs/legal-advertising-review.md`, LA-07). **Pending counsel review. Not legal advice.**
+
 This draft is for Apple App Privacy and Google Play Data Safety preparation. Review it with legal counsel and update it to match the final production data flows before submission.
 
 ## App Purpose
 
-FollowThrough Health helps users upload health reports, understand them in simple language, save lab trend notes, and prepare questions for licensed healthcare professionals. FollowThrough Health is not a medical diagnosis, prescription, cure, emergency, or insurance-coverage guarantee tool.
+FollowThrough Health explains lab reports in plain words on the phone, and lets signed-in users save reports and lab trends and prepare questions for licensed healthcare professionals. FollowThrough Health is not a medical diagnosis, prescription, cure, emergency, or insurance-coverage guarantee tool.
 
 ## Data Collected
 
@@ -51,7 +53,10 @@ FollowThrough Health helps users upload health reports, understand them in simpl
 
 - Backend hosting and database providers process data to operate the app.
 - Private file storage provider stores uploaded reports.
-- AI provider may process report text/files server-side to generate simple explanations when enabled.
+- Report explanations are made by fixed rules, on the phone, or on our server for reports a signed-in user saves. No AI writes the explanation.
+- Help chat: the question the person types (and a result summary only if they tick "share") is sent to Anthropic to write the answer. Our server does not store it.
+- Photo text: if server photo reading is switched on, the text of a photo saved to an account is read by OpenAI.
+- Reminder calls: the phone number and the first name said on the call are shared with Twilio only to place the calls. The call never names the medicine.
 - Payment provider may process subscription data when enabled.
 - Do not sell health data.
 - Do not use health data for third-party advertising.

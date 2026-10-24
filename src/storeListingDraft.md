@@ -1,36 +1,43 @@
 # FollowThrough Health Store Listing Draft
 
+> Wording updated 2026-10-23 by the legal and advertising review to match what the app does
+> (carewise-frontend `docs/legal-advertising-review.md`, LA-07). **Pending counsel review. Not legal advice.**
+
 ## App Name
 
 FollowThrough Health
 
 ## Subtitle
 
-Understand health reports in simple language.
+Lab reports explained in plain words
 
 ## Short Description
 
-Upload a health report, review simple explanations, save lab trends, and prepare better questions for your clinician.
+Read a lab report in plain words, see results outside your lab's range, and bring questions to your doctor.
 
 ## Full Description
 
-FollowThrough Health helps you make sense of health reports without replacing professional care. Upload a PDF, image, or text report and FollowThrough Health organizes key information into simple language, wellness suggestions, lab trend notes, and questions to discuss with a licensed clinician.
+FollowThrough Health explains blood test reports and the written part of scan reports in plain words. Type or paste the results, or try the sample report. The explanation is made on your phone; nothing is uploaded unless you sign in and choose to save a report to your account. Each result is compared with the range your lab printed, and you get questions to ask your doctor and a one-page doctor brief.
 
 FollowThrough Health can help with:
 
-- Uploading health reports from your phone.
-- Simple-language report summaries.
-- Wellness and habit suggestions.
-- Saved lab trends for future visits.
-- Consent, privacy, and data deletion controls.
+- Plain-word explanations of each lab result.
+- Results compared with the range printed on the report.
+- Questions to bring to the doctor, and a one-page doctor brief.
+- Optional saved reports and lab trends when you sign in.
+- Privacy controls, including deleting your account and data.
 
 FollowThrough Health is not a medical diagnosis tool. It does not prescribe medication, provide emergency care, or replace a licensed doctor, pharmacist, dietitian, or other healthcare professional. For urgent symptoms, call emergency services or seek immediate medical care.
 
 ## Keywords
 
-health report, lab results, wellness, health tracker, care plan, medical notes, patient app
+lab report explained, lab results, blood test, lab terms, doctor questions, caregiver
 
 ## Support URL
+
+https://followthroughhealth.com/support.html
+
+## Data Deletion URL
 
 https://followthroughhealth.com/legal/data-deletion.html
 
