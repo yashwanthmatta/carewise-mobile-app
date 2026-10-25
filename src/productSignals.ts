@@ -2,7 +2,7 @@
 // "Was this helpful?" answers and early-access sign-ups. No report text, account or
 // device id is sent. Failures are silent for counts and explained for the forms.
 
-export const USAGE_EVENTS = ["report_explained", "sample_opened", "doctor_brief_opened", "spanish_used", "early_access_opened"] as const;
+export const USAGE_EVENTS = ["report_explained", "sample_opened", "doctor_brief_opened", "spanish_used", "early_access_opened", "listen_used"] as const;
 export type UsageEvent = (typeof USAGE_EVENTS)[number];
 export const EARLY_ACCESS_ROLES = ["caregiver", "patient", "clinician", "other"] as const;
 export type EarlyAccessRole = (typeof EARLY_ACCESS_ROLES)[number];
