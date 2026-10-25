@@ -27,6 +27,10 @@ const cases = [
   ["anemia on a blood count", "Hemoglobin 9.1 g/dL 12.0-15.5\nWBC 13.5 x10^3/uL 4.0-11.0", (a) => [a.riskLevel === "needs_review", panel(a, "hemoglobin")?.far === true]],
   ["critical potassium", "Potassium 6.9 mmol/L 3.5-5.1 HH critical", (a) => [a.riskLevel === "urgent"]],
   ["completely normal", "Total cholesterol 172 mg/dL <200\nLDL cholesterol 92 mg/dL <100\nHDL cholesterol 58 mg/dL >39\nHbA1c 5.2 % 4.0-5.6\nGlucose fasting 88 mg/dL 70-99", (a) => [a.riskLevel === "routine", a.score >= 90]],
+  // Rules .6: the digit in "vitamin D3" / "D2+D3" is part of the name, never the result.
+  ["vitamin D3 with its result", "Vitamin D3 25 ng/mL 30-100 L", (a) => [a.labValues.find((v) => v.label === "Vitamin D")?.value === 25]],
+  ["vitamin D2+D3 with its result", "Vitamin D2+D3 (25-OH) 41 ng/mL 30-100", (a) => [a.labValues.find((v) => v.label === "Vitamin D")?.value === 41]],
+  ["vitamin D3 pending is not a result", "Vitamin D3\nPending", (a) => [!a.labValues.some((v) => v.label === "Vitamin D")]],
   ["UK units", "LDL cholesterol 4.1 mmol/L\nHDL cholesterol 0.9 mmol/L\nHbA1c 53 mmol/mol", (a) => [panel(a, "hdl")?.status === "below", a.labValues.some((v) => v.label === "A1C")]],
   ["no results in the text", "Doctor said my dad has some liver problem and his sugar is a bit high.", (a) => [a.noData === true]],
   ["serious kidney results", "Creatinine 2.3 mg/dL 0.6-1.3\neGFR 28 mL/min/1.73m2 >60", (a) => [a.riskLevel === "needs_review", panel(a, "egfr")?.far === true]],
@@ -61,6 +65,23 @@ const cases = [
   ]],
   ["dangerously low platelets in lakhs", "Platelet Count 0.15 lakhs/cumm 1.5-4.5", (a) => [a.riskLevel === "urgent"]],
   ["result with no range is not called normal", "Ferritin 20", (a) => [a.riskLevel === "attention", a.findings.some((f) => f.level === "No range to compare")]],
+  // Rules 2026-10-20.6: a repeated test keeps its more concerning value; a number glued to letters is not read.
+  ["second potassium result is dangerous", "Potassium 4.1 mmol/L 3.5-5.1\nPotassium 6.9 mmol/L 3.5-5.1", (a) => [
+    a.riskLevel === "urgent", panel(a, "potassium")?.valueText === "6.9", a.findings.some((f) => f.level === "More than one result"),
+  ]],
+  ["previous and current LDL", "Previous result: LDL cholesterol 98 mg/dL\nCurrent result: LDL cholesterol 151 mg/dL <100 H", (a) => [
+    a.labValues.find((v) => v.label === "LDL cholesterol")?.value === 151, a.findings.some((f) => f.level === "More than one result"),
+  ]],
+  ["LDL goal is not a second result", "LDL cholesterol 151 mg/dL\nLDL goal <100 mg/dL", (a) => [!a.findings.some((f) => f.level === "More than one result")]],
+  ["A1C misread S.9 is not read as 9", "Hemoglobin A1c S.9 % 4.0-5.6", (a) => [!a.labValues.some((v) => v.label === "A1C")]],
+  ["glucose misread 1O8 is not read as 1", "Glucose 1O8 mg/dL 70-99", (a) => [!panel(a, "glucose"), a.riskLevel !== "urgent"]],
+  ["blank potassium does not take the range's 3.5", "Test  Result  Units  Range\nPotassium        mmol/L  3.5-5.1\nSodium  140  mmol/L  135-145", (a) => [!panel(a, "potassium")]],
+  ["blank A1C and LDL do not take the range", "Hemoglobin A1c  %  4.0-5.6\nLDL cholesterol  mg/dL  0-99", (a) => [!a.labValues.some((v) => v.label === "A1C" || v.label === "LDL cholesterol")]],
+  ["an LDL target with no result is not read as LDL 100", "LDL cholesterol <100 mg/dL\nHDL cholesterol 52 mg/dL >40", (a) => [!a.labValues.some((v) => v.label === "LDL cholesterol")]],
+  ["LDL with its result and target still reads the result", "LDL cholesterol 151 mg/dL <100 H", (a) => [a.labValues.find((v) => v.label === "LDL cholesterol")?.value === 151]],
+  ["a date is never the range", "Previous result: Potassium 6.9 mmol/L (2025-03-01)\nPotassium 4.2 mmol/L 3.5-5.1", (a) => [
+    panel(a, "potassium")?.rangeText !== "2025-03", panel(a, "potassium")?.status !== "below", a.riskLevel === "urgent",
+  ]],
 ];
 
 let failed = 0;

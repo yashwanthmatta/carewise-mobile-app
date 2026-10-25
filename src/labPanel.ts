@@ -22,6 +22,10 @@ export type LabPanelResult = {
   // At a level many labs treat as a critical value (for example glucose under 54 mg/dL
   // or a raised troponin), whatever range was printed: contact a doctor today.
   danger: boolean;
+  // Set when the report prints this test again with a different value ("Potassium 4.1" then
+  // "Potassium 6.9"). The more concerning reading is kept and both are named, so a second,
+  // dangerous value is never dropped silently.
+  otherValueText?: string;
 };
 
 type LabTest = { key: string; name: string; es: string; aliases: string[]; what: string; whatEs: string };
@@ -87,6 +91,9 @@ export const LAB_TESTS: LabTest[] = [
 
 const UNIT_PATTERN = /(?:x\s?10\^?E?\d+\s?\/\s?[uµμ]?l|10\^?\d+\s?\/\s?[uµμ]?l|[km]\/[uµμ]l|thousand\/[uµμ]l|million\/[uµμ]l|cells\/[uµμ]l|ml\/min(?:\/1\.73\s?m2)?|mg\/dl|(?:[uµμ]|mc)g\/dl|(?:[uµμ]|mc)g\/l|(?:[uµμ]|mc)g\/ml|gm\/dl|g\/dl|g\/l|mg\/l|lakhs?\s?\/\s?(?:cu\.?\s?mm|[uµμ]l)|lakhs?|mmol\/l|[uµμ]mol\/l|nmol\/l|pmol\/l|meq\/l|miu\/l|[uµμ]iu\/ml|iu\/l|u\/l|ng\/ml|ng\/dl|ng\/l|pg\/ml|mm\/hr?|seconds|sec|fl|pg|%)/i;
 export const RANGE_PATTERN = /(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)|(<=?|>=?|≤|≥)\s*(\d+(?:\.\d+)?)/;
+// Dates ("2025-03-01", "03/01/2025", "01.03.2025", never a range like "8.6-10.3") are blanked out before a range is looked for, so a date is
+// never read as the lab's range.
+const DATE_PATTERN = /\b\d{4}-\d{1,2}-\d{1,2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b\d{1,2}\.\d{1,2}\.\d{4}\b/g;
 const FLAG_PATTERN = /(?:^|[\s(])(HH|LL|H|L|High|Low|HIGH|LOW|Critical|CRITICAL|CRIT|Panic|PANIC|Abnormal|ABNORMAL)(?=[\s*)]|$)/;
 const COMPILED = LAB_TESTS.map((test) => ({ test, patterns: test.aliases.map((alias) => new RegExp(`\\b${alias}\\b`, "i")) }));
 
@@ -258,13 +265,23 @@ export function cutAtNextTest(rest: string): string {
   return rest.slice(0, cut);
 }
 
+// How concerning a reading is, so a repeated test keeps its most concerning value.
+function readingConcern(item: LabPanelResult): number {
+  if (item.danger) return 4;
+  if (item.status === "critical") return 3;
+  if (item.far) return 2;
+  return item.status === "within" || item.status === "unknown" ? 0 : 1;
+}
+
+// One result per test; each line is matched to the test named earliest on it. A test printed
+// again with a different value keeps its most concerning reading and names the other one.
 export function readLabPanel(text: string): LabPanelResult[] {
   const results: LabPanelResult[] = [];
   const seen = new Set<string>();
-  joinWrappedNames(normalizeReportText(text).split(/\r?\n/)).flatMap(splitTypedLine).flatMap(splitSideBySide).forEach((line) => {
+  const bestMatch = (line: string, wantSeen: boolean): { test: LabTest; index: number; length: number } | null => {
     let best: { test: LabTest; index: number; length: number } | null = null;
     COMPILED.forEach(({ test, patterns }) => {
-      if (seen.has(test.key)) return;
+      if (seen.has(test.key) !== wantSeen) return;
       patterns.forEach((pattern) => {
         const match = line.match(pattern);
         if (!match || match.index === undefined) return;
@@ -273,11 +290,19 @@ export function readLabPanel(text: string): LabPanelResult[] {
         }
       });
     });
-    if (!best) return;
-    const { test, index, length } = best as { test: LabTest; index: number; length: number };
+    return best;
+  };
+  joinWrappedNames(normalizeReportText(text).split(/\r?\n/)).flatMap(splitTypedLine).flatMap(splitSideBySide).forEach((line) => {
+    const fresh = bestMatch(line, false);
+    // A line naming only a test that was already read is a repeat of that test (below).
+    const found = fresh || bestMatch(line, true);
+    if (!found) return;
+    const repeat = !fresh;
+    const { test, index, length } = found;
     const rest = line.slice(index + length);
     if (/ratio/i.test(line.slice(index, index + length + 12))) return;
     if (test.key.startsWith("urine")) {
+      if (repeat) return;
       const word = rest.match(QUALITATIVE);
       if (!word) return;
       const reading = qualitativeFrom(word[1]);
@@ -287,21 +312,31 @@ export function readLabPanel(text: string): LabPanelResult[] {
     }
     const valueMatch = rest.match(/^[^\d<>\n]{0,40}?\s*(?:\b0\d\s+[^\d\n]{0,12}?)?([<>]?)\s*(\d+(?:\.\d+)?)/);
     if (!valueMatch || valueMatch.index === undefined) return;
+    // A number glued to letters ("S.9", "1O8") is a misread, not a result: read nothing
+    // rather than a wrong value (an A1C of 9 %, or a glucose of 1 mg/dL).
+    const numberAt = valueMatch.index + valueMatch[0].length - valueMatch[2].length;
+    if (/[A-Za-z][.,]?$/.test(rest.slice(Math.max(0, numberAt - 2), numberAt)) || /^[OoIlS|]\d/.test(rest.slice(numberAt + valueMatch[2].length))) return;
+    // A repeat counts only when it is a plain result with a unit or range, not a goal like "<100".
+    if (repeat && valueMatch[1]) return;
+    // A blank result: the only number is the start of the range ("Potassium  mmol/L  3.5-5.1").
+    // Read nothing rather than calling the range's low end the result.
+    if (!valueMatch[1] && /^\s*(?:-|–|to)\s*\d/.test(rest.slice(numberAt + valueMatch[2].length))) return;
     const value = Number(valueMatch[2]);
     let after = rest.slice(valueMatch.index + valueMatch[0].length);
     const unitMatch = after.match(UNIT_PATTERN);
     const unit = unitMatch ? unitMatch[0].replace(/\s+/g, "") : "";
     if (unitMatch && unitMatch.index !== undefined) after = after.slice(0, unitMatch.index) + " " + after.slice(unitMatch.index + unitMatch[0].length);
     const flag = after.match(FLAG_PATTERN)?.[1] ?? "";
+    after = after.replace(DATE_PATTERN, " ");
     const range = after.match(RANGE_PATTERN);
+    if (repeat && !unit && !range) return;
     const low = range ? (range[1] !== undefined ? Number(range[1]) : range[3].startsWith(">") || range[3] === "≥" ? Number(range[4]) : null) : null;
     const high = range ? (range[2] !== undefined ? Number(range[2]) : range[3].startsWith("<") || range[3] === "≤" ? Number(range[4]) : null) : null;
     const general = range || flag ? null : generalRangeFor(test.key, line, value, unit);
     const lowUsed = general ? general.low : low;
     const highUsed = general ? general.high : high;
     const status = statusFrom(value, flag, lowUsed, highUsed, general ? general.bound : range?.[3] ?? "");
-    seen.add(test.key);
-    results.push({
+    const reading: LabPanelResult = {
       key: test.key,
       name: test.name,
       value,
@@ -313,7 +348,18 @@ export function readLabPanel(text: string): LabPanelResult[] {
       far: farFrom(status, value, lowUsed, highUsed),
       generalRange: Boolean(general),
       danger: dangerFrom(test.key, value, unit, status, highUsed)
-    });
+    };
+    if (repeat) {
+      const at = results.findIndex((item) => item.key === test.key);
+      const first = results[at];
+      if (at < 0 || first.value === reading.value) return;
+      const keep = readingConcern(reading) > readingConcern(first) ? reading : first;
+      const other = keep === first ? reading : first;
+      results[at] = { ...keep, otherValueText: `${other.valueText} ${other.unit}`.trim() };
+      return;
+    }
+    seen.add(test.key);
+    results.push(reading);
   });
   return results;
 }
