@@ -16,6 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import * as DocumentPicker from "expo-document-picker";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
+import * as Speech from "expo-speech";
 import {
   CareWiseApiClient,
   type LabTrendOut,
@@ -24,6 +25,7 @@ import {
   type SessionOut
 } from "./src/apiClient";
 import { buildReportView } from "./src/reportView";
+import { listenParts } from "./src/spokenText";
 import {
   REPORT_LANGUAGES,
   SAMPLE_REPORT_TEXT,
@@ -150,6 +152,42 @@ export default function App() {
   const [localAnalysis, setLocalAnalysis] = useState<ReportAnalysis | null>(null);
   const [planReactions, setPlanReactions] = useState<string[]>([]);
   const [reportLanguage, setReportLanguage] = useState<ReportLanguage>("en");
+  // Read aloud with the phone's own voice, only when the person presses Listen. Nothing is sent
+  // anywhere to make the speech. It stops on a new report, a language switch, another screen,
+  // or when the app goes to the background, so private results never keep playing.
+  const [speaking, setSpeaking] = useState(false);
+  const stopListening = () => {
+    Speech.stop();
+    setSpeaking(false);
+  };
+  const startListening = (parts: string[], lang: "en" | "es") => {
+    Speech.stop();
+    if (!parts.length) return;
+    setSpeaking(true);
+    const done = () => setSpeaking(false);
+    parts.forEach((part, index) => {
+      Speech.speak(part, {
+        language: lang === "es" ? "es-US" : "en-US",
+        rate: 0.9,
+        onDone: index === parts.length - 1 ? done : undefined,
+        onStopped: done,
+        onError: done,
+      });
+    });
+    trackUsage(API_BASE_URL, "listen_used");
+  };
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") stopListening();
+    });
+    return () => {
+      subscription.remove();
+      Speech.stop();
+    };
+  }, []);
+  useEffect(() => {
+    stopListening();
+  }, [reportLanguage, screen, localAnalysis]);
   // Safety switch: the team can pause report explanations from the server (/features).
   // The last answer is remembered, so a phone that is offline keeps a pause in force, and the
   // switch is checked again whenever the app comes back to the foreground or explains a report.
@@ -947,6 +985,17 @@ export default function App() {
             ) : null}
             <View style={styles.buttonRow}>
               <ActionButton label={uiText("doctorBrief", "Doctor brief")} onPress={shareDoctorBrief} />
+              {view && (view.headline || view.cards.length) ? (
+                <Pressable
+                  onPress={() => (speaking ? stopListening() : startListening(listenParts(view, localAnalysis && !localAnalysis.noData ? (view.emergency ? view.text.emergencyNext : NEXT_STEP[lang][risk]) : "", lang), lang))}
+                  style={[styles.button, styles.secondaryButton]}
+                  accessibilityRole="button"
+                  accessibilityLabel={speaking ? (lang === "es" ? "Detener la lectura" : "Stop reading") : (lang === "es" ? "Escuchar la explicación" : "Listen to the explanation")}
+                  accessibilityState={{ checked: speaking }}
+                >
+                  <Text style={[styles.buttonText, styles.secondaryButtonText]}>{speaking ? (lang === "es" ? "Detener" : "Stop") : (lang === "es" ? "Escuchar" : "Listen")}</Text>
+                </Pressable>
+              ) : null}
               <ActionButton label={reportLanguage === "es" ? "Compartir con mi médico" : "Share with my doctor"} onPress={shareWithDoctor} variant="secondary" />
               {(Object.keys(REPORT_LANGUAGES) as ReportLanguage[]).map((code) => (
                 <Pressable
