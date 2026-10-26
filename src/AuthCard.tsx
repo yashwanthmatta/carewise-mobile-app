@@ -143,7 +143,7 @@ export function AuthCard(props: {
           {(["signin", "signup"] as const).map((tab) => {
             const selected = mode === tab;
             return (
-              <Pressable key={tab} onPress={() => go(tab)} style={[styles.tab, selected && styles.tabSelected]} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={tab === "signin" ? "Sign in" : "Create account"}>
+              <Pressable key={tab} onPress={() => go(tab)} style={[styles.tab, selected && styles.tabSelected]} accessibilityRole="tab" accessibilityState={{ selected }} aria-selected={selected} accessibilityLabel={tab === "signin" ? "Sign in" : "Create account"}>
                 <Text style={[styles.tabText, selected && styles.tabTextSelected]}>{tab === "signin" ? "Sign in" : "Create account"}</Text>
               </Pressable>
             );

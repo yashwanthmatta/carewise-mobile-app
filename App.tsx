@@ -1,6 +1,7 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  type ScrollViewInstance,
   AppState,
   Linking,
   Pressable,
@@ -25,6 +26,8 @@ import {
 } from "./src/apiClient";
 import { buildReportView } from "./src/reportView";
 import { AuthCard, SignedInCard } from "./src/AuthCard";
+import { BottomTabBar, type TabItem } from "./src/TabBar";
+import { colors } from "./src/theme";
 import {
   REPORT_LANGUAGES,
   SAMPLE_REPORT_TEXT,
@@ -87,8 +90,25 @@ function formatApiResult(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
-// The four everyday tabs; the rest sit behind "More".
+// The first hint only belongs on the Reports screen.
+const START_HINT = "Try the sample report, or type your results and tap Explain on this phone.";
+
+// The four everyday tabs sit in the bottom bar; the rest open from "More".
 const PRIMARY_SCREENS: Screen[] = ["reports", "record", "labs", "account"];
+const TAB_ICONS: Record<Screen, Pick<TabItem<Screen>, "icon" | "activeIcon">> = {
+  reports: { icon: "document-text-outline", activeIcon: "document-text" },
+  record: { icon: "heart-outline", activeIcon: "heart" },
+  labs: { icon: "pulse-outline", activeIcon: "pulse" },
+  account: { icon: "person-circle-outline", activeIcon: "person-circle" },
+  recommendations: { icon: "leaf-outline", activeIcon: "leaf" },
+  doctors: { icon: "medkit-outline", activeIcon: "medkit" },
+  insurance: { icon: "shield-checkmark-outline", activeIcon: "shield-checkmark" },
+  subscriptions: { icon: "ribbon-outline", activeIcon: "ribbon" },
+  legal: { icon: "reader-outline", activeIcon: "reader" },
+  dashboard: { icon: "home-outline", activeIcon: "home" }
+};
+const TAB_ITEMS: TabItem<Screen>[] = screens.filter((item) => PRIMARY_SCREENS.includes(item.key)).map((item) => ({ ...item, ...TAB_ICONS[item.key] }));
+const MORE_ITEMS: TabItem<Screen>[] = screens.filter((item) => !PRIMARY_SCREENS.includes(item.key)).map((item) => ({ ...item, ...TAB_ICONS[item.key] }));
 
 // One plain next step under the score, matched to how urgent the results are.
 const NEXT_STEP = {
@@ -130,7 +150,7 @@ function Expandable({ title, detail, children }: { title: string; detail?: strin
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("reports");
-  const [showMoreTabs, setShowMoreTabs] = useState(false);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
@@ -138,7 +158,7 @@ export default function App() {
   const [verificationToken, setVerificationToken] = useState("");
   const [twoFactorChallenge, setTwoFactorChallenge] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
-  const [status, setStatus] = useState("Try the sample report, or type your results and tap Explain on this phone.");
+  const [status, setStatus] = useState(START_HINT);
   const [token, setToken] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
   const [session, setSession] = useState<SessionOut | null>(null);
@@ -768,31 +788,13 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.brand}>FollowThrough Health</Text>
           <Text style={styles.subtitle}>Your health reports, explained clearly.</Text>
         </View>
 
-        <View style={styles.tabs}>
-          {screens.filter((item) => showMoreTabs || PRIMARY_SCREENS.includes(item.key) || item.key === screen).map((item) => (
-            <Pressable
-              key={item.key}
-              onPress={() => setScreen(item.key)}
-              style={[styles.tab, screen === item.key && styles.activeTab]}
-              accessibilityRole="tab"
-              accessibilityLabel={`${item.label} tab`}
-              accessibilityState={{ selected: screen === item.key }}
-            >
-              <Text style={[styles.tabText, screen === item.key && styles.activeTabText]}>{item.label}</Text>
-            </Pressable>
-          ))}
-          <Pressable onPress={() => setShowMoreTabs((value) => !value)} style={styles.tab} accessibilityRole="button" accessibilityLabel={showMoreTabs ? "Fewer tabs" : "More tabs"} accessibilityState={{ expanded: showMoreTabs }}>
-            <Text style={styles.tabText}>{showMoreTabs ? "Less" : "More"}</Text>
-          </Pressable>
-        </View>
-
-        {status ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
+        {status && (status !== START_HINT || screen === "reports") ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
 
         {screen === "account" ? (
           session ? (
@@ -837,15 +839,7 @@ export default function App() {
         {screen === "reports" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Explain a report</Text>
-            <Text style={styles.smallText}>Type or paste the results, or try the sample. Explained on this phone; nothing is uploaded unless you choose to save it.</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={reportText}
-              onChangeText={setReportText}
-              placeholder="For example: Hemoglobin 11.2, TSH 6.8, fasting sugar 130, LDL 160"
-              accessibilityLabel="Readable report text"
-              multiline
-            />
+            <Text style={styles.smallText}>Explained on this phone. Nothing is uploaded unless you choose to save it.</Text>
             <Text style={styles.listTitle}>Whose report?</Text>
             <View style={styles.buttonRow}>
               {["Me", "Mum", "Dad"].map((name) => {
@@ -857,22 +851,37 @@ export default function App() {
                 );
               })}
             </View>
-            <TextInput style={styles.input} value={["mum", "dad"].includes(reportPerson.trim().toLowerCase()) ? "" : reportPerson} onChangeText={setReportPerson} placeholder="Someone else" accessibilityLabel="Whose report is this" />
+            <TextInput style={styles.input} value={["mum", "dad"].includes(reportPerson.trim().toLowerCase()) ? "" : reportPerson} onChangeText={setReportPerson} placeholder="Someone else" placeholderTextColor={colors.placeholder} accessibilityLabel="Whose report is this" />
+            <Pressable onPress={useSampleReport} disabled={busy} style={({ pressed }) => [styles.pickCard, pressed && styles.pressedCard, busy && styles.disabledButton]} accessibilityRole="button" accessibilityLabel="Try sample report" accessibilityState={{ disabled: busy }}>
+              <Text style={styles.pickTitle}>Try a sample report</Text>
+              <Text style={styles.smallText}>A made-up report, ready to explain</Text>
+            </Pressable>
+            <Text style={styles.listTitle}>Or type the results</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={reportText}
+              onChangeText={setReportText}
+              placeholder="For example: Hemoglobin 11.2, TSH 6.8, fasting sugar 130, LDL 160"
+              placeholderTextColor={colors.placeholder}
+              accessibilityLabel="Readable report text"
+              multiline
+            />
             <Pressable onPress={explainReportOnDevice} disabled={busy} style={[styles.button, styles.bigButton, busy && styles.disabledButton]} accessibilityRole="button" accessibilityLabel="Explain on this phone" accessibilityState={{ disabled: busy }}>
               <Text style={styles.buttonText}>Explain on this phone</Text>
             </Pressable>
-            <View style={styles.buttonRow}>
-              <ActionButton label="Try sample report" onPress={useSampleReport} disabled={busy} variant="secondary" />
-              <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} variant="secondary" />
-              {token ? <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={busy} variant="secondary" /> : null}
-            </View>
-            <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name (optional)" accessibilityLabel="Report name" />
+            <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} variant="secondary" />
             {selectedReportFile ? (
               <View style={styles.fileBadge}>
                 <Text style={styles.listTitle}>{selectedReportFile.name}</Text>
                 <Text style={styles.smallText}>
                   {selectedReportFile.mimeType || "Unknown type"} · {selectedReportFile.size ? `${Math.round(selectedReportFile.size / 1024)} KB` : "size unavailable"}
                 </Text>
+              </View>
+            ) : null}
+            {token ? (
+              <View style={styles.list}>
+                <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name (optional)" placeholderTextColor={colors.placeholder} accessibilityLabel="Report name" />
+                <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={busy} variant="secondary" />
               </View>
             ) : null}
             {analysis ? <Text style={styles.bodyText}>Saved to your account.</Text> : null}
@@ -1229,6 +1238,15 @@ export default function App() {
           </View>
         ) : null}
       </ScrollView>
+      <BottomTabBar
+        items={TAB_ITEMS}
+        moreItems={MORE_ITEMS}
+        current={screen}
+        onSelect={(next) => {
+          setScreen(next);
+          scrollRef.current?.scrollTo({ y: 0, animated: false });
+        }}
+      />
       <HelpChat
         baseUrl={API_BASE_URL}
         language={reportLanguage === "es" ? "es" : "en"}
@@ -1257,36 +1275,39 @@ function ActionButton({ label, onPress, disabled = false, variant = "primary" }:
 }
 
 // Same look as the website: warm paper, white rounded cards, black pill buttons.
-const INK = "#111314";
-const SOFT = "#5d605f";
-const LINE = "#e2dcd2";
-const PAPER = "#f6f4ef";
-const TEAL = "#0f766e";
+const INK = colors.ink;
+const SOFT = colors.ink2;
+const LINE = colors.line;
+const PAPER = colors.bg;
+const TEAL = colors.brand;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: PAPER },
-  container: { padding: 16, gap: 14, paddingBottom: 96 },
+  container: { padding: 16, gap: 16, paddingBottom: 32 },
   header: { paddingTop: 10, paddingBottom: 4, gap: 4 },
-  brand: { color: INK, fontSize: 34, fontWeight: "800", letterSpacing: -1 },
-  subtitle: { color: SOFT, fontSize: 16, lineHeight: 22 },
-  card: { gap: 12, borderRadius: 24, borderWidth: 1, borderColor: LINE, backgroundColor: "#fff", padding: 18 },
-  eyebrow: { color: SOFT, fontSize: 11, fontWeight: "700", letterSpacing: 1.4, textTransform: "uppercase" },
-  sectionTitle: { color: INK, fontSize: 24, fontWeight: "800", letterSpacing: -0.6 },
-  bodyText: { color: "#3f4342", fontSize: 15, lineHeight: 22 },
-  smallText: { color: SOFT, fontSize: 13, lineHeight: 18 },
+  brand: { color: INK, fontSize: 24, fontWeight: "800", letterSpacing: -0.6 },
+  subtitle: { color: SOFT, fontSize: 15, lineHeight: 21 },
+  card: { gap: 14, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: colors.surface, padding: 20 },
+  eyebrow: { color: TEAL, fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  sectionTitle: { color: INK, fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
+  bodyText: { color: SOFT, fontSize: 16, lineHeight: 23 },
+  smallText: { color: colors.ink3, fontSize: 14, lineHeight: 20 },
   linkText: { color: TEAL, fontSize: 15, fontWeight: "700", paddingVertical: 8, textDecorationLine: "underline" },
-  status: { color: TEAL, fontSize: 14, fontWeight: "600", lineHeight: 20 },
-  input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: LINE, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: "#fffdf9", color: INK, fontSize: 15 },
+  status: { color: INK, fontSize: 14, fontWeight: "600", lineHeight: 20, backgroundColor: colors.infoSoft, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, overflow: "hidden" },
+  input: { minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: colors.lineStrong, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: colors.surface, color: INK, fontSize: 16 },
   textArea: { minHeight: 120, textAlignVertical: "top" },
   textAreaSmall: { minHeight: 88, textAlignVertical: "top" },
   buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-  button: { minHeight: 46, justifyContent: "center", borderRadius: 999, backgroundColor: TEAL, paddingHorizontal: 20, paddingVertical: 10 },
-  disabledButton: { backgroundColor: "#b9b4ac" },
+  button: { minHeight: 48, justifyContent: "center", alignItems: "center", borderRadius: 999, backgroundColor: TEAL, paddingHorizontal: 20, paddingVertical: 10 },
+  disabledButton: { opacity: 0.5 },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  secondaryButton: { backgroundColor: "#fff", borderWidth: 1, borderColor: LINE },
+  secondaryButton: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong },
   secondaryButtonText: { color: INK },
   disabledSecondary: { opacity: 0.45 },
   bigButton: { alignSelf: "stretch", alignItems: "center", minHeight: 52 },
+  pickCard: { gap: 4, alignItems: "center", justifyContent: "center", minHeight: 96, borderRadius: 20, borderWidth: 1, borderColor: "#c9e4de", backgroundColor: colors.surfaceBrand, padding: 18 },
+  pickTitle: { color: INK, fontSize: 17, fontWeight: "800" },
+  pressedCard: { transform: [{ scale: 0.99 }], opacity: 0.92 },
   tabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 4, borderRadius: 24, borderWidth: 1, borderColor: LINE, backgroundColor: "rgba(255,255,255,0.6)" },
   tab: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
   activeTab: { backgroundColor: TEAL },
@@ -1296,9 +1317,9 @@ const styles = StyleSheet.create({
   activePlanPill: { borderColor: TEAL, backgroundColor: TEAL },
   list: { gap: 8 },
   divider: { height: 1, backgroundColor: LINE, marginVertical: 4 },
-  fileBadge: { borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
-  listItem: { gap: 4, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
-  resultBox: { color: "#3f4342", fontSize: 13, lineHeight: 19, borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
+  fileBadge: { borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", padding: 12 },
+  listItem: { gap: 4, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", padding: 12 },
+  resultBox: { color: "#3f4342", fontSize: 13, lineHeight: 19, borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", padding: 12 },
   listTitle: { color: INK, fontSize: 16, fontWeight: "700", letterSpacing: -0.2 },
   findingTitle: { color: TEAL, fontSize: 15, fontWeight: "700" },
   planBox: { gap: 10, marginTop: 6 },
@@ -1307,25 +1328,25 @@ const styles = StyleSheet.create({
   planUrgent: { borderTopColor: "#b91c1c", backgroundColor: "#fdf2f2" },
   labFlagText: { color: "#9a3412" },
   flex: { flex: 1 },
-  verdict: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", paddingHorizontal: 16, paddingVertical: 12 },
+  verdict: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", paddingHorizontal: 16, paddingVertical: 12 },
   verdictScore: { color: INK, fontSize: 44, fontWeight: "800", letterSpacing: -1.5 },
-  summaryBox: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 6, marginBottom: 8 },
-  summaryAttention: { backgroundColor: "#fffbeb", borderColor: "#fde68a" },
-  summaryUrgent: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
-  summaryClear: { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" },
+  summaryBox: { borderRadius: 16, borderWidth: 1, borderLeftWidth: 4, padding: 16, gap: 6, marginBottom: 8, backgroundColor: colors.surface },
+  summaryAttention: { borderColor: colors.line, borderLeftColor: colors.attention },
+  summaryUrgent: { backgroundColor: colors.dangerSoft, borderColor: "#f1c3bd", borderLeftColor: colors.danger },
+  summaryClear: { borderColor: colors.line, borderLeftColor: colors.brand },
   summaryEyebrow: { fontSize: 12, fontWeight: "700", letterSpacing: 1, color: SOFT },
-  summaryHeadline: { fontSize: 21, fontWeight: "700", color: "#14302c", lineHeight: 27 },
+  summaryHeadline: { fontSize: 21, fontWeight: "800", color: INK, lineHeight: 27 },
   summaryHeadlineUrgent: { color: "#991b1b" },
   summaryNext: { fontWeight: "700", marginTop: 4 },
   resultCardOther: { borderLeftColor: "#64748b" },
-  resultCard: { borderWidth: 1, borderColor: "#e5ded3", borderLeftWidth: 5, borderLeftColor: "#d97706", borderRadius: 14, padding: 14, gap: 4, marginBottom: 10, backgroundColor: "#fff" },
+  resultCard: { borderWidth: 1, borderColor: LINE, borderLeftWidth: 4, borderLeftColor: colors.attention, borderRadius: 14, padding: 16, gap: 4, marginBottom: 12, backgroundColor: colors.surface },
   resultCardCritical: { borderLeftColor: "#b91c1c", backgroundColor: "#fffafa" },
   resultCardGoal: { borderLeftColor: "#ca8a04" },
   resultCardHead: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  resultCardLabel: { fontSize: 14, fontWeight: "700", color: "#9a3b17", flexShrink: 1, textAlign: "right" },
+  resultCardLabel: { fontSize: 13, fontWeight: "700", color: colors.attentionInk, flexShrink: 1, textAlign: "right", backgroundColor: colors.attentionSoft, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" },
   resultCardLabelCritical: { color: "#b91c1c" },
-  resultCardValue: { fontSize: 20, fontWeight: "700", color: "#14302c" },
-  resultCardQuestion: { marginTop: 8, fontSize: 12, fontWeight: "700", letterSpacing: 0.5, color: SOFT, textTransform: "uppercase" },
+  resultCardValue: { fontSize: 21, fontWeight: "700", color: INK, fontVariant: ["tabular-nums"] },
+  resultCardQuestion: { marginTop: 10, fontSize: 14, fontWeight: "700", color: INK },
   resultCardAsk: { fontWeight: "600" },
   verdictOutOf: { color: SOFT, fontSize: 15, fontWeight: "600", letterSpacing: 0 },
   verdictLabel: { color: INK, fontSize: 15, fontWeight: "700", flexShrink: 1, textAlign: "right" },
@@ -1339,7 +1360,7 @@ const styles = StyleSheet.create({
   valueGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   valueTile: { flexGrow: 1, flexBasis: "45%", gap: 2, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#fff", padding: 12 },
   valueNumber: { color: INK, fontSize: 20, fontWeight: "800", letterSpacing: -0.4 },
-  expandable: { borderRadius: 18, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", overflow: "hidden" },
+  expandable: { borderRadius: 18, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", overflow: "hidden" },
   expandableHeader: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 56 },
   expandableBody: { gap: 10, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "#fff" },
   chevron: { color: INK, fontSize: 22, fontWeight: "600", width: 24, textAlign: "center" }
