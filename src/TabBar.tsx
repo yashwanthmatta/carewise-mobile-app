@@ -53,6 +53,7 @@ export function BottomTabBar<Key extends string>({
               accessibilityRole="tab"
               accessibilityLabel={item.label}
               accessibilityState={{ selected }}
+              aria-selected={selected}
             >
               <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
                 <Ionicons name={selected ? item.activeIcon : item.icon} size={22} color={selected ? colors.brandStrong : colors.ink2} />
@@ -68,6 +69,7 @@ export function BottomTabBar<Key extends string>({
           accessibilityLabel="More"
           accessibilityHint="Opens Care, Doctors, Insurance, Your plan and Legal"
           accessibilityState={{ selected: moreSelected, expanded: moreOpen }}
+          aria-expanded={moreOpen}
         >
           <View style={[styles.iconWrap, moreSelected && styles.iconWrapSelected]}>
             <Ionicons name={moreSelected ? "grid" : "grid-outline"} size={21} color={moreSelected ? colors.brandStrong : colors.ink2} />

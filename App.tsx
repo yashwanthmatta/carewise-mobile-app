@@ -90,6 +90,9 @@ function formatApiResult(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
+// The first hint only belongs on the Reports screen.
+const START_HINT = "Try the sample report, or type your results and tap Explain on this phone.";
+
 // The four everyday tabs sit in the bottom bar; the rest open from "More".
 const PRIMARY_SCREENS: Screen[] = ["reports", "record", "labs", "account"];
 const TAB_ICONS: Record<Screen, Pick<TabItem<Screen>, "icon" | "activeIcon">> = {
@@ -155,7 +158,7 @@ export default function App() {
   const [verificationToken, setVerificationToken] = useState("");
   const [twoFactorChallenge, setTwoFactorChallenge] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
-  const [status, setStatus] = useState("Try the sample report, or type your results and tap Explain on this phone.");
+  const [status, setStatus] = useState(START_HINT);
   const [token, setToken] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
   const [session, setSession] = useState<SessionOut | null>(null);
@@ -791,7 +794,7 @@ export default function App() {
           <Text style={styles.subtitle}>Your health reports, explained clearly.</Text>
         </View>
 
-        {status ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
+        {status && (status !== START_HINT || screen === "reports") ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
 
         {screen === "account" ? (
           session ? (
@@ -836,15 +839,7 @@ export default function App() {
         {screen === "reports" ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Explain a report</Text>
-            <Text style={styles.smallText}>Type or paste the results, or try the sample. Explained on this phone; nothing is uploaded unless you choose to save it.</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={reportText}
-              onChangeText={setReportText}
-              placeholder="For example: Hemoglobin 11.2, TSH 6.8, fasting sugar 130, LDL 160"
-              accessibilityLabel="Readable report text"
-              multiline
-            />
+            <Text style={styles.smallText}>Explained on this phone. Nothing is uploaded unless you choose to save it.</Text>
             <Text style={styles.listTitle}>Whose report?</Text>
             <View style={styles.buttonRow}>
               {["Me", "Mum", "Dad"].map((name) => {
@@ -856,22 +851,37 @@ export default function App() {
                 );
               })}
             </View>
-            <TextInput style={styles.input} value={["mum", "dad"].includes(reportPerson.trim().toLowerCase()) ? "" : reportPerson} onChangeText={setReportPerson} placeholder="Someone else" accessibilityLabel="Whose report is this" />
+            <TextInput style={styles.input} value={["mum", "dad"].includes(reportPerson.trim().toLowerCase()) ? "" : reportPerson} onChangeText={setReportPerson} placeholder="Someone else" placeholderTextColor={colors.placeholder} accessibilityLabel="Whose report is this" />
+            <Pressable onPress={useSampleReport} disabled={busy} style={({ pressed }) => [styles.pickCard, pressed && styles.pressedCard, busy && styles.disabledButton]} accessibilityRole="button" accessibilityLabel="Try sample report" accessibilityState={{ disabled: busy }}>
+              <Text style={styles.pickTitle}>Try a sample report</Text>
+              <Text style={styles.smallText}>A made-up report, ready to explain</Text>
+            </Pressable>
+            <Text style={styles.listTitle}>Or type the results</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={reportText}
+              onChangeText={setReportText}
+              placeholder="For example: Hemoglobin 11.2, TSH 6.8, fasting sugar 130, LDL 160"
+              placeholderTextColor={colors.placeholder}
+              accessibilityLabel="Readable report text"
+              multiline
+            />
             <Pressable onPress={explainReportOnDevice} disabled={busy} style={[styles.button, styles.bigButton, busy && styles.disabledButton]} accessibilityRole="button" accessibilityLabel="Explain on this phone" accessibilityState={{ disabled: busy }}>
               <Text style={styles.buttonText}>Explain on this phone</Text>
             </Pressable>
-            <View style={styles.buttonRow}>
-              <ActionButton label="Try sample report" onPress={useSampleReport} disabled={busy} variant="secondary" />
-              <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} variant="secondary" />
-              {token ? <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={busy} variant="secondary" /> : null}
-            </View>
-            <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name (optional)" accessibilityLabel="Report name" />
+            <ActionButton label="Pick file" onPress={pickReportFile} disabled={busy} variant="secondary" />
             {selectedReportFile ? (
               <View style={styles.fileBadge}>
                 <Text style={styles.listTitle}>{selectedReportFile.name}</Text>
                 <Text style={styles.smallText}>
                   {selectedReportFile.mimeType || "Unknown type"} · {selectedReportFile.size ? `${Math.round(selectedReportFile.size / 1024)} KB` : "size unavailable"}
                 </Text>
+              </View>
+            ) : null}
+            {token ? (
+              <View style={styles.list}>
+                <TextInput style={styles.input} value={reportName} onChangeText={setReportName} placeholder="Report name (optional)" placeholderTextColor={colors.placeholder} accessibilityLabel="Report name" />
+                <ActionButton label="Upload + analyze" onPress={uploadAndAnalyzeReport} disabled={busy} variant="secondary" />
               </View>
             ) : null}
             {analysis ? <Text style={styles.bodyText}>Saved to your account.</Text> : null}
@@ -1278,7 +1288,7 @@ const styles = StyleSheet.create({
   brand: { color: INK, fontSize: 24, fontWeight: "800", letterSpacing: -0.6 },
   subtitle: { color: SOFT, fontSize: 15, lineHeight: 21 },
   card: { gap: 14, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: colors.surface, padding: 20 },
-  eyebrow: { color: SOFT, fontSize: 11, fontWeight: "700", letterSpacing: 1.4, textTransform: "uppercase" },
+  eyebrow: { color: TEAL, fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
   sectionTitle: { color: INK, fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
   bodyText: { color: SOFT, fontSize: 16, lineHeight: 23 },
   smallText: { color: colors.ink3, fontSize: 14, lineHeight: 20 },
@@ -1295,6 +1305,9 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: INK },
   disabledSecondary: { opacity: 0.45 },
   bigButton: { alignSelf: "stretch", alignItems: "center", minHeight: 52 },
+  pickCard: { gap: 4, alignItems: "center", justifyContent: "center", minHeight: 96, borderRadius: 20, borderWidth: 1, borderColor: "#c9e4de", backgroundColor: colors.surfaceBrand, padding: 18 },
+  pickTitle: { color: INK, fontSize: 17, fontWeight: "800" },
+  pressedCard: { transform: [{ scale: 0.99 }], opacity: 0.92 },
   tabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 4, borderRadius: 24, borderWidth: 1, borderColor: LINE, backgroundColor: "rgba(255,255,255,0.6)" },
   tab: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
   activeTab: { backgroundColor: TEAL },
@@ -1304,9 +1317,9 @@ const styles = StyleSheet.create({
   activePlanPill: { borderColor: TEAL, backgroundColor: TEAL },
   list: { gap: 8 },
   divider: { height: 1, backgroundColor: LINE, marginVertical: 4 },
-  fileBadge: { borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
-  listItem: { gap: 4, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
-  resultBox: { color: "#3f4342", fontSize: 13, lineHeight: 19, borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
+  fileBadge: { borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", padding: 12 },
+  listItem: { gap: 4, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", padding: 12 },
+  resultBox: { color: "#3f4342", fontSize: 13, lineHeight: 19, borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", padding: 12 },
   listTitle: { color: INK, fontSize: 16, fontWeight: "700", letterSpacing: -0.2 },
   findingTitle: { color: TEAL, fontSize: 15, fontWeight: "700" },
   planBox: { gap: 10, marginTop: 6 },
@@ -1315,25 +1328,25 @@ const styles = StyleSheet.create({
   planUrgent: { borderTopColor: "#b91c1c", backgroundColor: "#fdf2f2" },
   labFlagText: { color: "#9a3412" },
   flex: { flex: 1 },
-  verdict: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", paddingHorizontal: 16, paddingVertical: 12 },
+  verdict: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, borderRadius: 20, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", paddingHorizontal: 16, paddingVertical: 12 },
   verdictScore: { color: INK, fontSize: 44, fontWeight: "800", letterSpacing: -1.5 },
-  summaryBox: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 6, marginBottom: 8 },
-  summaryAttention: { backgroundColor: "#fffbeb", borderColor: "#fde68a" },
-  summaryUrgent: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
-  summaryClear: { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" },
+  summaryBox: { borderRadius: 16, borderWidth: 1, borderLeftWidth: 4, padding: 16, gap: 6, marginBottom: 8, backgroundColor: colors.surface },
+  summaryAttention: { borderColor: colors.line, borderLeftColor: colors.attention },
+  summaryUrgent: { backgroundColor: colors.dangerSoft, borderColor: "#f1c3bd", borderLeftColor: colors.danger },
+  summaryClear: { borderColor: colors.line, borderLeftColor: colors.brand },
   summaryEyebrow: { fontSize: 12, fontWeight: "700", letterSpacing: 1, color: SOFT },
-  summaryHeadline: { fontSize: 21, fontWeight: "700", color: "#14302c", lineHeight: 27 },
+  summaryHeadline: { fontSize: 21, fontWeight: "800", color: INK, lineHeight: 27 },
   summaryHeadlineUrgent: { color: "#991b1b" },
   summaryNext: { fontWeight: "700", marginTop: 4 },
   resultCardOther: { borderLeftColor: "#64748b" },
-  resultCard: { borderWidth: 1, borderColor: "#e5ded3", borderLeftWidth: 5, borderLeftColor: "#d97706", borderRadius: 14, padding: 14, gap: 4, marginBottom: 10, backgroundColor: "#fff" },
+  resultCard: { borderWidth: 1, borderColor: LINE, borderLeftWidth: 4, borderLeftColor: colors.attention, borderRadius: 14, padding: 16, gap: 4, marginBottom: 12, backgroundColor: colors.surface },
   resultCardCritical: { borderLeftColor: "#b91c1c", backgroundColor: "#fffafa" },
   resultCardGoal: { borderLeftColor: "#ca8a04" },
   resultCardHead: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  resultCardLabel: { fontSize: 14, fontWeight: "700", color: "#9a3b17", flexShrink: 1, textAlign: "right" },
+  resultCardLabel: { fontSize: 13, fontWeight: "700", color: colors.attentionInk, flexShrink: 1, textAlign: "right", backgroundColor: colors.attentionSoft, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" },
   resultCardLabelCritical: { color: "#b91c1c" },
-  resultCardValue: { fontSize: 20, fontWeight: "700", color: "#14302c" },
-  resultCardQuestion: { marginTop: 8, fontSize: 12, fontWeight: "700", letterSpacing: 0.5, color: SOFT, textTransform: "uppercase" },
+  resultCardValue: { fontSize: 21, fontWeight: "700", color: INK, fontVariant: ["tabular-nums"] },
+  resultCardQuestion: { marginTop: 10, fontSize: 14, fontWeight: "700", color: INK },
   resultCardAsk: { fontWeight: "600" },
   verdictOutOf: { color: SOFT, fontSize: 15, fontWeight: "600", letterSpacing: 0 },
   verdictLabel: { color: INK, fontSize: 15, fontWeight: "700", flexShrink: 1, textAlign: "right" },
@@ -1347,7 +1360,7 @@ const styles = StyleSheet.create({
   valueGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   valueTile: { flexGrow: 1, flexBasis: "45%", gap: 2, borderRadius: 16, borderWidth: 1, borderColor: LINE, backgroundColor: "#fff", padding: 12 },
   valueNumber: { color: INK, fontSize: 20, fontWeight: "800", letterSpacing: -0.4 },
-  expandable: { borderRadius: 18, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", overflow: "hidden" },
+  expandable: { borderRadius: 18, borderWidth: 1, borderColor: LINE, backgroundColor: "#f3f2ee", overflow: "hidden" },
   expandableHeader: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 56 },
   expandableBody: { gap: 10, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "#fff" },
   chevron: { color: INK, fontSize: 22, fontWeight: "600", width: 24, textAlign: "center" }
