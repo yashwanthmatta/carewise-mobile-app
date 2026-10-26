@@ -26,7 +26,7 @@ function assertFile(relativePath) {
 const app = readJson("app.json").expo;
 const packageJson = readJson("package.json");
 // The account screen lives in src/AuthCard.tsx; its checks read both files.
-const appSource = readText("App.tsx") + "\n" + readText("src/AuthCard.tsx");
+const appSource = readText("App.tsx") + "\n" + readText("src/AuthCard.tsx") + "\n" + readText("src/TabBar.tsx");
 const apiClient = readText("src/apiClient.ts");
 const safetyRules = readText("src/safetyRules.md");
 const privacyChecklist = readText("src/appStorePrivacyChecklist.md");
@@ -90,7 +90,7 @@ assert(appSource.includes("uploadReportFile"), "App must call mobile file upload
 assert(appSource.includes('accessibilityRole="button"'), "Action buttons must expose accessibility role.");
 assert(appSource.includes("accessibilityLabel={label}"), "Action buttons must expose accessibility labels.");
 assert(appSource.includes('accessibilityRole="tab"'), "Navigation tabs must expose accessibility role.");
-assert(appSource.includes("accessibilityState={{ selected: screen === item.key }}"), "Navigation tabs must expose selected state.");
+assert(appSource.includes("accessibilityState={{ selected }}") && appSource.includes("current={screen}"), "Navigation tabs must expose selected state.");
 assert(appSource.includes("accessibilityState={{ disabled }}"), "Disabled buttons must expose disabled state.");
 assert(appSource.includes('accessibilityLabel="Email address"'), "Email field must expose an accessibility label.");
 assert(appSource.includes('accessibilityLabel="Readable report text"'), "Report text field must expose an accessibility label.");
