@@ -75,6 +75,7 @@ function PasswordInput({ value, onChangeText, label, isNew, onSubmit }: { value:
     <View style={styles.passwordWrap}>
       <TextInput
         style={[styles.input, styles.passwordInput]}
+        placeholderTextColor={colors.placeholder}
         value={value}
         onChangeText={onChangeText}
         accessibilityLabel={label}
@@ -153,14 +154,14 @@ export function AuthCard(props: {
       {props.twoFactorChallenge ? (
         <View style={styles.codeBox}>
           <Field label="Code from your authenticator app">
-            <TextInput style={styles.input} value={props.twoFactorCode} onChangeText={props.setTwoFactorCode} placeholder="6-digit code, or a backup code" accessibilityLabel="Authenticator code" autoCapitalize="none" textContentType="oneTimeCode" autoComplete="one-time-code" returnKeyType="go" onSubmitEditing={props.onVerifyTwoFactor} />
+            <TextInput style={styles.input} placeholderTextColor={colors.placeholder} value={props.twoFactorCode} onChangeText={props.setTwoFactorCode} placeholder="6-digit code, or a backup code" accessibilityLabel="Authenticator code" autoCapitalize="none" textContentType="oneTimeCode" autoComplete="one-time-code" returnKeyType="go" onSubmitEditing={props.onVerifyTwoFactor} />
           </Field>
           <PrimaryButton label="Verify and sign in" onPress={props.onVerifyTwoFactor} busy={props.busy} />
         </View>
       ) : (
         <View style={styles.form}>
           <Field label="Email">
-            <TextInput style={styles.input} value={props.email} onChangeText={props.setEmail} placeholder="you@example.com" accessibilityLabel="Email address" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="emailAddress" autoComplete="email" returnKeyType={mode === "forgot" ? "send" : "next"} onSubmitEditing={mode === "forgot" ? submit : undefined} />
+            <TextInput style={styles.input} placeholderTextColor={colors.placeholder} value={props.email} onChangeText={props.setEmail} placeholder="you@example.com" accessibilityLabel="Email address" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="emailAddress" autoComplete="email" returnKeyType={mode === "forgot" ? "send" : "next"} onSubmitEditing={mode === "forgot" ? submit : undefined} />
           </Field>
           {mode !== "forgot" ? (
             <View style={styles.field}>
@@ -186,7 +187,7 @@ export function AuthCard(props: {
               {showCode ? (
                 <View style={styles.form}>
                   <Field label="Reset code from the email">
-                    <TextInput style={styles.input} value={props.resetToken} onChangeText={props.setResetToken} placeholder="Paste the code" accessibilityLabel="Reset code" autoCapitalize="none" autoCorrect={false} />
+                    <TextInput style={styles.input} placeholderTextColor={colors.placeholder} value={props.resetToken} onChangeText={props.setResetToken} placeholder="Paste the code" accessibilityLabel="Reset code" autoCapitalize="none" autoCorrect={false} />
                   </Field>
                   <Field label="New password" hint={`At least ${props.minPasswordLength} characters.`}>
                     <PasswordInput value={props.newPassword} onChangeText={props.setNewPassword} label="New password" isNew onSubmit={props.onConfirmReset} />
@@ -250,7 +251,7 @@ export function SignedInCard(props: {
           {showCode ? (
             <View style={styles.form}>
               <Field label="Email confirmation code">
-                <TextInput style={styles.input} value={props.verificationToken} onChangeText={props.setVerificationToken} placeholder="Paste the code from the email" accessibilityLabel="Email confirmation code" autoCapitalize="none" autoCorrect={false} />
+                <TextInput style={styles.input} placeholderTextColor={colors.placeholder} value={props.verificationToken} onChangeText={props.setVerificationToken} placeholder="Paste the code from the email" accessibilityLabel="Email confirmation code" autoCapitalize="none" autoCorrect={false} />
               </Field>
               <SecondaryButton label="Confirm email" onPress={props.onConfirmVerification} disabled={props.busy || !props.verificationToken} />
             </View>

@@ -771,7 +771,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.brand}>FollowThrough Health</Text>
-          <Text style={styles.subtitle}>Understand your health reports in simple English.</Text>
+          <Text style={styles.subtitle}>Your health reports, explained clearly.</Text>
         </View>
 
         <View style={styles.tabs}>

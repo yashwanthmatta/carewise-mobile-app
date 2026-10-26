@@ -10,6 +10,7 @@ export const colors = {
   ink3: "#5f6866",
   line: "#e3dfd7",
   lineStrong: "#cfc9bd",
+  placeholder: "#8a918f",
   brand: "#0f766e",
   brandStrong: "#0b5c55",
   brandSoft: "#e3f2ef",
