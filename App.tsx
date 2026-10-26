@@ -24,6 +24,7 @@ import {
   type SessionOut
 } from "./src/apiClient";
 import { buildReportView } from "./src/reportView";
+import { AuthCard, SignedInCard } from "./src/AuthCard";
 import {
   REPORT_LANGUAGES,
   SAMPLE_REPORT_TEXT,
@@ -129,7 +130,6 @@ function Expandable({ title, detail, children }: { title: string; detail?: strin
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("reports");
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [showMoreTabs, setShowMoreTabs] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -291,7 +291,17 @@ export default function App() {
         setStatus(passwordIssue);
         return;
       }
-      const response = await api.signup(normalizedEmail, password, "patient");
+      let response;
+      try {
+        response = await api.signup(normalizedEmail, password, "patient");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        if (/Status 4\d\d/.test(message)) {
+          setStatus("There may already be an account with this email. Try Sign in instead.");
+          return;
+        }
+        throw error;
+      }
       await saveTokenPair(response);
     });
   }
@@ -308,7 +318,17 @@ export default function App() {
         setStatus(emailIssue);
         return;
       }
-      const response = await api.login(normalizedEmail, password);
+      let response;
+      try {
+        response = await api.login(normalizedEmail, password);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        if (message.startsWith("Please sign in again") || /Status 4\d\d/.test(message)) {
+          setStatus(message.includes("429") ? "Too many sign-in attempts. Wait a few minutes and try again." : "Email or password is incorrect.");
+          return;
+        }
+        throw error;
+      }
       if (response.two_factor_required && response.challenge) {
         setTwoFactorChallenge(response.challenge);
         setStatus("Enter the 6-digit code from your authenticator app to finish signing in.");
@@ -751,7 +771,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.brand}>FollowThrough Health</Text>
-          <Text style={styles.subtitle}>Understand your health reports in simple English.</Text>
+          <Text style={styles.subtitle}>Your health reports, explained clearly.</Text>
         </View>
 
         <View style={styles.tabs}>
@@ -775,64 +795,42 @@ export default function App() {
         {status ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
 
         {screen === "account" ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Account</Text>
-            <Text style={styles.bodyText}>An account is optional. Reports are explained on this phone without one; sign in to sync history across devices.</Text>
-            {session ? (
-              <>
-                <Text style={styles.bodyText}>Signed in: {session.email} · {session.email_verified ? "verified" : "not verified"}</Text>
-                <View style={styles.buttonRow}>
-                  <ActionButton label="Logout" onPress={logout} disabled={!token || busy} />
-                  <ActionButton label="Refresh" onPress={refreshSession} disabled={!refreshToken || busy} />
-                </View>
-                <ActionButton label="Delete my account" onPress={deleteAccount} disabled={!token || busy} />
-                {!session.email_verified ? (
-                  <View style={styles.list}>
-                    <Text style={styles.listTitle}>Verify your email</Text>
-                    <ActionButton label="Verify email" onPress={requestEmailVerification} disabled={!token || busy} />
-                    <TextInput style={styles.input} value={verificationToken} onChangeText={setVerificationToken} placeholder="Email verification token" accessibilityLabel="Email verification token" autoCapitalize="none" />
-                    <ActionButton label="Confirm email" onPress={confirmEmailVerification} disabled={busy || !verificationToken} />
-                  </View>
-                ) : null}
-                <View style={styles.list}>
-                  <Text style={styles.listTitle}>Sync with FollowThrough Health</Text>
-                  <Text style={styles.smallText}>Record consent and create your profile before saving reports and labs to the cloud.</Text>
-                  <View style={styles.buttonRow}>
-                    <ActionButton label="Record consent" onPress={recordConsent} disabled={!token || busy} />
-                    <ActionButton label="Sync profile" onPress={syncProfile} disabled={!token || busy} />
-                  </View>
-                </View>
-              </>
-            ) : (
-              <>
-                <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email address" accessibilityLabel="Email address" autoCapitalize="none" keyboardType="email-address" />
-                <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" accessibilityLabel="Password" secureTextEntry />
-                <Text style={styles.smallText}>Use at least {MIN_PASSWORD_LENGTH} characters. Do not reuse passwords from email, banking, or medical portals.</Text>
-                <View style={styles.buttonRow}>
-                  <ActionButton label="Sign up" onPress={signup} disabled={busy} />
-                  <ActionButton label="Login" onPress={login} disabled={busy} />
-                </View>
-                {twoFactorChallenge ? (
-                  <View style={styles.list}>
-                    <Text style={styles.listTitle}>Two-step sign-in</Text>
-                    <TextInput style={styles.input} value={twoFactorCode} onChangeText={setTwoFactorCode} placeholder="6-digit code or backup code" accessibilityLabel="Authenticator code" autoCapitalize="none" keyboardType="default" textContentType="oneTimeCode" autoComplete="one-time-code" />
-                    <ActionButton label="Verify and sign in" onPress={verifyTwoFactor} disabled={busy} />
-                  </View>
-                ) : null}
-                <Pressable onPress={() => setShowPasswordReset((value) => !value)} accessibilityRole="button" accessibilityLabel="Forgot password?">
-                  <Text style={styles.linkText}>{showPasswordReset ? "Hide password reset" : "Forgot password?"}</Text>
-                </Pressable>
-                {showPasswordReset ? (
-                  <View style={styles.list}>
-                    <ActionButton label="Request reset" onPress={requestPasswordReset} disabled={busy} />
-                    <TextInput style={styles.input} value={resetToken} onChangeText={setResetToken} placeholder="Reset token from email" accessibilityLabel="Password reset token" autoCapitalize="none" />
-                    <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="New password" accessibilityLabel="New password" secureTextEntry />
-                    <ActionButton label="Confirm reset" onPress={confirmPasswordReset} disabled={busy || !resetToken || !newPassword} />
-                  </View>
-                ) : null}
-              </>
-            )}
-          </View>
+          session ? (
+            <SignedInCard
+              session={session}
+              busy={busy}
+              onLogout={logout}
+              onDeleteAccount={deleteAccount}
+              onRequestVerification={requestEmailVerification}
+              verificationToken={verificationToken}
+              setVerificationToken={setVerificationToken}
+              onConfirmVerification={confirmEmailVerification}
+              onRecordConsent={recordConsent}
+              onSyncProfile={syncProfile}
+            />
+          ) : (
+            <AuthCard
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              busy={busy}
+              minPasswordLength={MIN_PASSWORD_LENGTH}
+              onSignIn={login}
+              onSignUp={signup}
+              onRequestReset={requestPasswordReset}
+              resetToken={resetToken}
+              setResetToken={setResetToken}
+              newPassword={newPassword}
+              setNewPassword={setNewPassword}
+              onConfirmReset={confirmPasswordReset}
+              twoFactorChallenge={twoFactorChallenge}
+              twoFactorCode={twoFactorCode}
+              setTwoFactorCode={setTwoFactorCode}
+              onVerifyTwoFactor={verifyTwoFactor}
+              onExplainWithoutAccount={() => setScreen("reports")}
+            />
+          )
         ) : null}
 
 
@@ -877,7 +875,7 @@ export default function App() {
                 </Text>
               </View>
             ) : null}
-            {analysis ? <Text style={styles.bodyText}>Risk: {analysis.risk_level} · Status: {analysis.status}</Text> : null}
+            {analysis ? <Text style={styles.bodyText}>Saved to your account.</Text> : null}
           </View>
         ) : null}
 
@@ -1262,7 +1260,7 @@ function ActionButton({ label, onPress, disabled = false, variant = "primary" }:
 const INK = "#111314";
 const SOFT = "#5d605f";
 const LINE = "#e2dcd2";
-const PAPER = "#f7f4ef";
+const PAPER = "#f6f4ef";
 const TEAL = "#0f766e";
 
 const styles = StyleSheet.create({
@@ -1282,7 +1280,7 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 120, textAlignVertical: "top" },
   textAreaSmall: { minHeight: 88, textAlignVertical: "top" },
   buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-  button: { minHeight: 46, justifyContent: "center", borderRadius: 999, backgroundColor: INK, paddingHorizontal: 20, paddingVertical: 10 },
+  button: { minHeight: 46, justifyContent: "center", borderRadius: 999, backgroundColor: TEAL, paddingHorizontal: 20, paddingVertical: 10 },
   disabledButton: { backgroundColor: "#b9b4ac" },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   secondaryButton: { backgroundColor: "#fff", borderWidth: 1, borderColor: LINE },
@@ -1291,11 +1289,11 @@ const styles = StyleSheet.create({
   bigButton: { alignSelf: "stretch", alignItems: "center", minHeight: 52 },
   tabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 4, borderRadius: 24, borderWidth: 1, borderColor: LINE, backgroundColor: "rgba(255,255,255,0.6)" },
   tab: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
-  activeTab: { backgroundColor: INK },
+  activeTab: { backgroundColor: TEAL },
   tabText: { color: SOFT, fontWeight: "700", fontSize: 14 },
   activeTabText: { color: "#fff" },
   planPill: { minHeight: 44, justifyContent: "center", borderRadius: 999, borderWidth: 1, borderColor: LINE, backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 10 },
-  activePlanPill: { borderColor: INK, backgroundColor: INK },
+  activePlanPill: { borderColor: TEAL, backgroundColor: TEAL },
   list: { gap: 8 },
   divider: { height: 1, backgroundColor: LINE, marginVertical: 4 },
   fileBadge: { borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: "#fbf9f5", padding: 12 },
