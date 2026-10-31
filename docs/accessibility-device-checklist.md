@@ -24,6 +24,7 @@ Device: ________  OS version: ________  App build: ________  Tester: ________  D
 - "What happens to my data?" opens and every line is read.
 - Language switch to Español: the screen reader switches to Spanish pronunciation, or at least reads the Spanish text.
 - Listen button (website): starts and stops; it does not talk over the screen reader in a confusing way.
+- Listen button (app, iPhone and Android): nothing plays until it is pressed; Stop works; speech stops when you switch language, leave the report, or lock the phone; results like "6.8 mmol/L" and "<0.04" are said as "6 point 8 millimoles per liter" and "less than 0 point 0 4"; Spanish uses a Spanish voice. Check once with the iPhone ring/silent switch on silent and note what happens.
 - Doctor brief and share sheet open, and the screen reader can reach their buttons.
 - Medicine reminders: adding a reminder, the time picker and "Mark taken" all work with the screen reader.
 - No button is announced only as "button" or "unlabelled".
