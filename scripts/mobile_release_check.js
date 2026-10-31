@@ -25,7 +25,8 @@ function assertFile(relativePath) {
 
 const app = readJson("app.json").expo;
 const packageJson = readJson("package.json");
-const appSource = readText("App.tsx");
+// The account screen lives in src/AuthCard.tsx; its checks read both files.
+const appSource = readText("App.tsx") + "\n" + readText("src/AuthCard.tsx") + "\n" + readText("src/TabBar.tsx");
 const apiClient = readText("src/apiClient.ts");
 const safetyRules = readText("src/safetyRules.md");
 const privacyChecklist = readText("src/appStorePrivacyChecklist.md");
@@ -76,7 +77,7 @@ assert(appSource.includes("SecureStore"), "App must use secure token storage");
 assert(appSource.includes("Constants.expoConfig?.extra?.apiBaseUrl"), "App must read API URL from Expo config");
 assert(!appSource.includes('const API_BASE_URL = "https://carewise-api.onrender.com"'), "App must not hardcode production API URL only in source");
 assert(!appSource.includes('useState("patient@example.com")'), "Production app must not prefill demo email addresses.");
-assert(appSource.includes('placeholder="Email address"'), "Account email field must use a placeholder instead of a prefilled value.");
+assert(/placeholder="you@example\.com" accessibilityLabel="Email address"/.test(appSource) && !/useState\("[^"]+@[^"]+"\)/.test(appSource), "Account email field must use a placeholder instead of a prefilled value.");
 assert(appSource.includes("Enter your email and password before signing in."), "App must validate missing sign-in credentials.");
 assert(appSource.includes("emailValidationMessage"), "App must validate email format before auth requests.");
 assert(appSource.includes("Enter a valid email address."), "App must show a friendly invalid-email message.");
@@ -89,7 +90,7 @@ assert(appSource.includes("uploadReportFile"), "App must call mobile file upload
 assert(appSource.includes('accessibilityRole="button"'), "Action buttons must expose accessibility role.");
 assert(appSource.includes("accessibilityLabel={label}"), "Action buttons must expose accessibility labels.");
 assert(appSource.includes('accessibilityRole="tab"'), "Navigation tabs must expose accessibility role.");
-assert(appSource.includes("accessibilityState={{ selected: screen === item.key }}"), "Navigation tabs must expose selected state.");
+assert(appSource.includes("accessibilityState={{ selected }}") && appSource.includes("current={screen}"), "Navigation tabs must expose selected state.");
 assert(appSource.includes("accessibilityState={{ disabled }}"), "Disabled buttons must expose disabled state.");
 assert(appSource.includes('accessibilityLabel="Email address"'), "Email field must expose an accessibility label.");
 assert(appSource.includes('accessibilityLabel="Readable report text"'), "Report text field must expose an accessibility label.");
