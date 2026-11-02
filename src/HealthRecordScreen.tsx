@@ -1,3 +1,4 @@
+import { colors } from "./theme";
 import { useEffect, useState } from "react";
 import { Pressable, Share, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -216,7 +217,7 @@ export default function HealthRecordScreen({ extraPeople = [] }: { extraPeople?:
 }
 
 const TYPE_COLORS: Record<HealthRecordType, string> = {
-  condition: "#0f766e",
+  condition: colors.brand,
   medicine: "#1d4ed8",
   reaction: "#9a3b17",
   habit: "#854d0e",
@@ -247,36 +248,36 @@ function Button({ label, onPress, disabled = false, secondary = false }: { label
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 12, borderRadius: 24, borderWidth: 1, borderColor: "#e6e3dc", backgroundColor: "#fff", padding: 18 },
-  eyebrow: { color: "#45504d", fontSize: 11, fontWeight: "700", letterSpacing: 1.4, textTransform: "uppercase" },
-  title: { color: "#15191a", fontSize: 24, fontWeight: "800", letterSpacing: -0.6 },
-  sectionTitle: { color: "#15191a", fontSize: 17, fontWeight: "800", marginTop: 6 },
+  card: { gap: 12, borderRadius: 24, borderWidth: 1, borderColor: colors.line, backgroundColor: "#fff", padding: 18 },
+  eyebrow: { color: colors.ink2, fontSize: 11, fontWeight: "700", letterSpacing: 1.4, textTransform: "uppercase" },
+  title: { color: colors.ink, fontSize: 24, fontWeight: "800", letterSpacing: -0.6 },
+  sectionTitle: { color: colors.ink, fontSize: 17, fontWeight: "800", marginTop: 6 },
   body: { color: "#3e5450", fontSize: 14, lineHeight: 20 },
   small: { color: "#5b6e6a", fontSize: 12, lineHeight: 17 },
-  status: { color: "#0f766e", fontSize: 13, fontWeight: "600" },
+  status: { color: colors.brand, fontSize: 13, fontWeight: "600" },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  summaryCard: { borderRadius: 16, borderWidth: 1, borderColor: "#e6e3dc", padding: 12, gap: 4, backgroundColor: "#f3f2ee" },
+  summaryCard: { borderRadius: 16, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 4, backgroundColor: colors.surface2 },
   summaryWarn: { borderColor: "#e7b7a3", backgroundColor: "#fdf5f1" },
-  summaryTitle: { color: "#15191a", fontSize: 15, fontWeight: "700" },
+  summaryTitle: { color: colors.ink, fontSize: 15, fontWeight: "700" },
   warnText: { color: "#9a3b17" },
-  input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: "#e6e3dc", padding: 12, backgroundColor: "#ffffff", color: "#14302c" },
+  input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: colors.line, padding: 12, backgroundColor: "#ffffff", color: "#14302c" },
   notes: { minHeight: 80, textAlignVertical: "top" },
   switchRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  pill: { borderRadius: 999, borderWidth: 1, borderColor: "#e6e3dc", backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 8 },
-  pillActive: { borderColor: "#0f766e", backgroundColor: "#0f766e" },
+  pill: { borderRadius: 999, borderWidth: 1, borderColor: colors.line, backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 8 },
+  pillActive: { borderColor: colors.brand, backgroundColor: colors.brand },
   pillText: { color: "#3e5450", fontWeight: "600" },
   pillTextActive: { color: "#fff" },
-  button: { minHeight: 46, justifyContent: "center", borderRadius: 999, backgroundColor: "#0f766e", paddingHorizontal: 20, paddingVertical: 10 },
-  buttonSecondary: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#e6e3dc" },
+  button: { minHeight: 46, justifyContent: "center", borderRadius: 999, backgroundColor: colors.brand, paddingHorizontal: 20, paddingVertical: 10 },
+  buttonSecondary: { backgroundColor: "#fff", borderWidth: 1, borderColor: colors.line },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: "#fff", fontWeight: "700" },
-  buttonTextSecondary: { color: "#15191a" },
+  buttonTextSecondary: { color: colors.ink },
   year: { gap: 8 },
-  yearTitle: { color: "#15191a", fontSize: 17, fontWeight: "800", marginTop: 6 },
-  item: { flexDirection: "row", gap: 10, borderRadius: 16, borderWidth: 1, borderColor: "#e6e3dc", borderLeftWidth: 4, padding: 12, backgroundColor: "#fff" },
+  yearTitle: { color: colors.ink, fontSize: 17, fontWeight: "800", marginTop: 6 },
+  item: { flexDirection: "row", gap: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.line, borderLeftWidth: 4, padding: 12, backgroundColor: "#fff" },
   itemText: { flex: 1, gap: 2 },
   chip: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
   itemName: { color: "#14302c", fontSize: 15, fontWeight: "700" },
-  remove: { alignSelf: "center", borderRadius: 999, borderWidth: 1, borderColor: "#e6e3dc", paddingHorizontal: 10, paddingVertical: 8 },
-  removeText: { color: "#15191a", fontWeight: "600", fontSize: 13 }
+  remove: { alignSelf: "center", borderRadius: 999, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 10, paddingVertical: 8 },
+  removeText: { color: colors.ink, fontWeight: "600", fontSize: 13 }
 });

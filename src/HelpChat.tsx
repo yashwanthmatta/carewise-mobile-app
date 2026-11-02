@@ -1,3 +1,4 @@
+import { colors } from "./theme";
 import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from "react-native";
 import { builtInHelpAnswer } from "./helpAnswers";
@@ -157,30 +158,30 @@ export function HelpChat({ baseUrl, language, reportSummary, analysis }: { baseU
 
 const styles = StyleSheet.create({
   // A small round button that sits above the bottom tab bar, clear of the tabs.
-  launcher: { position: "absolute", right: 16, bottom: 92, width: 52, height: 52, alignItems: "center", justifyContent: "center", borderRadius: 26, backgroundColor: "#0f766e", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  launcher: { position: "absolute", right: 16, bottom: 92, width: 52, height: 52, alignItems: "center", justifyContent: "center", borderRadius: 26, backgroundColor: colors.brand, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   launcherMark: { color: "#fff", textAlign: "center", fontSize: 22, fontWeight: "800" },
   backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(17,19,20,0.35)" },
   sheet: { height: "82%", backgroundColor: "#fff", borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: "hidden" },
-  head: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 16, backgroundColor: "#0f766e" },
+  head: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 16, backgroundColor: colors.brand },
   title: { color: "#fff", fontSize: 17, fontWeight: "700" },
   sub: { color: "rgba(255,255,255,0.72)", fontSize: 13, marginTop: 2 },
   close: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" },
   closeText: { color: "#fff", fontSize: 22, lineHeight: 24 },
-  log: { flex: 1, backgroundColor: "#f9f8f5" },
+  log: { flex: 1, backgroundColor: colors.bg },
   bubble: { maxWidth: "86%", paddingVertical: 10, paddingHorizontal: 13, borderRadius: 16, fontSize: 15, lineHeight: 21, overflow: "hidden" },
-  assistant: { alignSelf: "flex-start", backgroundColor: "#fff", borderWidth: 1, borderColor: "#e6e3dc", color: "#15191a" },
-  user: { alignSelf: "flex-end", backgroundColor: "#0f766e", color: "#fff" },
+  assistant: { alignSelf: "flex-start", backgroundColor: "#fff", borderWidth: 1, borderColor: colors.line, color: colors.ink },
+  user: { alignSelf: "flex-end", backgroundColor: colors.brand, color: "#fff" },
   urgent: { backgroundColor: "#fdecea", borderColor: "#f2b8b0", color: "#7a1d12", fontWeight: "600" },
   pending: { color: "#6b6f72", fontStyle: "italic" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: "#e6e3dc", backgroundColor: "#fff" },
-  chipText: { fontSize: 14, color: "#15191a" },
-  shareRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1, borderColor: "#e6e3dc" },
-  checkbox: { fontSize: 18, color: "#0f766e" },
-  shareText: { fontSize: 14, color: "#15191a", flex: 1 },
-  form: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 12, borderTopWidth: 1, borderColor: "#e6e3dc" },
-  input: { flex: 1, minHeight: 44, maxHeight: 120, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: "#e6e3dc", borderRadius: 14, fontSize: 16 },
-  send: { minHeight: 44, paddingHorizontal: 16, borderRadius: 14, backgroundColor: "#0f766e", justifyContent: "center" },
+  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: colors.line, backgroundColor: "#fff" },
+  chipText: { fontSize: 14, color: colors.ink },
+  shareRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1, borderColor: colors.line },
+  checkbox: { fontSize: 18, color: colors.brand },
+  shareText: { fontSize: 14, color: colors.ink, flex: 1 },
+  form: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 12, borderTopWidth: 1, borderColor: colors.line },
+  input: { flex: 1, minHeight: 44, maxHeight: 120, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 14, fontSize: 16 },
+  send: { minHeight: 44, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.brand, justifyContent: "center" },
   sendText: { color: "#fff", fontWeight: "600", fontSize: 15 },
   fine: { fontSize: 12, color: "#6b6f72", paddingHorizontal: 16, paddingBottom: 16 },
 });

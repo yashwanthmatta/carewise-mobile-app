@@ -1,3 +1,4 @@
+import { colors } from "./theme";
 import { useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import {
@@ -174,19 +175,19 @@ export function EarlyAccessForm({ baseUrl, language }: { baseUrl: string; langua
 }
 
 const styles = StyleSheet.create({
-  box: { gap: 10, borderRadius: 8, borderWidth: 1, borderColor: "#e6e3dc", backgroundColor: "#f3f2ee", padding: 12, marginTop: 10 },
+  box: { gap: 10, borderRadius: 8, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface2, padding: 12, marginTop: 10 },
   title: { color: "#14302c", fontSize: 15, fontWeight: "800" },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   stack: { gap: 8 },
-  choice: { borderRadius: 8, borderWidth: 1, borderColor: "#e6e3dc", backgroundColor: "#ffffff", paddingVertical: 9, paddingHorizontal: 14, minHeight: 44, justifyContent: "center" },
-  choiceSelected: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
+  choice: { borderRadius: 8, borderWidth: 1, borderColor: colors.line, backgroundColor: "#ffffff", paddingVertical: 9, paddingHorizontal: 14, minHeight: 44, justifyContent: "center" },
+  choiceSelected: { backgroundColor: colors.brand, borderColor: colors.brand },
   choiceText: { color: "#14302c", fontWeight: "700" },
   choiceTextSelected: { color: "#ffffff" },
-  input: { minHeight: 46, borderRadius: 8, borderWidth: 1, borderColor: "#e6e3dc", padding: 12, backgroundColor: "#ffffff" },
+  input: { minHeight: 46, borderRadius: 8, borderWidth: 1, borderColor: colors.line, padding: 12, backgroundColor: "#ffffff" },
   small: { color: "#3e5450", fontSize: 13 },
   consent: { flexDirection: "row", alignItems: "center", gap: 10 },
   flex: { flex: 1 },
-  button: { borderRadius: 999, backgroundColor: "#0f766e", paddingVertical: 12, alignItems: "center", minHeight: 44, justifyContent: "center" },
+  button: { borderRadius: 999, backgroundColor: colors.brand, paddingVertical: 12, alignItems: "center", minHeight: 44, justifyContent: "center" },
   buttonText: { color: "#ffffff", fontWeight: "800" },
   disabled: { opacity: 0.6 },
 });
