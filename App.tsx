@@ -48,6 +48,7 @@ import { SCAN_TEXT } from "./src/scanReport";
 import { EarlyAccessForm, FeedbackCard } from "./src/FeedbackCard";
 import { trackUsage } from "./src/productSignals";
 import { HelpChat } from "./src/HelpChat";
+import { HealthGuide } from "./src/HealthGuide";
 import { buildShareSnapshot, shareViewerLink } from "./src/doctorShare";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? "https://carewise-api.onrender.com";
@@ -56,7 +57,7 @@ const ACCESS_TOKEN_KEY = "carewise.accessToken";
 const REFRESH_TOKEN_KEY = "carewise.refreshToken";
 const MIN_PASSWORD_LENGTH = 12;
 
-type Screen = "dashboard" | "account" | "reports" | "record" | "labs" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
+type Screen = "dashboard" | "account" | "reports" | "record" | "labs" | "guide" | "recommendations" | "doctors" | "insurance" | "subscriptions" | "legal";
 
 // Most-used first: explain a report, keep the family record, then the account.
 const screens: { key: Screen; label: string }[] = [
@@ -64,6 +65,7 @@ const screens: { key: Screen; label: string }[] = [
   { key: "record", label: "Record" },
   { key: "labs", label: "Labs" },
   { key: "account", label: "Account" },
+  { key: "guide", label: "AI Health Guide" },
   { key: "recommendations", label: "Care" },
   { key: "doctors", label: "Doctors" },
   { key: "insurance", label: "Insurance" },
@@ -100,6 +102,7 @@ const TAB_ICONS: Record<Screen, Pick<TabItem<Screen>, "icon" | "activeIcon">> = 
   record: { icon: "heart-outline", activeIcon: "heart" },
   labs: { icon: "pulse-outline", activeIcon: "pulse" },
   account: { icon: "person-circle-outline", activeIcon: "person-circle" },
+  guide: { icon: "chatbubbles-outline", activeIcon: "chatbubbles" },
   recommendations: { icon: "leaf-outline", activeIcon: "leaf" },
   doctors: { icon: "medkit-outline", activeIcon: "medkit" },
   insurance: { icon: "shield-checkmark-outline", activeIcon: "shield-checkmark" },
@@ -791,10 +794,19 @@ export default function App() {
       <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.brand}>FollowThrough Health</Text>
-          <Text style={styles.subtitle}>Your health reports, explained clearly.</Text>
+          <Text style={styles.subtitle}>Your health reports, finally understandable.</Text>
         </View>
 
         {status && (status !== START_HINT || screen === "reports") ? <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text> : null}
+
+        {screen === "guide" ? (
+          <HealthGuide
+            baseUrl={API_BASE_URL}
+            language={reportLanguage === "es" ? "es" : "en"}
+            analysis={localAnalysis}
+            reportSummary={localAnalysis && !localAnalysis.noData ? buildDoctorBriefText(localAnalysis, reportPerson.trim() || "Me") : ""}
+          />
+        ) : null}
 
         {screen === "account" ? (
           session ? (

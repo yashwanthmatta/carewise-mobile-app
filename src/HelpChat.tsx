@@ -1,7 +1,7 @@
 import { colors } from "./theme";
 import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from "react-native";
-import { builtInHelpAnswer } from "./helpAnswers";
+import { EMERGENCY_PATTERN, guideReply } from "./guideReply";
 import type { ReportAnalysis } from "./reportAnalysis";
 
 type Turn = { role: "user" | "assistant"; content: string };
@@ -40,7 +40,7 @@ const TEXT = {
   },
 };
 
-export const EMERGENCY_PATTERN = /(chest pain|can'?t breathe|cannot breathe|trouble breathing|short of breath|stroke|face droop|slurred speech|passed out|unconscious|fainted|seizure|severe bleeding|bleeding (a lot|heavily)|overdose|suicid|kill myself|end my life|self[- ]harm|dolor (de|en el) pecho|no puedo respirar|derrame|desmay|convulsi|sangrado (fuerte|abundante)|quitarme la vida)/i;
+export { EMERGENCY_PATTERN };
 
 // Floating help button with a chat sheet. Nothing typed here is stored.
 export function HelpChat({ baseUrl, language, reportSummary, analysis }: { baseUrl: string; language: Language; reportSummary: string; analysis: ReportAnalysis | null }) {
@@ -65,29 +65,11 @@ export function HelpChat({ baseUrl, language, reportSummary, analysis }: { baseU
       return;
     }
     setWaiting(true);
-    let reply = "";
-    const builtIn = () => {
-      const answer = builtInHelpAnswer(clean, language, analysis);
-      setShowTopics(answer.showTopics);
-      return answer.reply;
-    };
-    try {
-      const response = await fetch(`${baseUrl}/assistant/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: next.slice(-12),
-          report_summary: share ? reportSummary.slice(0, 4000) : "",
-          language,
-          source: "mobile",
-        }),
-      });
-      if (response.status === 429) reply = t.busy;
-      else if (!response.ok) reply = builtIn();
-      else reply = String((await response.json()).reply || "") || builtIn();
-    } catch {
-      reply = builtIn();
-    }
+    // Same pipeline as the AI Health Guide: fixed "not a doctor" and "can't diagnose" answers,
+    // the online helper, and built-in answers when it cannot be reached.
+    const answer = await guideReply({ question: clean, history: turns, language, baseUrl, analysis, reportSummary, shareReport: share });
+    setShowTopics(Boolean(answer.showTopics));
+    const reply = answer.reply;
     setTurns([...next, { role: "assistant", content: reply }]);
     setWaiting(false);
   }
