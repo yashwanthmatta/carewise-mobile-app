@@ -1,16 +1,23 @@
 // FollowThrough Health design tokens, mirrored from the website's ui.css
-// (see docs/followthrough-design-system.md in carewise-frontend).
+// (premium design system, see docs/premium-redesign-progress.md in carewise-frontend).
+// Warm ivory page, soft cream panels, warm white cards, charcoal text, teal actions,
+// terracotta accents (large text and icons; terracottaInk for small text, 5.4:1 on ivory).
+import { Platform } from "react-native";
+
 export const colors = {
-  bg: "#f8fafc",
-  surface: "#ffffff",
-  surface2: "#f1f5f9",
-  surfaceBrand: "#f0fdfa",
-  ink: "#1e293b",
-  ink2: "#475569",
-  ink3: "#64748b",
-  line: "#e2e8f0",
-  lineStrong: "#cbd5e1",
-  placeholder: "#64748b",
+  bg: "#FAF6EE",
+  surface: "#FFFDF8",
+  surface2: "#F3EDE2",
+  surfaceBrand: "#EEF6F3",
+  ink: "#292929",
+  ink2: "#4A4540",
+  ink3: "#635C55",
+  line: "#E6DDCE",
+  lineStrong: "#D3C7B4",
+  placeholder: "#635C55",
+  terracotta: "#B85C38",
+  terracottaInk: "#A14E2E",
+  terracottaSoft: "#F6E6DC",
   brand: "#0f766e",
   brandStrong: "#0b5c55",
   brandSoft: "#ccfbf1",
@@ -31,4 +38,9 @@ export const type = {
   body: 16,
   small: 14,
   caption: 13
+} as const;
+
+// Serif headings from the phone's own fonts (no download): Georgia on iPhone, the system serif on Android.
+export const fonts = {
+  serif: Platform.select({ ios: "Georgia", android: "serif", default: "Georgia" }) as string,
 } as const;
