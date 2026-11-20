@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as DocumentPicker from "expo-document-picker";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "./src/secureStorage";
 import Constants from "expo-constants";
 import {
   CareWiseApiClient,
