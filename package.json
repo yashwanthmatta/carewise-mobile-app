@@ -33,7 +33,8 @@
     "signals:check": "node scripts/product_signals_check.js",
     "reminders:check": "node scripts/reminder_zones_check.js",
     "guide:check": "node scripts/guide_check.js",
-    "web:check": "node scripts/web_preview_check.js"
+    "web:check": "node scripts/web_preview_check.js",
+    "web:listen-smoke": "node scripts/web_listen_smoke.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
