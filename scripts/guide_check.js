@@ -54,6 +54,20 @@ const base = { baseUrl: "https://api.example.test", history: [], language: "en",
   const analysis = analyzeReportTextLocally("Creatinine 2.3 mg/dL 0.6-1.3");
   const result = await guideReply({ ...base, analysis, question: "What does my result mean?", fetcher: offline });
   check(/creatinine/i.test(result.reply), "built-in answer can explain the open report");
+  // The "What is Dolo 650?" failure (owner, 18 Nov): with the online helper down and no built-in answer,
+  // say plainly that it is unavailable, in the website's words, instead of the topic menu. Nothing is guessed.
+  const down = async () => ({ ok: false, status: 503, json: async () => ({ detail: "The health assistant is temporarily unavailable. Please try again shortly." }) });
+  for (const [label, fetcher] of [["server 503", down], ["network down", offline]]) {
+    const dolo = await guideReply({ ...base, question: "What is Dolo 650?", fetcher });
+    check(
+      dolo.unavailable === true && dolo.reply.startsWith("The health assistant is temporarily unavailable. Please try again shortly.") && /pharmacist/.test(dolo.reply) && !/Here's what I can help with/.test(dolo.reply) && !/\bmg\b|paracetamol|acetaminophen/i.test(dolo.reply),
+      `${label}: unknown question says the assistant is unavailable, guesses nothing`,
+    );
+  }
+  const doloEs = await guideReply({ ...base, language: "es", question: "¿Qué es Dolo 650?", fetcher: down });
+  check(/no está disponible/.test(doloEs.reply) && doloEs.unavailable === true, "server 503 in Spanish: the same message in Spanish");
+  const stillUseful = await guideReply({ ...base, question: "What does eGFR mean?", fetcher: down });
+  check(!stillUseful.unavailable && /kidney/i.test(stillUseful.reply), "server 503: a specific built-in answer is still given");
   if (failed) {
     console.error(`${failed} guide check(s) failed`);
     process.exit(1);
