@@ -30,6 +30,7 @@ try {
   run("Report cases", "npm", ["run", "report:check"]);
   run("Reminder time zones", "npm", ["run", "reminders:check"]);
   run("AI Health Guide answers", "npm", ["run", "guide:check"]);
+  run("Read-aloud wording", "npm", ["run", "speech:check"]);
   run("Product signals", "npm", ["run", "signals:check"]);
   run("Web preview", "npm", ["run", "web:check"]);
   run("Offline EAS preflight", "npm", ["run", "build:preflight"], {
