@@ -31,6 +31,7 @@ try {
   run("Reminder time zones", "npm", ["run", "reminders:check"]);
   run("AI Health Guide answers", "npm", ["run", "guide:check"]);
   run("Product signals", "npm", ["run", "signals:check"]);
+  run("Web preview", "npm", ["run", "web:check"]);
   run("Offline EAS preflight", "npm", ["run", "build:preflight"], {
     env: { CAREWISE_SKIP_BACKEND_CHECK: "1" },
   });

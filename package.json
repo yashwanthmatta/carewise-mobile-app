@@ -31,7 +31,8 @@
     "submit:ios:production": "eas submit --platform ios --profile production",
     "signals:check": "node scripts/product_signals_check.js",
     "reminders:check": "node scripts/reminder_zones_check.js",
-    "guide:check": "node scripts/guide_check.js"
+    "guide:check": "node scripts/guide_check.js",
+    "web:check": "node scripts/web_preview_check.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -43,7 +44,9 @@
     "expo-secure-store": "~58.0.2",
     "expo-status-bar": "~58.0.3",
     "react": "^19.3.0",
-    "react-native": "^0.88.0"
+    "react-dom": "^19.3.0",
+    "react-native": "^0.88.0",
+    "react-native-web": "~0.21.4"
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.3",
